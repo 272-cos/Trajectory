@@ -306,6 +306,55 @@ describe('SL-04 – HAMR gap values use containing bracket (no interpolation)', 
   })
 })
 
+// ─── SL-05 / EC-06: WHtR rounded to 2 decimals before lookup ─────────────────
+// Raw ratios like 0.494 must round to 0.49 BEFORE comparison against the table,
+// not after – otherwise 0.494 would fall in the 0.50 bracket (wrong row).
+//
+// WHTR_TABLE (universal, not age/gender specific):
+//   threshold 0.49 → 20.0 pts
+//   threshold 0.50 → 19.0 pts
+//   threshold 0.51 → 18.0 pts
+//   threshold 0.60 →  0.0 pts  ← chart worst
+
+describe('SL-05 / EC-06 – WHtR rounded to 2 decimals before lookup', () => {
+  it('0.494 → rounds to 0.49 → 20.0 pts (not 19.0 from 0.50 bracket)', () => {
+    const result = lookupScore(EXERCISES.WHTR, 0.494, M, U25)
+    expect(result.points).toBe(20.0)
+    expect(result.points).not.toBe(19.0)  // would be wrong without rounding
+  })
+
+  it('0.495 → rounds to 0.50 → 19.0 pts (midpoint rounds up)', () => {
+    const result = lookupScore(EXERCISES.WHTR, 0.495, M, U25)
+    expect(result.points).toBe(19.0)
+  })
+
+  it('0.501 → rounds to 0.50 → 19.0 pts (not 18.0 from 0.51 bracket)', () => {
+    const result = lookupScore(EXERCISES.WHTR, 0.501, M, U25)
+    expect(result.points).toBe(19.0)
+    expect(result.points).not.toBe(18.0)  // would be wrong without rounding
+  })
+
+  it('0.504 → rounds to 0.50 → 19.0 pts', () => {
+    const result = lookupScore(EXERCISES.WHTR, 0.504, M, U25)
+    expect(result.points).toBe(19.0)
+  })
+
+  it('0.49 (exact threshold) → 20.0 pts', () => {
+    const result = lookupScore(EXERCISES.WHTR, 0.49, M, U25)
+    expect(result.points).toBe(20.0)
+  })
+
+  it('0.50 (exact threshold) → 19.0 pts', () => {
+    const result = lookupScore(EXERCISES.WHTR, 0.50, M, U25)
+    expect(result.points).toBe(19.0)
+  })
+
+  it('0.51 (exact threshold) → 18.0 pts', () => {
+    const result = lookupScore(EXERCISES.WHTR, 0.51, M, U25)
+    expect(result.points).toBe(18.0)
+  })
+})
+
 // ─── Mid-table lookups ────────────────────────────────────────────────────────
 
 describe('lookupScore – mid-table values', () => {

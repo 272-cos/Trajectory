@@ -35,6 +35,11 @@ export function lookupScore(exercise, value, gender, ageGroup) {
     return null
   }
 
+  // SL-05 / EC-06: WHtR is rounded to 2 decimals before lookup
+  // e.g. raw ratio 0.494 → 0.49 (20.0 pts), 0.495 → 0.50 (19.0 pts)
+  const lookupValue =
+    exercise === EXERCISES.WHTR ? Math.round(value * 100) / 100 : value
+
   // For times (run, plank): lower is better, threshold is MAX time
   // For reps (pushups, situps): higher is better, threshold is MIN reps
   // For WHtR: lower is better, threshold is MAX ratio
@@ -63,7 +68,7 @@ export function lookupScore(exercise, value, gender, ageGroup) {
   if (isTimeBasedExercise || exercise === EXERCISES.WHTR) {
     // Lower is better – table sorted ascending (fastest/lowest first = max points)
     for (let i = 0; i < table.length; i++) {
-      if (value <= table[i].threshold) {
+      if (lookupValue <= table[i].threshold) {
         points = table[i].points
         matched = true
         break
@@ -76,7 +81,7 @@ export function lookupScore(exercise, value, gender, ageGroup) {
   } else if (isRepsBasedExercise || isPlank) {
     // Higher is better – table sorted descending (highest reps/time first = max points)
     for (let i = 0; i < table.length; i++) {
-      if (value >= table[i].threshold) {
+      if (lookupValue >= table[i].threshold) {
         points = table[i].points
         matched = true
         break
