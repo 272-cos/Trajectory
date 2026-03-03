@@ -38,8 +38,8 @@
 
 **Design references:** SL-01 through SL-10, EC-01, EC-02, EC-06, EC-07, EC-08, EC-10, EC-23
 
-- [ ] **SL-01 / EC-01:** Reps/time above chart max → clamp to max points (never 0)
-- [ ] **SL-02:** Reps/time below chart min → min row points (not 0, unless 0 reps)
+- [X] **SL-01 / EC-01:** Reps/time above chart max → clamp to max points (never 0)
+- [X] **SL-02:** Reps/time below chart min → min row points (not 0, unless 0 reps)
 - [ ] **SL-10 / EC-10:** 0 reps on non-exempt → chart min points AND component failure
 - [ ] **SL-03:** Run time boundary: listed time is slowest valid time for that row (inclusive)
 - [ ] **SL-04:** HAMR gaps between ranges use containing bracket (no interpolation)
