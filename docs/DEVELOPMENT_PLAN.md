@@ -42,7 +42,7 @@
 - [X] **SL-02:** Reps/time below chart min → min row points (not 0, unless 0 reps)
 - [X] **SL-10 / EC-10:** 0 reps on non-exempt → chart min points AND component failure
 - [X] **SL-03:** Run time boundary: listed time is slowest valid time for that row (inclusive)
-- [ ] **SL-04:** HAMR gaps between ranges use containing bracket (no interpolation)
+- [X] **SL-04:** HAMR gaps between ranges use containing bracket (no interpolation)
 - [ ] **SL-05 / EC-06:** WHtR rounded to 2 decimals before lookup (`0.495 → 0.50`)
 - [ ] **SL-06:** Composite = `round((earned/possible)*100, 1)` — match official rounding
 - [ ] **SL-07:** Walk = 0 earned, 0 possible for cardio; composite from remaining 3

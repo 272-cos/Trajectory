@@ -256,6 +256,56 @@ describe('SL-03 / EC-07 – run time at exact boundary earns that row\'s points 
   })
 })
 
+// ─── SL-04: HAMR gaps use containing bracket, no interpolation ───────────────
+// HAMR is scored higher-is-better; the table has discrete thresholds.
+// A value landing in the gap between two rows earns the lower bracket's points.
+//
+// Male U25 HAMR rows used here:
+//   threshold 100 → 50.0 pts
+//   threshold  94 → 49.4 pts  (gap: 95–99)
+//   threshold  45 → 32.5 pts
+//   threshold  42 → 31.0 pts  (gap: 43–44)
+//   threshold  39 → 29.5 pts  ← chart worst
+
+describe('SL-04 – HAMR gap values use containing bracket (no interpolation)', () => {
+  it('43 shuttles (gap between 42 and 45) → 31.0 pts, not interpolated 31.5', () => {
+    const result = lookupScore(EXERCISES.HAMR, 43, M, U25)
+    expect(result.points).toBe(31.0)
+    expect(result.points).not.toBe(31.5)  // confirms no interpolation
+  })
+
+  it('44 shuttles (gap between 42 and 45) → 31.0 pts', () => {
+    const result = lookupScore(EXERCISES.HAMR, 44, M, U25)
+    expect(result.points).toBe(31.0)
+  })
+
+  it('45 shuttles (exact threshold) → 32.5 pts (bracket boundary is inclusive)', () => {
+    const result = lookupScore(EXERCISES.HAMR, 45, M, U25)
+    expect(result.points).toBe(32.5)
+  })
+
+  it('46 shuttles (1 above lower boundary of 45–47 range) → 32.5 pts', () => {
+    const result = lookupScore(EXERCISES.HAMR, 46, M, U25)
+    expect(result.points).toBe(32.5)
+  })
+
+  it('97 shuttles (gap between 94 and 100) → 49.4 pts, not interpolated ~49.8', () => {
+    const result = lookupScore(EXERCISES.HAMR, 97, M, U25)
+    expect(result.points).toBe(49.4)
+    expect(result.points).not.toBeCloseTo(49.8, 1)  // confirms no interpolation
+  })
+
+  it('99 shuttles (gap between 94 and 100) → 49.4 pts', () => {
+    const result = lookupScore(EXERCISES.HAMR, 99, M, U25)
+    expect(result.points).toBe(49.4)
+  })
+
+  it('40 shuttles (gap between 39 and 42) → 29.5 pts (worst bracket)', () => {
+    const result = lookupScore(EXERCISES.HAMR, 40, M, U25)
+    expect(result.points).toBe(29.5)
+  })
+})
+
 // ─── Mid-table lookups ────────────────────────────────────────────────────────
 
 describe('lookupScore – mid-table values', () => {
