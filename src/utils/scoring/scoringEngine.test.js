@@ -758,6 +758,74 @@ describe('EC-02 – getProjectionAgeGroup uses target date, not today', () => {
   })
 })
 
+// ─── EC-07: Exact boundary value is inclusive (gets the tier, not the one below) ─
+// Time-based (run): lookupValue <= threshold  → exact match → that tier's points
+// Reps-based (HAMR, pushups): lookupValue >= threshold → exact match → that tier's points
+// Male <25 reference values (from scoringTables.js):
+//   RUN_2MILE: 805s=50.0, 835s=49.4, 836s→48.8, 1185s=29.5
+//   HAMR:      100=50.0, 94=49.4, 93→48.8, 39=29.5
+//   PUSHUPS:   67=15.0, 66=14.9
+
+describe('EC-07 – exact boundary value is inclusive', () => {
+  // ─ 2-mile run (lower time = better; threshold is MAX time for the tier) ───────
+
+  it('run: exact best threshold 805s (13:25) → 50.0 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 805, M, U25).points).toBe(50.0)
+  })
+
+  it('run: one second over best threshold 806s → drops to 49.4 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 806, M, U25).points).toBe(49.4)
+  })
+
+  it('run: exact second-tier threshold 835s (13:55) → 49.4 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 835, M, U25).points).toBe(49.4)
+  })
+
+  it('run: one second over second-tier boundary 836s → drops to 48.8 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 836, M, U25).points).toBe(48.8)
+  })
+
+  it('run: one second under second-tier boundary 834s → stays at 49.4 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 834, M, U25).points).toBe(49.4)
+  })
+
+  it('run: exact worst threshold 1185s (19:45) → 29.5 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 1185, M, U25).points).toBe(29.5)
+  })
+
+  // ─ HAMR shuttle (higher reps = better; threshold is MIN shuttles for the tier) ─
+
+  it('HAMR: exact best threshold 100 shuttles → 50.0 pts', () => {
+    expect(lookupScore(EXERCISES.HAMR, 100, M, U25).points).toBe(50.0)
+  })
+
+  it('HAMR: one less than best 99 shuttles → drops to 49.4 pts', () => {
+    expect(lookupScore(EXERCISES.HAMR, 99, M, U25).points).toBe(49.4)
+  })
+
+  it('HAMR: exact tier boundary 94 shuttles → 49.4 pts', () => {
+    expect(lookupScore(EXERCISES.HAMR, 94, M, U25).points).toBe(49.4)
+  })
+
+  it('HAMR: one less than tier boundary 93 shuttles → drops to 48.8 pts', () => {
+    expect(lookupScore(EXERCISES.HAMR, 93, M, U25).points).toBe(48.8)
+  })
+
+  it('HAMR: exact worst threshold 39 shuttles → 29.5 pts', () => {
+    expect(lookupScore(EXERCISES.HAMR, 39, M, U25).points).toBe(29.5)
+  })
+
+  // ─ Push-ups (higher reps = better) ─────────────────────────────────────────
+
+  it('pushups: exact best threshold 67 reps → 15.0 pts', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, 67, M, U25).points).toBe(15.0)
+  })
+
+  it('pushups: exact adjacent boundary 66 reps → 14.9 pts', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, 66, M, U25).points).toBe(14.9)
+  })
+})
+
 // ─── Mid-table lookups ────────────────────────────────────────────────────────
 
 describe('lookupScore – mid-table values', () => {
