@@ -46,7 +46,7 @@
 - [X] **SL-05 / EC-06:** WHtR rounded to 2 decimals before lookup (`0.495 → 0.50`)
 - [X] **SL-06:** Composite = `round((earned/possible)*100, 1)` — match official rounding
 - [X] **SL-07:** Walk = 0 earned, 0 possible for cardio; composite from remaining 3
-- [ ] **SL-08:** Component pass/fail checked independently of composite
+- [X] **SL-08:** Component pass/fail checked independently of composite
 - [ ] **SL-09:** All components exempt → `composite = null`, no score
 - [ ] **EC-02:** Projection uses DOB + target date for age group (age-rollover)
 - [X] **EC-07:** Run time at exact boundary passes (inclusive)

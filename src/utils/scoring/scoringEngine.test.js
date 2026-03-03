@@ -507,6 +507,116 @@ describe('SL-07 – 2km walk excluded from composite', () => {
   })
 })
 
+// ─── SL-08: Component pass/fail checked independently of composite ────────────
+// Each component has its own minimum threshold (cardio/strength/core 60%,
+// bodyComp 50%). These are enforced at component level; the composite threshold
+// (75.0) is a separate, independent check.
+
+describe('SL-08 – component pass/fail independent of composite', () => {
+  it('high composite but one component fails minimum → overall fail', () => {
+    // Strength 8/15 = 53.3% – below 60% minimum; everything else excellent
+    const cardio   = makeComp(50, 50, true)
+    const bodyComp = makeComp(20, 20, true)
+    const strength = makeComp(8, 15, false) // 53.3% < 60%
+    const core     = makeComp(12, 15, true)
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    expect(result.composite).toBe(90.0)      // (90/100)*100
+    expect(result.compositePass).toBe(true)   // 90 ≥ 75
+    expect(result.allComponentsPass).toBe(false)
+    expect(result.pass).toBe(false)           // overall fails despite high composite
+  })
+
+  it('all components pass minimums but composite < 75 → overall fail', () => {
+    // Every component at exactly its minimum → composite = 58.0 < 75
+    const cardio   = makeComp(30, 50, true)  // 60%
+    const bodyComp = makeComp(10, 20, true)  // 50%
+    const strength = makeComp(9,  15, true)  // 60%
+    const core     = makeComp(9,  15, true)  // 60%
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    expect(result.composite).toBe(58.0)
+    expect(result.compositePass).toBe(false)
+    expect(result.allComponentsPass).toBe(true)
+    expect(result.pass).toBe(false)           // overall fails despite all components passing
+  })
+
+  it('all components pass + composite ≥ 75 → overall pass', () => {
+    const cardio   = makeComp(40, 50, true)
+    const bodyComp = makeComp(15, 20, true)
+    const strength = makeComp(12, 15, true)
+    const core     = makeComp(12, 15, true)
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    expect(result.composite).toBe(79.0)
+    expect(result.compositePass).toBe(true)
+    expect(result.allComponentsPass).toBe(true)
+    expect(result.pass).toBe(true)
+  })
+
+  it('result always exposes compositePass and allComponentsPass as separate fields', () => {
+    const result = calculateCompositeScore([
+      makeComp(50, 50, true),
+      makeComp(20, 20, true),
+      makeComp(15, 15, true),
+      makeComp(15, 15, true),
+    ])
+    expect(result).toHaveProperty('compositePass')
+    expect(result).toHaveProperty('allComponentsPass')
+  })
+
+  it('failedComponents lists only components that failed their minimum', () => {
+    // Two components fail; composite itself would pass (86/100 = 86%)
+    const cardio   = makeComp(50, 50, true)
+    const bodyComp = makeComp(20, 20, true)
+    const strength = makeComp(8,  15, false) // fails minimum
+    const core     = makeComp(8,  15, false) // fails minimum
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    expect(result.composite).toBe(86.0)
+    expect(result.compositePass).toBe(true)   // composite alone would pass
+    expect(result.failedComponents).toHaveLength(2)
+    expect(result.failedComponents).toContain(strength)
+    expect(result.failedComponents).toContain(core)
+    expect(result.pass).toBe(false)           // overall fails due to component failures
+  })
+
+  it('multiple component failures tracked individually in failedComponents', () => {
+    const cardio   = makeComp(30, 50, false) // fails
+    const bodyComp = makeComp(10, 20, false) // fails
+    const strength = makeComp(15, 15, true)
+    const core     = makeComp(15, 15, true)
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    expect(result.failedComponents).toHaveLength(2)
+    expect(result.failedComponents).toContain(cardio)
+    expect(result.failedComponents).toContain(bodyComp)
+    expect(result.allComponentsPass).toBe(false)
+  })
+
+  it('component pass field on calculateComponentScore result is not affected by other components', () => {
+    // Verify the pass flag on a component result reflects only that component's
+    // own performance – tested by checking two components separately
+    const passingStrength = calculateComponentScore(
+      { type: COMPONENTS.STRENGTH, exercise: EXERCISES.PUSHUPS, value: 67 }, // best possible
+      M, U25,
+    )
+    const failingStrength = calculateComponentScore(
+      { type: COMPONENTS.STRENGTH, exercise: EXERCISES.PUSHUPS, value: 1 }, // worst possible
+      M, U25,
+    )
+    expect(passingStrength.pass).toBe(true)
+    expect(failingStrength.pass).toBe(false)
+    // pass decisions are independent – checking one doesn't change the other
+    expect(passingStrength.pass).toBe(true)
+  })
+})
+
 // ─── Mid-table lookups ────────────────────────────────────────────────────────
 
 describe('lookupScore – mid-table values', () => {
