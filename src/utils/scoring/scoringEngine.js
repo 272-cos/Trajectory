@@ -48,6 +48,12 @@ export function lookupScore(exercise, value, gender, ageGroup) {
 
   const isPlank = exercise === EXERCISES.PLANK
 
+  // SL-02: 0 reps/seconds = did not attempt → 0 points
+  // (distinct from null = untested, and from below-min = minimum chart points)
+  if ((isRepsBasedExercise || isPlank) && value === 0) {
+    return { points: 0, maxPoints: table[0].points, percentage: 0 }
+  }
+
   let points = 0
   let matched = false
 

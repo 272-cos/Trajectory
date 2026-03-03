@@ -84,8 +84,9 @@ describe('EC-01 – reps below chart min → minimum chart points, never 0', () 
     expect(result.points).toBeGreaterThan(0)
   })
 
-  it('pushups: value = 0 → minimum chart points, not 0', () => {
-    const result = lookupScore(EXERCISES.PUSHUPS, 0, M, U25)
+  it('pushups: value = 1 (below chart min of 30) → minimum chart points, not 0', () => {
+    const result = lookupScore(EXERCISES.PUSHUPS, 1, M, U25)
+    expect(result.points).toBe(0.8)
     expect(result.points).toBeGreaterThan(0)
   })
 
@@ -96,7 +97,7 @@ describe('EC-01 – reps below chart min → minimum chart points, never 0', () 
   })
 
   it('situps: value below chart min (39) returns minimum 2.3 pts, not 0', () => {
-    const result = lookupScore(EXERCISES.SITUPS, 0, M, U25)
+    const result = lookupScore(EXERCISES.SITUPS, 1, M, U25)
     expect(result.points).toBe(2.3)
     expect(result.points).toBeGreaterThan(0)
   })
@@ -115,6 +116,51 @@ describe('EC-01 – run time slower than chart worst → minimum chart points, n
     const result = lookupScore(EXERCISES.RUN_2MILE, 2000, M, U25)
     expect(result.points).toBe(29.5)
     expect(result.points).toBeGreaterThan(0)
+  })
+})
+
+// ─── SL-02: 0 reps/seconds = did not attempt → exactly 0 points ──────────────
+
+describe('SL-02 – 0 reps/seconds → 0 points (not minimum chart points)', () => {
+  it('pushups: 0 reps → 0 points', () => {
+    const result = lookupScore(EXERCISES.PUSHUPS, 0, M, U25)
+    expect(result.points).toBe(0)
+    expect(result.percentage).toBe(0)
+  })
+
+  it('HAMR: 0 shuttles → 0 points', () => {
+    const result = lookupScore(EXERCISES.HAMR, 0, M, U25)
+    expect(result.points).toBe(0)
+    expect(result.percentage).toBe(0)
+  })
+
+  it('situps: 0 reps → 0 points', () => {
+    const result = lookupScore(EXERCISES.SITUPS, 0, M, U25)
+    expect(result.points).toBe(0)
+    expect(result.percentage).toBe(0)
+  })
+
+  it('CLRC: 0 reps → 0 points', () => {
+    const result = lookupScore(EXERCISES.CLRC, 0, M, U25)
+    expect(result.points).toBe(0)
+    expect(result.percentage).toBe(0)
+  })
+
+  it('plank: 0 seconds → 0 points', () => {
+    const result = lookupScore(EXERCISES.PLANK, 0, M, U25)
+    expect(result.points).toBe(0)
+    expect(result.percentage).toBe(0)
+  })
+
+  it('maxPoints still reflects the table max even when points = 0', () => {
+    const result = lookupScore(EXERCISES.PUSHUPS, 0, M, U25)
+    expect(result.maxPoints).toBe(15.0)
+  })
+
+  it('0 reps is distinct from null (null = untested, 0 = attempted with no reps)', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, null, M, U25)).toBeNull()
+    expect(lookupScore(EXERCISES.PUSHUPS, 0, M, U25)).not.toBeNull()
+    expect(lookupScore(EXERCISES.PUSHUPS, 0, M, U25).points).toBe(0)
   })
 })
 
