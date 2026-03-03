@@ -7,7 +7,7 @@ import { useApp } from '../../context/AppContext.jsx'
 import { encodeSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeGroup, isDiagnosticPeriod } from '../../utils/scoring/constants.js'
-import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime } from '../../utils/scoring/scoringEngine.js'
+import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime } from '../../utils/scoring/scoringEngine.js'
 
 export default function SelfCheckTab() {
   const { demographics, addSCode } = useApp()
@@ -275,6 +275,13 @@ export default function SelfCheckTab() {
                 placeholder={cardioExercise === EXERCISES.RUN_2MILE ? '13:30' : '94'}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
               />
+              {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !cardioExempt && (
+                <p className="text-xs mt-1" style={{ color: parseTime(cardioValue) != null ? '#6b7280' : '#ef4444' }}>
+                  {parseTime(cardioValue) != null
+                    ? `Reading as ${formatTime(parseTime(cardioValue))}`
+                    : 'Invalid format — use MM:SS or whole minutes'}
+                </p>
+              )}
             </div>
           </div>
         </ComponentSection>
@@ -347,6 +354,13 @@ export default function SelfCheckTab() {
                 placeholder={coreExercise === EXERCISES.PLANK ? '2:30' : '42'}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
               />
+              {coreExercise === EXERCISES.PLANK && coreValue && !coreExempt && (
+                <p className="text-xs mt-1" style={{ color: parseTime(coreValue) != null ? '#6b7280' : '#ef4444' }}>
+                  {parseTime(coreValue) != null
+                    ? `Reading as ${formatTime(parseTime(coreValue))}`
+                    : 'Invalid format — use MM:SS or whole minutes'}
+                </p>
+              )}
             </div>
           </div>
         </ComponentSection>
