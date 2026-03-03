@@ -617,6 +617,87 @@ describe('SL-08 – component pass/fail independent of composite', () => {
   })
 })
 
+// ─── SL-09: All components exempt → composite = null, no score ───────────────
+
+const makeExempt = () => ({ tested: false, exempt: true, points: 0, maxPoints: 0, pass: true })
+
+describe('SL-09 – all components exempt → composite null', () => {
+  it('all 4 exempt → composite=null, pass=null', () => {
+    const result = calculateCompositeScore([makeExempt(), makeExempt(), makeExempt(), makeExempt()])
+    expect(result.composite).toBeNull()
+    expect(result.pass).toBeNull()
+  })
+
+  it('all 4 exempt → allExempt=true flag set', () => {
+    const result = calculateCompositeScore([makeExempt(), makeExempt(), makeExempt(), makeExempt()])
+    expect(result.allExempt).toBe(true)
+  })
+
+  it('all 4 exempt → failedComponents is empty', () => {
+    const result = calculateCompositeScore([makeExempt(), makeExempt(), makeExempt(), makeExempt()])
+    expect(result.failedComponents).toHaveLength(0)
+  })
+
+  it('all 4 exempt → exemptComponents holds all 4 entries', () => {
+    const comps = [makeExempt(), makeExempt(), makeExempt(), makeExempt()]
+    const result = calculateCompositeScore(comps)
+    expect(result.exemptComponents).toHaveLength(4)
+    comps.forEach(c => expect(result.exemptComponents).toContain(c))
+  })
+
+  it('partial exemption: cardio exempt, 3 scored → composite from remaining 3', () => {
+    const cardio   = makeExempt()
+    const bodyComp = makeComp(20, 20, true)
+    const strength = makeComp(15, 15, true)
+    const core     = makeComp(15, 15, true)
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    expect(result.allExempt).toBeFalsy()
+    expect(result.composite).toBe(100.0)
+    expect(result.pass).toBe(true)
+    expect(result.totalPossible).toBe(50) // cardio (50 pts) excluded
+    expect(result.exemptComponents).toHaveLength(1)
+  })
+
+  it('partial exemption: bodyComp exempt, cardio/strength/core scored → composite from 3', () => {
+    const cardio   = makeComp(40, 50, true)  // 80%
+    const bodyComp = makeExempt()
+    const strength = makeComp(12, 15, true)  // 80%
+    const core     = makeComp(12, 15, true)  // 80%
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    // totalPossible = 50+15+15 = 80; earned = 40+12+12 = 64
+    expect(result.totalEarned).toBe(64)
+    expect(result.totalPossible).toBe(80)
+    expect(result.composite).toBe(80.0)     // (64/80)*100 = 80.0
+    expect(result.pass).toBe(true)
+  })
+
+  it('calculateComponentScore with exempt=true returns correct shape', () => {
+    const result = calculateComponentScore(
+      { type: COMPONENTS.CARDIO, exercise: EXERCISES.RUN_2MILE, exempt: true },
+      M, U25,
+    )
+    expect(result.exempt).toBe(true)
+    expect(result.tested).toBe(false)
+    expect(result.points).toBe(0)
+    expect(result.maxPoints).toBe(0)
+    expect(result.pass).toBe(true)  // exempt components never fail
+    expect(result.percentage).toBeNull()
+  })
+
+  it('3 exempt + 1 untested (no value) → partialAssessment, not allExempt', () => {
+    // 4th component has value=null → untested, not exempt → composite blocked
+    const untested = { tested: false, exempt: false, points: null, maxPoints: 50, pass: null }
+    const result = calculateCompositeScore([makeExempt(), makeExempt(), makeExempt(), untested])
+    expect(result.partialAssessment).toBe(true)
+    expect(result.allExempt).toBeFalsy()
+    expect(result.composite).toBeNull()
+  })
+})
+
 // ─── Mid-table lookups ────────────────────────────────────────────────────────
 
 describe('lookupScore – mid-table values', () => {
