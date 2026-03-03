@@ -138,10 +138,24 @@ export function calculateComponentScore(component, gender, ageGroup) {
     }
   }
 
+  // SL-07: 2km walk contributes 0 earned / 0 possible to composite.
+  // Walk has no scoring table (it is pass/fail, not point-scored); skip
+  // the lookup entirely so no spurious table-missing warnings are emitted.
+  if (exercise === EXERCISES.WALK_2KM) {
+    return {
+      tested: true,
+      exempt: false,
+      walkOnly: true,
+      points: 0,
+      maxPoints: getMaxPointsForComponent(type),
+      percentage: 0,
+      pass: true, // pass/fail adjudicated separately (EC-05, Sprint 3)
+    }
+  }
+
   // Calculate score
   const scoreResult = lookupScore(exercise, value, gender, ageGroup)
-  // SL-07: 2km walk contributes 0 earned / 0 possible to composite
-  const walkOnly = exercise === EXERCISES.WALK_2KM
+  const walkOnly = false
 
   if (!scoreResult) {
     return {
