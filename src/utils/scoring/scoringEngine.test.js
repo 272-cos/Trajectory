@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { lookupScore, parseTime, calculateCompositeScore, calculateComponentScore } from './scoringEngine.js'
+import { lookupScore, parseTime, calculateCompositeScore, calculateComponentScore, calculateWHtR } from './scoringEngine.js'
 import { EXERCISES, AGE_GROUPS, GENDER, COMPONENTS, calculateAge, getAgeGroup, getProjectionAgeGroup } from './constants.js'
 
 // Male <25 table reference values (from scoringTables.js)
@@ -352,6 +352,41 @@ describe('SL-05 / EC-06 – WHtR rounded to 2 decimals before lookup', () => {
   it('0.51 (exact threshold) → 18.0 pts', () => {
     const result = lookupScore(EXERCISES.WHTR, 0.51, M, U25)
     expect(result.points).toBe(18.0)
+  })
+})
+
+// ─── EC-23: calculateWHtR rejects zero inputs, prevents division by zero ──────
+// waist / height would produce Infinity (height=0) or NaN (0/0); guard
+// must return null before the division executes.
+// The guard: !waistInches || !heightInches covers both zero and null/undefined.
+
+describe('EC-23 – height=0 or waist=0 → calculateWHtR returns null', () => {
+  it('waist=0, height=60 → null (no ratio calculated)', () => {
+    expect(calculateWHtR(0, 60)).toBeNull()
+  })
+
+  it('waist=30, height=0 → null (prevents 30/0 = Infinity)', () => {
+    expect(calculateWHtR(30, 0)).toBeNull()
+  })
+
+  it('waist=0, height=0 → null (prevents 0/0 = NaN)', () => {
+    expect(calculateWHtR(0, 0)).toBeNull()
+  })
+
+  it('waist=null, height=60 → null', () => {
+    expect(calculateWHtR(null, 60)).toBeNull()
+  })
+
+  it('waist=30, height=null → null', () => {
+    expect(calculateWHtR(30, null)).toBeNull()
+  })
+
+  it('valid waist=30, height=60 → 0.50 (normal path unaffected)', () => {
+    expect(calculateWHtR(30, 60)).toBe(0.50)
+  })
+
+  it('valid waist=33, height=66 → 0.50 (rounding still applied)', () => {
+    expect(calculateWHtR(33, 66)).toBe(0.50)
   })
 })
 

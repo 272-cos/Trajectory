@@ -51,7 +51,7 @@
 - [X] **EC-02:** Projection uses DOB + target date for age group (age-rollover)
 - [X] **EC-07:** Run time at exact boundary passes (inclusive)
 - [X] **EC-08:** HAMR shuttle between published ranges → containing bracket
-- [ ] **EC-23:** Height=0 or waist=0 → reject, prevent division by zero
+- [X] **EC-23:** Height=0 or waist=0 → reject, prevent division by zero
 - [ ] Write Vitest unit tests for every rule above (≥1 test per rule, edge on boundary)
 
 **Acceptance:** `npm test` passes, zero warnings. Every SL/EC item above has a passing test.
