@@ -50,7 +50,7 @@
 - [X] **SL-09:** All components exempt → `composite = null`, no score
 - [X] **EC-02:** Projection uses DOB + target date for age group (age-rollover)
 - [X] **EC-07:** Run time at exact boundary passes (inclusive)
-- [ ] **EC-08:** HAMR shuttle between published ranges → containing bracket
+- [X] **EC-08:** HAMR shuttle between published ranges → containing bracket
 - [ ] **EC-23:** Height=0 or waist=0 → reject, prevent division by zero
 - [ ] Write Vitest unit tests for every rule above (≥1 test per rule, edge on boundary)
 

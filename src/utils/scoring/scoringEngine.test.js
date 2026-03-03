@@ -826,6 +826,73 @@ describe('EC-07 – exact boundary value is inclusive', () => {
   })
 })
 
+// ─── EC-08: HAMR shuttle between published thresholds → containing bracket ────
+// HAMR table (M/<25) is not consecutive: 100, 94, 92, 88, 86, 83, 80, 77, 74, …
+// Values that land in a gap belong to the next lower threshold's tier.
+// Lookup: iterate descending, first threshold where shuttles >= threshold wins.
+//
+// Tier ranges covered:
+//   100-∞  → 50.0     94-99  → 49.4     92-93  → 48.8
+//   88-91  → 48.1     86-87  → 47.5     83-85  → 46.9
+
+describe('EC-08 – HAMR between published thresholds lands in containing bracket', () => {
+  // ─ Wide gap: 94-99 (6-wide gap above 94) ────────────────────────────────────
+
+  it('HAMR 99 (just below 100) → 49.4 pts (94 tier)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 99, M, U25).points).toBe(49.4)
+  })
+
+  it('HAMR 97 (mid-gap 94-99) → 49.4 pts (94 tier)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 97, M, U25).points).toBe(49.4)
+  })
+
+  it('HAMR 95 (just above 94) → 49.4 pts (94 tier)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 95, M, U25).points).toBe(49.4)
+  })
+
+  // ─ Narrow gap: 92-93 (one-value gap above 92) ───────────────────────────────
+
+  it('HAMR 93 (single value between 92 and 94) → 48.8 pts (92 tier)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 93, M, U25).points).toBe(48.8)
+  })
+
+  // ─ Gap: 88-91 (three values above 88) ──────────────────────────────────────
+
+  it('HAMR 91 (top of 88-91 gap) → 48.1 pts (88 tier)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 91, M, U25).points).toBe(48.1)
+  })
+
+  it('HAMR 89 (mid-gap 88-91) → 48.1 pts (88 tier)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 89, M, U25).points).toBe(48.1)
+  })
+
+  // ─ Gap: 83-85 (two values above 83) ────────────────────────────────────────
+
+  it('HAMR 85 (top of 83-85 gap) → 46.9 pts (83 tier)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 85, M, U25).points).toBe(46.9)
+  })
+
+  it('HAMR 84 (just above 83) → 46.9 pts (83 tier)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 84, M, U25).points).toBe(46.9)
+  })
+
+  // ─ Run: equivalent between-threshold test for time-based tables ─────────────
+  // RUN_2MILE thresholds: …805, 835, 852, 867, 881, 905, 917, 928, 938, 969…
+  // Values between thresholds belong to the tier ending at the upper threshold.
+
+  it('run 820s (between 805 and 835) → 49.4 pts (835 tier)', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 820, M, U25).points).toBe(49.4)
+  })
+
+  it('run 843s (between 835 and 852) → 48.8 pts (852 tier)', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 843, M, U25).points).toBe(48.8)
+  })
+
+  it('run 950s (between 938 and 969) → 43.9 pts (969 tier)', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 950, M, U25).points).toBe(43.9)
+  })
+})
+
 // ─── Mid-table lookups ────────────────────────────────────────────────────────
 
 describe('lookupScore – mid-table values', () => {
