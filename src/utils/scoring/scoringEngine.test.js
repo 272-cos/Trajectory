@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { lookupScore, parseTime, calculateCompositeScore, calculateComponentScore } from './scoringEngine.js'
-import { EXERCISES, AGE_GROUPS, GENDER, COMPONENTS } from './constants.js'
+import { EXERCISES, AGE_GROUPS, GENDER, COMPONENTS, calculateAge, getAgeGroup, getProjectionAgeGroup } from './constants.js'
 
 // Male <25 table reference values (from scoringTables.js)
 // RUN_2MILE: best=805s(13:25)/50pts, worst=1185s(19:45)/29.5pts
@@ -695,6 +695,66 @@ describe('SL-09 – all components exempt → composite null', () => {
     expect(result.partialAssessment).toBe(true)
     expect(result.allExempt).toBeFalsy()
     expect(result.composite).toBeNull()
+  })
+})
+
+// ─── EC-02: Projection uses DOB + target date for age group (age-rollover) ────
+// An Airman who crosses an age-bracket boundary before their target PFA date
+// must be scored on the NEW bracket's tables, not today's.
+// All examples anchored to today = 2026-03-03.
+
+describe('EC-02 – getProjectionAgeGroup uses target date, not today', () => {
+  // ─ rollover: 25-29 → 30-34 ─────────────────────────────────────────────────
+  it('DOB 1996-06-15: age 29 today, turns 30 before target → AGE_30_34', () => {
+    const dob = '1996-06-15'
+    // Today (2026-03-03): age 29 → AGE_25_29
+    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.AGE_25_29)
+    // Target (2026-07-01): age 30 → AGE_30_34
+    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_30_34)
+  })
+
+  // ─ rollover: UNDER_25 → 25-29 ───────────────────────────────────────────────
+  it('DOB 2001-06-15: age 24 today, turns 25 before target → AGE_25_29', () => {
+    const dob = '2001-06-15'
+    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.UNDER_25)
+    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_25_29)
+  })
+
+  // ─ rollover: 35-39 → 40-44 ──────────────────────────────────────────────────
+  it('DOB 1986-04-01: age 39 today, turns 40 before target → AGE_40_44', () => {
+    const dob = '1986-04-01'
+    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.AGE_35_39)
+    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_40_44)
+  })
+
+  // ─ no rollover ───────────────────────────────────────────────────────────────
+  it('DOB 1993-01-01: age 33 today and at target → stays AGE_30_34', () => {
+    const dob = '1993-01-01'
+    expect(getProjectionAgeGroup(dob, '2026-03-03')).toBe(AGE_GROUPS.AGE_30_34)
+    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_30_34)
+  })
+
+  // ─ birthday exactly on target date ───────────────────────────────────────────
+  it('birthday falls exactly on target date → new bracket applies', () => {
+    // DOB 1996-07-01: turns 30 on 2026-07-01 exactly
+    const dob = '1996-07-01'
+    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.AGE_25_29)
+    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_30_34)
+  })
+
+  // ─ birthday one day after target date → still in old bracket ────────────────
+  it('birthday one day after target date → old bracket still applies', () => {
+    // DOB 1996-07-02: turns 30 the day AFTER target date
+    const dob = '1996-07-02'
+    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.AGE_25_29)
+    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_25_29)
+  })
+
+  // ─ getProjectionAgeGroup accepts Date objects ─────────────────────────────
+  it('accepts Date objects as well as ISO strings', () => {
+    const dob = new Date('1996-06-15')
+    const target = new Date('2026-07-01')
+    expect(getProjectionAgeGroup(dob, target)).toBe(AGE_GROUPS.AGE_30_34)
   })
 })
 

@@ -48,7 +48,7 @@
 - [X] **SL-07:** Walk = 0 earned, 0 possible for cardio; composite from remaining 3
 - [X] **SL-08:** Component pass/fail checked independently of composite
 - [X] **SL-09:** All components exempt → `composite = null`, no score
-- [ ] **EC-02:** Projection uses DOB + target date for age group (age-rollover)
+- [X] **EC-02:** Projection uses DOB + target date for age group (age-rollover)
 - [X] **EC-07:** Run time at exact boundary passes (inclusive)
 - [ ] **EC-08:** HAMR shuttle between published ranges → containing bracket
 - [ ] **EC-23:** Height=0 or waist=0 → reject, prevent division by zero

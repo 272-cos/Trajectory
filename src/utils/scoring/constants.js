@@ -107,6 +107,18 @@ export function getAgeGroup(age) {
 }
 
 /**
+ * EC-02: Get age group at a target date (handles bracket rollover).
+ * Projection calculations must use the Airman's age AT the target PFA date,
+ * not today — someone who turns 30 before their PFA is scored on 30-34 tables.
+ * @param {Date|string} dob - Date of birth
+ * @param {Date|string} targetDate - Target PFA date
+ * @returns {string} Age group constant
+ */
+export function getProjectionAgeGroup(dob, targetDate) {
+  return getAgeGroup(calculateAge(dob, targetDate))
+}
+
+/**
  * Check if date is in diagnostic period
  * @param {Date|string} date - Date to check
  * @returns {boolean}

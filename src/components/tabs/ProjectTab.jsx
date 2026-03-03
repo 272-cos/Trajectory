@@ -7,12 +7,12 @@ import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { COMPONENTS } from '../../utils/scoring/constants.js'
-import { calculateAge, getAgeGroup } from '../../utils/scoring/constants.js'
+import { getProjectionAgeGroup } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore } from '../../utils/scoring/scoringEngine.js'
 import { getRecommendations, getTierLabel, getTierEmoji } from '../../utils/recommendations/recommendationEngine.js'
 
 export default function ProjectTab() {
-  const { scodes, demographics } = useApp()
+  const { scodes, demographics, targetPfaDate } = useApp()
   const [scores, setScores] = useState(null)
 
   // Calculate scores from latest S-code
@@ -27,9 +27,9 @@ export default function ProjectTab() {
       const latestSCode = scodes[scodes.length - 1]
       const assessment = decodeSCode(latestSCode)
 
-      // Calculate scores
-      const age = calculateAge(demographics.dob, assessment.date)
-      const ageGroup = getAgeGroup(age)
+      // EC-02: use age at target PFA date (handles bracket rollover before PFA)
+      const projectionDate = targetPfaDate ? new Date(targetPfaDate) : assessment.date
+      const ageGroup = getProjectionAgeGroup(demographics.dob, projectionDate)
       const gender = demographics.gender
 
       const components = []
