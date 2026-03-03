@@ -278,7 +278,7 @@ export default function SelfCheckTab() {
               {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !cardioExempt && (
                 <p className="text-xs mt-1" style={{ color: parseTime(cardioValue) != null ? '#6b7280' : '#ef4444' }}>
                   {parseTime(cardioValue) != null
-                    ? `Reading as ${formatTime(parseTime(cardioValue))}`
+                    ? formatTime(parseTime(cardioValue))
                     : 'Invalid format — use MM:SS or whole minutes'}
                 </p>
               )}
@@ -357,7 +357,7 @@ export default function SelfCheckTab() {
               {coreExercise === EXERCISES.PLANK && coreValue && !coreExempt && (
                 <p className="text-xs mt-1" style={{ color: parseTime(coreValue) != null ? '#6b7280' : '#ef4444' }}>
                   {parseTime(coreValue) != null
-                    ? `Reading as ${formatTime(parseTime(coreValue))}`
+                    ? formatTime(parseTime(coreValue))
                     : 'Invalid format — use MM:SS or whole minutes'}
                 </p>
               )}
