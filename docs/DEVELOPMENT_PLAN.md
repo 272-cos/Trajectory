@@ -76,14 +76,14 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 | `environment_flags` | 6 | hot, cold, humid, windy, altitude\_notable, indoor |
 | `confidence` | 3 | 0–4 mapped from 1–5 |
 
-- [ ] Bump schema version to `S3-` prefix, update `SCHEMA_VERSION = 3`
-- [ ] Update `BitWriter`/`BitReader` field sequence in `scode.js`
-- [ ] Update `bitpack.js` constants for new enums (base registry, RPE, sleep, nutrition, confidence)
-- [ ] Backward-compat: V2 decode still works (detect prefix `S2-`)
-- [ ] Update `encodeSCode()` and `decodeSCode()` for new fields
-- [ ] Add base registry constant: `BASE_REGISTRY` array of 7 installations (§4)
-- [ ] CS-01 / CS-09: version detection — `S3-` current, `S2-` legacy decode, higher = "update the app"
-- [ ] Unit tests: encode → decode round-trip for all new fields; boundary values
+- [X] Bump schema version to `S3-` prefix, update `SCHEMA_VERSION = 3`
+- [X] Update `BitWriter`/`BitReader` field sequence in `scode.js`
+- [X] Update `bitpack.js` constants for new enums (base registry, RPE, sleep, nutrition, confidence)
+- [X] Backward-compat: V2 decode still works (detect prefix `S2-`)
+- [X] Update `encodeSCode()` and `decodeSCode()` for new fields
+- [X] Add base registry constant: `BASE_REGISTRY` array of 7 installations (§4)
+- [X] CS-01 / CS-09: version detection — `S3-` current, `S2-` legacy decode, higher = "update the app"
+- [X] Unit tests: encode → decode round-trip for all new fields; boundary values
 
 **Acceptance:** Round-trip encode/decode passes for V2 and V3. All new fields survive codec. ~22-char output.
 
