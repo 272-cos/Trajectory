@@ -45,7 +45,7 @@
 - [X] **SL-04:** HAMR gaps between ranges use containing bracket (no interpolation)
 - [X] **SL-05 / EC-06:** WHtR rounded to 2 decimals before lookup (`0.495 → 0.50`)
 - [X] **SL-06:** Composite = `round((earned/possible)*100, 1)` — match official rounding
-- [ ] **SL-07:** Walk = 0 earned, 0 possible for cardio; composite from remaining 3
+- [X] **SL-07:** Walk = 0 earned, 0 possible for cardio; composite from remaining 3
 - [ ] **SL-08:** Component pass/fail checked independently of composite
 - [ ] **SL-09:** All components exempt → `composite = null`, no score
 - [ ] **EC-02:** Projection uses DOB + target date for age group (age-rollover)
@@ -150,7 +150,7 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 **Walk:**
 - [ ] Walk option only shown when cardio exemption toggle is ON (IV-11)
 - [ ] Walk: separate pass/fail input (not scored like run/HAMR)
-- [ ] Walk pass: 0 earned, 0 possible for cardio; composite from remaining 3 (SL-07)
+- [X] Walk pass: 0 earned, 0 possible for cardio; composite from remaining 3 (SL-07)
 - [ ] Walk fail: overall FAIL regardless of other components (EC-05)
 - [ ] EC-19: selecting walk clears/disables run input
 

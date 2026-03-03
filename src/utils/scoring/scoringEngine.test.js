@@ -415,6 +415,98 @@ describe('SL-06 – composite rounded to 1 decimal before pass check', () => {
   })
 })
 
+// ─── SL-07: Walk = 0 earned, 0 possible for cardio; composite from remaining 3 ─
+
+describe('SL-07 – 2km walk excluded from composite', () => {
+  it('calculateComponentScore marks walk result as walkOnly', () => {
+    const result = calculateComponentScore(
+      { type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM, value: 1500 },
+      M, U25,
+    )
+    expect(result.walkOnly).toBe(true)
+    expect(result.tested).toBe(true)
+    expect(result.exempt).toBe(false)
+    // (walk scoring table not yet built; points may be 0 until Sprint 2)
+  })
+
+  it('calculateComponentScore does NOT mark run as walkOnly', () => {
+    const result = calculateComponentScore(
+      { type: COMPONENTS.CARDIO, exercise: EXERCISES.RUN_2MILE, value: 900 },
+      M, U25,
+    )
+    expect(result.walkOnly).toBeFalsy()
+  })
+
+  it('walk component not included in totalEarned / totalPossible', () => {
+    const walkCardio = { tested: true, exempt: false, walkOnly: true,  points: 40, maxPoints: 50, pass: true }
+    const bodyComp   = { tested: true, exempt: false, walkOnly: false, points: 20, maxPoints: 20, pass: true }
+    const strength   = { tested: true, exempt: false, walkOnly: false, points: 15, maxPoints: 15, pass: true }
+    const core       = { tested: true, exempt: false, walkOnly: false, points: 15, maxPoints: 15, pass: true }
+
+    const result = calculateCompositeScore([walkCardio, bodyComp, strength, core])
+
+    // Remaining 3: earned=50, possible=50 → composite=100.0
+    expect(result.totalEarned).toBe(50)
+    expect(result.totalPossible).toBe(50)
+    expect(result.composite).toBe(100.0)
+    expect(result.pass).toBe(true)
+  })
+
+  it('failed walk does not propagate to overall pass', () => {
+    const walkCardio = { tested: true, exempt: false, walkOnly: true,  points: 5, maxPoints: 50, pass: false }
+    const bodyComp   = { tested: true, exempt: false, walkOnly: false, points: 16, maxPoints: 20, pass: true }
+    const strength   = { tested: true, exempt: false, walkOnly: false, points: 12, maxPoints: 15, pass: true }
+    const core       = { tested: true, exempt: false, walkOnly: false, points: 12, maxPoints: 15, pass: true }
+
+    const result = calculateCompositeScore([walkCardio, bodyComp, strength, core])
+
+    // Walk fail must not bleed into allComponentsPass
+    expect(result.allComponentsPass).toBe(true)
+    // Composite from remaining 3: (40/50)*100 = 80.0
+    expect(result.composite).toBe(80.0)
+    expect(result.pass).toBe(true)
+  })
+
+  it('walk result appears in walkComponents array, not testedComponents', () => {
+    const walkCardio = { tested: true, exempt: false, walkOnly: true,  points: 30, maxPoints: 50, pass: true }
+    const strength   = { tested: true, exempt: false, walkOnly: false, points: 15, maxPoints: 15, pass: true }
+    const core       = { tested: true, exempt: false, walkOnly: false, points: 15, maxPoints: 15, pass: true }
+    const bodyComp   = { tested: true, exempt: false, walkOnly: false, points: 20, maxPoints: 20, pass: true }
+
+    const result = calculateCompositeScore([walkCardio, strength, core, bodyComp])
+
+    expect(result.walkComponents).toHaveLength(1)
+    expect(result.walkComponents[0]).toBe(walkCardio)
+    expect(result.testedComponents).not.toContain(walkCardio)
+  })
+
+  it('walk + 2 others = partialAssessment (4th component missing)', () => {
+    const walkCardio = { tested: true, exempt: false, walkOnly: true,  points: 30, maxPoints: 50, pass: true }
+    const strength   = { tested: true, exempt: false, walkOnly: false, points: 15, maxPoints: 15, pass: true }
+    const core       = { tested: true, exempt: false, walkOnly: false, points: 15, maxPoints: 15, pass: true }
+
+    // Only 3 of 4 components provided → partial
+    const result = calculateCompositeScore([walkCardio, strength, core])
+    // All 3 accounted for → composite IS calculable (no missing component)
+    // totalPossible = 15+15 = 30; composite = (30/30)*100 = 100.0
+    expect(result.partialAssessment).toBeFalsy()
+    expect(result.composite).toBe(100.0)
+  })
+
+  it('composite correctly scaled to remaining-3 possible (50 pts)', () => {
+    // Airman scores 75% of each remaining component
+    const walkCardio = { tested: true, exempt: false, walkOnly: true,  points: 0, maxPoints: 50, pass: false }
+    const bodyComp   = { tested: true, exempt: false, walkOnly: false, points: 15, maxPoints: 20, pass: true } // 75%
+    const strength   = { tested: true, exempt: false, walkOnly: false, points: 11.25, maxPoints: 15, pass: true } // 75%
+    const core       = { tested: true, exempt: false, walkOnly: false, points: 11.25, maxPoints: 15, pass: true } // 75%
+
+    const result = calculateCompositeScore([walkCardio, bodyComp, strength, core])
+    // (37.5/50)*100 = 75.0 → passes
+    expect(result.composite).toBe(75.0)
+    expect(result.pass).toBe(true)
+  })
+})
+
 // ─── Mid-table lookups ────────────────────────────────────────────────────────
 
 describe('lookupScore – mid-table values', () => {

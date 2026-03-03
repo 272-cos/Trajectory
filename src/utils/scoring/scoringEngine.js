@@ -140,10 +140,14 @@ export function calculateComponentScore(component, gender, ageGroup) {
 
   // Calculate score
   const scoreResult = lookupScore(exercise, value, gender, ageGroup)
+  // SL-07: 2km walk contributes 0 earned / 0 possible to composite
+  const walkOnly = exercise === EXERCISES.WALK_2KM
+
   if (!scoreResult) {
     return {
       tested: true,
       exempt: false,
+      walkOnly,
       points: 0,
       maxPoints: getMaxPointsForComponent(type),
       percentage: 0,
@@ -161,6 +165,7 @@ export function calculateComponentScore(component, gender, ageGroup) {
   return {
     tested: true,
     exempt: false,
+    walkOnly, // SL-07: true when exercise is 2km walk
     points,
     maxPoints,
     percentage,
@@ -189,12 +194,19 @@ export function calculateCompositeScore(componentResults) {
   let allComponentsPass = true
   const testedComponents = []
   const exemptComponents = []
+  const walkComponents = []
   const failedComponents = []
 
   componentResults.forEach(result => {
     if (result.exempt) {
       exemptComponents.push(result)
       // Exempt: 0 earned, 0 possible
+      return
+    }
+
+    // SL-07: 2km walk → 0 earned, 0 possible; does not affect pass gate
+    if (result.walkOnly) {
+      walkComponents.push(result)
       return
     }
 
@@ -213,9 +225,10 @@ export function calculateCompositeScore(componentResults) {
     }
   })
 
-  // Can't calculate composite without all 4 components (unless exempt)
+  // Can't calculate composite without all components accounted for (tested/exempt/walk)
   const totalComponents = componentResults.length
-  const testedOrExempt = testedComponents.length + exemptComponents.length
+  const testedOrExempt =
+    testedComponents.length + exemptComponents.length + walkComponents.length
 
   if (testedOrExempt < totalComponents) {
     return {
@@ -225,12 +238,13 @@ export function calculateCompositeScore(componentResults) {
       totalPossible,
       testedComponents,
       exemptComponents,
+      walkComponents,
       failedComponents,
       partialAssessment: true,
     }
   }
 
-  // All exempt = special case
+  // All exempt/walk = special case (no scorable components)
   if (totalPossible === 0) {
     return {
       composite: null,
@@ -239,6 +253,7 @@ export function calculateCompositeScore(componentResults) {
       totalPossible: 0,
       testedComponents: [],
       exemptComponents,
+      walkComponents,
       failedComponents: [],
       allExempt: true,
     }
@@ -257,6 +272,7 @@ export function calculateCompositeScore(componentResults) {
     totalPossible,
     testedComponents,
     exemptComponents,
+    walkComponents, // SL-07: walk results tracked but excluded from composite
     failedComponents,
     compositePass,
     allComponentsPass,
