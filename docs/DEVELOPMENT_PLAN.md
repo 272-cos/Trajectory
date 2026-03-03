@@ -10,7 +10,7 @@
 | Layer | Status | Gap |
 |---|---|---|
 | Scoring tables | ✅ Complete | All 18 brackets. WHTR universal table. |
-| Scoring engine | ⚠️ Partial | Missing: walk pass/fail (SL-07), edge cases EC-01/SL-02/SL-10 unverified |
+| Scoring engine | ⚠️ Partial | Missing: walk pass/fail (SL-07), remaining edge cases EC-02/SL-03–SL-09 unverified |
 | D-code codec | ✅ Complete | Encode/decode/CRC verified |
 | S-code codec | ⚠️ Partial | 87-bit V2; missing: `base_id`, `rpe`, `sleep`, `nutrition`, `injured`, `env_flags`, `confidence`, `whtr_offset`, `cardio_walk_pass` |
 | Input validation | ⚠️ Partial | IV-01 through IV-13; most not enforced in UI |
@@ -40,7 +40,7 @@
 
 - [X] **SL-01 / EC-01:** Reps/time above chart max → clamp to max points (never 0)
 - [X] **SL-02:** Reps/time below chart min → min row points (not 0, unless 0 reps)
-- [ ] **SL-10 / EC-10:** 0 reps on non-exempt → chart min points AND component failure
+- [X] **SL-10 / EC-10:** 0 reps on non-exempt → chart min points AND component failure
 - [ ] **SL-03:** Run time boundary: listed time is slowest valid time for that row (inclusive)
 - [ ] **SL-04:** HAMR gaps between ranges use containing bracket (no interpolation)
 - [ ] **SL-05 / EC-06:** WHtR rounded to 2 decimals before lookup (`0.495 → 0.50`)
