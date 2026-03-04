@@ -311,6 +311,231 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
+### Sprint 8 - Practice Tools + BestScore Optimizer
+
+**Goal:** Fill competitive gaps no existing app addresses: built-in practice timing tools and exercise-combo optimization.
+
+**Research basis:** Competitive analysis (Appendix B) identified that every existing AF fitness app is score-in/score-out only. No app combines scoring with practice utilities. Community feedback (r/AirForce, app reviews) consistently requests: (1) integrated HAMR practice audio, (2) stopwatch for run timing, (3) "which exercise combo gives me the best score?"
+
+---
+
+#### Task 8.1 - Effort-Weighted Score Strategy Engine
+
+**Rationale:** The USSF/USAF PFA Calculator app ($0.99) has a "BestScore" feature, but it is naive - it just picks the combo that produces the highest raw score without considering training effort. Running 30 seconds faster might yield +1 pt while doing 10 more push-ups yields +5 pts. A smarter engine analyzes the scoring curve slope at the user's current performance level to find where marginal effort produces the greatest score gain.
+
+**Core concept - Marginal Return Analysis:**
+
+Each scoring table defines a curve: performance input (reps, time, shuttles) mapped to points. The slope of that curve at the user's current value tells you how much score you gain per unit of improvement. Near the top of a curve, massive effort gains tiny points (diminishing returns). Near a pass/fail boundary, small effort gains large points (high leverage).
+
+**Strategy engine logic:**
+
+1. For each component, calculate the **marginal points per unit improvement** at the user's current value
+   - Run: points gained per 10 seconds faster
+   - HAMR: points gained per 2 additional shuttles
+   - Push-ups/HRPU: points gained per 5 additional reps
+   - Sit-ups/CLRC: points gained per 5 additional reps
+   - Plank: points gained per 15 additional seconds
+   - WHtR: points gained per 0.01 ratio improvement
+2. Normalize across components by estimated **training effort per unit** (evidence-based from fitness research)
+   - Example: gaining 5 push-up reps takes ~2 weeks of training; gaining 10s on 2-mile takes ~3-4 weeks
+   - Effort estimates sourced from `docs/RESEARCH-FITNESS-PROGRAMS.md`
+3. Rank components by **points-per-training-week** (effort-adjusted ROI)
+4. Cross-exercise comparison: for each component, compare exercise options at equivalent effort
+   - "10 more push-ups (+3.1 pts) vs 8 more HRPU (+4.2 pts) - both ~2 weeks training"
+5. Output: prioritized strategy, not just a max-score combo
+
+**Preference override system:**
+
+- [ ] User can "lock" any exercise choice (e.g., "I prefer HRPU regardless")
+- [ ] Locked exercises excluded from optimization - engine works around them
+- [ ] UI: lock icon toggle per component exercise selector
+- [ ] Locked preference saved to localStorage (`pfa_exercise_prefs`)
+- [ ] Strategy recalculates with locked choices as constraints
+- [ ] Display explains trade-off: "You chose HRPU (preferred). Push-ups would score +2.1 pts higher, but HRPU has better effort ROI at your level."
+
+**Implementation:**
+
+- [ ] `strategyEngine(demographics, rawInputs, preferences)` - core analysis function
+- [ ] `marginalReturn(exerciseType, currentValue, bracket)` - slope at current point on scoring curve
+- [ ] `effortEstimate(exerciseType, currentValue, targetValue)` - weeks of training to bridge gap
+- [ ] Effort constants: `EFFORT_FACTORS` in `constants.js` (calibrated from fitness research)
+- [ ] Output per component: { exercise, currentPts, marginalROI, effortWeeks, recommendation }
+- [ ] Output overall: ranked list of "best bang for your training time" actions
+- [ ] Handle exemptions: skip exempt components
+- [ ] Handle "already maxed" components: flag as "no further gains possible"
+- [ ] UI: "Strategy" section in Self-Check results - prioritized action list
+- [ ] Display: "Focus Area: Core (+4.8 pts available, ~2 weeks). Your cardio is near ceiling (+0.3 pts available)."
+- [ ] Unit tests: verify marginal return calculation, preference locking, cross-component ranking
+
+**File:** `src/utils/scoring/strategyEngine.js`
+
+**Acceptance:** Engine correctly identifies highest-ROI component. Preference locks respected. Diminishing returns flagged. Effort estimates are reasonable (not arbitrary).
+
+---
+
+#### Task 8.2 - Stopwatch + Lap Timer
+
+**Rationale:** Every Airman currently uses a separate phone clock app to time their 2-mile run practice. No existing AF fitness app includes a built-in timer. Integrating one keeps users in-app and enables direct score lookup from timed results.
+
+- [ ] New tab or modal: "Practice Tools"
+- [ ] Stopwatch: start/stop/reset with lap/split support
+- [ ] Lap display: lap number, lap time, cumulative time
+- [ ] Auto-score integration: "Your 2-mile time of 16:42 = X pts for your bracket"
+- [ ] Persist last timed result in sessionStorage (offer to use in Self-Check)
+- [ ] Large, touch-friendly controls (44px+ targets per GR-09)
+- [ ] Works offline (no external dependencies)
+- [ ] Screen wake lock (`navigator.wakeLock`) to prevent screen timeout during timing
+
+**Acceptance:** Timer accurate to 0.1s. Lap splits display correctly. Score lookup works for user's bracket. Wake lock prevents screen sleep.
+
+---
+
+#### Task 8.3 - HAMR Practice Metronome
+
+**Rationale:** HAMR failure is primarily a timing/rhythm problem, not a cardio problem (per r/AirForce community consensus). Official HAMR audio exists on SoundCloud and base websites, but no app integrates a metronome/beep generator. Users juggle separate audio files + timer apps. Building this with Web Audio API requires zero external dependencies.
+
+- [ ] HAMR beep generator using Web Audio API (no audio files needed)
+- [ ] Follows official Leger 20m shuttle protocol: Level 1 starts at ~8.5 km/h, increments per level
+- [ ] Beep cadence: one beep per shuttle, triple beep on level change
+- [ ] Visual display: current level, shuttle count within level, total shuttles, elapsed time
+- [ ] Auto-score: "You completed 54 shuttles = X pts for your bracket"
+- [ ] Pause/resume support
+- [ ] Level selector: start from any level (for experienced users warming up)
+- [ ] Audio works in background (for running with phone in pocket)
+- [ ] Screen wake lock during active session
+- [ ] Unit tests: verify beep intervals match official HAMR timing table per level
+
+**File:** `src/utils/hamr/hamrMetronome.js` (pure timing logic), component in `src/components/tools/`
+
+**Acceptance:** Beep intervals match official HAMR audio within 50ms tolerance. Shuttle count increments correctly per level. Auto-score matches scoring engine output.
+
+---
+
+#### Task 8.4 - Exercise Comparison View
+
+**Rationale:** With multiple exercise options per component (run vs HAMR, push-ups vs HRPU, sit-ups vs CLRC vs plank), Airmen need to see how their performance translates across alternatives. No existing tool shows side-by-side "if you did X reps of push-ups, you'd need Y reps of HRPU for the same score."
+
+- [ ] Side-by-side comparison: "With push-ups you'd score X, with HRPU you'd score Y"
+- [ ] Per-component: show all exercise options and equivalent scores
+- [ ] Accessible from Self-Check tab results
+- [ ] Uses existing scoring engine - no new scoring logic
+- [ ] Visual: bar chart or simple table comparing points per exercise option
+
+**Acceptance:** Comparison accurately reflects scoring tables for all exercise options within each component.
+
+---
+
+### Sprint 9 - Training Resources + Curated Content
+
+**Goal:** Bridge the gap between scoring and improvement with curated, evidence-based training guidance.
+
+---
+
+#### Task 9.1 - Curated Training Resource Links
+
+**Rationale:** Multiple sources exist (HPRC, DVIDS official videos, Total Force Hub workout plans) but Airmen don't know where to find them. Centralizing verified links per component/exercise adds value without creating content or violating the no-backend constraint.
+
+- [ ] Resource registry: `src/utils/training/resources.js` - static array of verified links
+- [ ] Categories: per-component (cardio, strength, core, body comp) and per-exercise
+- [ ] Include: DVIDS HAMR instruction video, HPRC training series, official HAMR audio (SoundCloud)
+- [ ] Display: collapsible "Training Resources" section per component in Self-Check results
+- [ ] Link validation: each entry has title, URL, source (official/vetted), and last-verified date
+- [ ] No embedded content - external links only (no iframe, no video embed)
+- [ ] Periodic review: documented process for verifying links still work
+
+**Acceptance:** Each component has at least 2 verified training resource links. Links open in new tab. Sources attributed.
+
+---
+
+#### Task 9.2 - Personalized Training Suggestions
+
+**Rationale:** The existing recommendation engine provides tiered tips (FAILING/MARGINAL/STRONG). Extending it with specific weekly training plans based on the user's weakest component and their gap to passing would match the Army's Guard Fit app feature set - which is frequently cited as a benchmark.
+
+- [ ] Extend `recommendationEngine.js` with weekly plan generator
+- [ ] Input: current component scores, target date, bracket
+- [ ] Output: prioritized weekly plan (e.g., "3x interval runs, 2x HAMR practice, 1x long run")
+- [ ] Plans scaled to gap size: larger deficit = more aggressive plan
+- [ ] Time-aware: plans adjust based on weeks until target PFA date
+- [ ] Display in Project tab alongside projection data
+- [ ] Evidence basis: source from `docs/RESEARCH-FITNESS-PROGRAMS.md`
+
+**Acceptance:** Training suggestions are specific to user's weakest component. Plans adjust based on time to target date.
+
+---
+
+## Competitive Analysis & Opportunity Assessment
+
+*Added: March 2026 | Basis: App store analysis, community research (r/AirForce, app reviews), web tool survey*
+
+### Appendix B: Competitive Landscape
+
+#### Existing Apps & Web Tools
+
+| Tool | Type | Cost | Key Features | Gaps |
+|---|---|---|---|---|
+| **USSF/USAF PFA Calculator** (Patrick Smith) | iOS/Android | $0.99 | All 2026 charts, BestScore optimizer, altitude adjust, exemptions | No history, no projection, no practice tools, no sharing |
+| **Total Force Hub PT 2026** | Web | Free | Calculator, 4-week HAMR plan (blog), countdown timer | Static blog content, no save/track, no codes |
+| **usafptcalculator.com** | Web | Free | All cardio options, score charts | Basic calc only, no history |
+| **afptcalculator.com** | Web | Free | 2026 standards, practice scoring | Basic calc only |
+| **airforceptcalculator.com** | Web | Free | Simplified scoring logic | Basic calc only, unofficial disclaimer |
+| **Air Force Fitness Testing** | iOS | Free | Updated 2026 standards | Limited features |
+| **AF Tracker** (meDEVELOPMENT) | iOS | Free | PT calc, test reminders, social | Outdated (pre-2026), no HAMR |
+| **Guard Fit** (Army NG) | iOS/Android | Free | Track, Train, Compete, Tools | Army-specific (APFT/ACFT), not USAF |
+
+#### Feature Comparison Matrix
+
+| Feature | PFA Calc App | TFH Web | Other Web Calcs | Guard Fit (Army) | **Trajectory (Ours)** |
+|---|---|---|---|---|---|
+| 2026 score calculation | Yes | Yes | Yes | No (Army) | **Yes** |
+| All exercise options | Yes | Yes | Partial | N/A | **Yes** |
+| Effort-weighted strategy | **Yes** (naive) | No | No | No | Planned (Sprint 8) - effort-adjusted, with preference locks |
+| Altitude adjustment | **Yes** | No | No | No | **Yes** (base registry) |
+| Historical tracking | No | No | No | **Yes** | **Yes** (S-codes) |
+| Score projection | No | No | No | No | **Yes** (Sprint 4) |
+| Portable data (codes) | No | No | No | No | **Yes** (D-code/S-code) |
+| Supervisor report | No | No | No | No | **Yes** (Sprint 6) |
+| HAMR practice tool | No | No | No | No | Planned (Sprint 8) |
+| Stopwatch/timer | No | No | No | No | Planned (Sprint 8) |
+| Training plans | No | Static blog | No | **Yes** (auto-generated) | Planned (Sprint 9) |
+| Web Share API | No | No | No | No | **Yes** |
+| URL hydration | No | No | No | No | **Yes** |
+| Offline/PWA | Native app | No | No | Native app | Planned (Sprint 7) |
+| Privacy-first (no backend) | Unknown | Unknown | Unknown | Unknown | **Yes** |
+
+#### Community-Identified Pain Points (r/AirForce, App Reviews, Forums)
+
+1. **HAMR timing/rhythm** - "People who fail HAMR almost never lack cardio - they mis-time the first 3 turns." Users juggle separate SoundCloud audio + generic timer apps.
+2. **Exercise choice confusion** - "I don't know if I should do push-ups or HRPU for my age bracket." No tool shows side-by-side comparison.
+3. **No progress tracking** - #1 app review request: "Let me save workouts with dates to track improvement over time."
+4. **Beep audio consistency** - "The beep timing feels inconsistent on older speakers." Need reliable, device-generated audio.
+5. **Score-to-action gap** - Users get a score but no guidance on what to do about it. Guard Fit (Army) cited as benchmark.
+6. **Fragmented tools** - Airmen use 3-4 separate apps: calculator + stopwatch + HAMR audio + notes app.
+
+#### Our Differentiation (Already Built or In Progress)
+
+| Differentiator | Status | Competitive Position |
+|---|---|---|
+| Portable S-code/D-code system | Complete | **Unique** - no competitor has portable data |
+| Score projection engine | Sprint 4 | **Unique** - no competitor projects future scores |
+| Supervisor report generation | Sprint 6 | **Unique** - no competitor generates reports |
+| Web Share API + URL hydration | Sprint 3 (complete) | **Unique** - no competitor has code sharing |
+| Tiered recommendations | Complete | Partial match (Guard Fit has auto plans) |
+| Privacy-first / zero-backend | Complete | **Unique** - all competitors are opaque on data |
+| Diagnostic period detection | Complete | **Unique** - auto-detects from S-code date |
+
+#### Recommended Priorities (New Features)
+
+| Priority | Feature | Sprint | Effort | Value | Rationale |
+|---|---|---|---|---|---|
+| **P1** | Effort-weighted score strategy | 8.1 | Medium | High | Smarter than competitor BestScore - analyzes marginal ROI per training hour, not just max score. Includes preference overrides. |
+| **P2** | HAMR practice metronome | 8.3 | Medium | High | No competitor has this; addresses #1 community pain point |
+| **P3** | Stopwatch + lap timer | 8.2 | Low | Medium | Consolidates fragmented tool use; keeps users in-app |
+| **P4** | Exercise comparison view | 8.4 | Low | Medium | Addresses exercise choice confusion; simple UI over existing engine |
+| **P5** | Curated training links | 9.1 | Low | Medium | Low effort, curated official resources (DVIDS, HPRC) |
+| **P6** | Personalized training plans | 9.2 | High | High | Matches Guard Fit benchmark; needs research-backed plans |
+
+---
+
 ## Implementation Notes
 
 ### Do Not Add
@@ -352,3 +577,5 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 | 5 | 5.1 | History tab with trend chart |
 | 6 | 6.1 | Report generation |
 | 7 | 7.1, 7.2, 7.3 | PWA + accessibility + chart update banner |
+| 8 | 8.1, 8.2, 8.3, 8.4 | Practice tools (stopwatch, HAMR metronome) + effort-weighted strategy engine + exercise comparison |
+| 9 | 9.1, 9.2 | Curated training resources + personalized training plans |
