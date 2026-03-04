@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { encodeSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
-import { calculateAge, getAgeBracket, isDiagnosticPeriod } from '../../utils/scoring/constants.js'
+import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 
 export default function SelfCheckTab() {
@@ -344,49 +344,16 @@ export default function SelfCheckTab() {
           onExemptChange={setCardioExempt}
           score={scores?.components.find(c => c.type === COMPONENTS.CARDIO)}
           exemptContent={
-            <div className="mt-2">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={walkSelected}
-                  onChange={(e) => setWalkSelected(e.target.checked)}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-700">Completing 2km Walk (profile-only)</span>
-              </label>
-              {walkSelected && (
-                <div className="mt-3 grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Walk Time (mm:ss)</label>
-                    <input
-                      type="text"
-                      value={walkTime}
-                      onChange={(e) => setWalkTime(e.target.value)}
-                      placeholder="25:30"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    />
-                    {walkTime && !isTimeIncomplete(walkTime) && (
-                      <p className="text-xs mt-1" style={{ color: parseTime(walkTime) != null ? '#6b7280' : '#ef4444' }}>
-                        {parseTime(walkTime) != null
-                          ? formatTime(parseTime(walkTime))
-                          : 'Invalid format - use MM:SS'}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Result</label>
-                    <select
-                      value={walkPass ? 'pass' : 'fail'}
-                      onChange={(e) => setWalkPass(e.target.value === 'pass')}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    >
-                      <option value="pass">Pass</option>
-                      <option value="fail">Fail</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
+            <WalkSection
+              walkSelected={walkSelected}
+              setWalkSelected={setWalkSelected}
+              walkTime={walkTime}
+              setWalkTime={setWalkTime}
+              walkPass={walkPass}
+              setWalkPass={setWalkPass}
+              demographics={demographics}
+              assessmentDate={assessmentDate}
+            />
           }
         >
           <div className="grid grid-cols-2 gap-4">
@@ -613,6 +580,99 @@ export default function SelfCheckTab() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Walk section with time limits and auto pass/fail
+function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, walkPass, setWalkPass, demographics, assessmentDate }) {
+  // Compute walk time limit for this user's bracket
+  let walkTimeLimit = null
+  let walkTimeLimitStr = ''
+  if (demographics?.dob && demographics?.gender) {
+    const age = calculateAge(demographics.dob, assessmentDate)
+    const ageBracket = getAgeBracket(age)
+    walkTimeLimit = getWalkTimeLimit(demographics.gender, ageBracket)
+    if (walkTimeLimit) {
+      walkTimeLimitStr = formatTime(walkTimeLimit)
+    }
+  }
+
+  // Auto-determine pass/fail when time is entered and we have a limit
+  const handleWalkTimeChange = (e) => {
+    const newTime = e.target.value
+    setWalkTime(newTime)
+    if (walkTimeLimit && newTime && !isTimeIncomplete(newTime)) {
+      const seconds = parseTime(newTime)
+      if (seconds != null) {
+        setWalkPass(seconds <= walkTimeLimit)
+      }
+    }
+  }
+
+  return (
+    <div className="mt-2">
+      <label className="flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          checked={walkSelected}
+          onChange={(e) => setWalkSelected(e.target.checked)}
+          className="mr-2"
+        />
+        <span className="text-sm text-gray-700">Completing 2km Walk (profile-only)</span>
+      </label>
+      {walkSelected && (
+        <div className="mt-3">
+          {walkTimeLimit && (
+            <p className="text-xs text-blue-600 mb-3">
+              Time limit for your bracket: {walkTimeLimitStr} (pass/fail - no points scored)
+            </p>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Walk Time (mm:ss)</label>
+              <input
+                type="text"
+                value={walkTime}
+                onChange={handleWalkTimeChange}
+                placeholder={walkTimeLimitStr || '16:30'}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+              {walkTime && !isTimeIncomplete(walkTime) && (
+                <p className="text-xs mt-1" style={{ color: parseTime(walkTime) != null ? '#6b7280' : '#ef4444' }}>
+                  {parseTime(walkTime) != null
+                    ? (() => {
+                        const t = parseTime(walkTime)
+                        if (walkTimeLimit && t > walkTimeLimit) {
+                          return `${formatTime(t)} - exceeds ${walkTimeLimitStr} limit`
+                        }
+                        return formatTime(t)
+                      })()
+                    : 'Invalid format - use MM:SS'}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Result</label>
+              <select
+                value={walkPass ? 'pass' : 'fail'}
+                onChange={(e) => setWalkPass(e.target.value === 'pass')}
+                className={`w-full px-4 py-2 border rounded-lg ${
+                  walkPass ? 'border-gray-300' : 'border-red-400 bg-red-50'
+                }`}
+              >
+                <option value="pass">Pass</option>
+                <option value="fail">Fail</option>
+              </select>
+              {!walkPass && (
+                <p className="text-xs text-red-600 mt-1">
+                  Walk failure results in overall PFA failure (EC-05)
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -9,6 +9,7 @@ import {
   COMPONENT_MINIMUMS,
   PASSING_COMPOSITE,
   EXERCISES,
+  getWalkTimeLimit,
 } from './constants.js'
 
 /**
@@ -142,6 +143,18 @@ export function calculateComponentScore(component, gender, ageBracket) {
   // Walk has no scoring table (it is pass/fail, not point-scored); skip
   // the lookup entirely so no spurious table-missing warnings are emitted.
   if (exercise === EXERCISES.WALK_2KM) {
+    // Determine pass/fail: explicit walkPass overrides, otherwise check time limit
+    let walkPass = true
+    const timeLimit = getWalkTimeLimit(gender, ageBracket)
+
+    if (component.walkPass !== undefined && component.walkPass !== null) {
+      // Explicit pass/fail from user input or S-code
+      walkPass = component.walkPass
+    } else if (timeLimit && value) {
+      // Auto-determine from time limit table
+      walkPass = value <= timeLimit
+    }
+
     return {
       tested: true,
       exempt: false,
@@ -149,7 +162,8 @@ export function calculateComponentScore(component, gender, ageBracket) {
       points: 0,
       maxPoints: getMaxPointsForComponent(type),
       percentage: 0,
-      pass: component.walkPass !== undefined ? component.walkPass : true, // EC-05
+      pass: walkPass, // EC-05: walk fail = overall FAIL
+      walkTimeLimit: timeLimit,
     }
   }
 

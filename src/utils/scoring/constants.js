@@ -69,6 +69,44 @@ export const COMPONENT_MINIMUMS = {
   [COMPONENTS.BODY_COMP]: 50.0, // 10/20 points
 }
 
+// 2km Walk time limits (seconds) per Table 3.1, DAFMAN 36-2905
+// Walk uses 5 broader age brackets mapped to 9 AFPC brackets.
+// Walk is pass/fail only - no points scored.
+export const WALK_TIME_LIMITS = {
+  M: {
+    [AGE_BRACKETS.UNDER_25]: 976, // 16:16
+    [AGE_BRACKETS.AGE_25_29]: 976, // 16:16 (under 30 bracket)
+    [AGE_BRACKETS.AGE_30_34]: 978, // 16:18
+    [AGE_BRACKETS.AGE_35_39]: 978, // 16:18 (30-39 bracket)
+    [AGE_BRACKETS.AGE_40_44]: 983, // 16:23
+    [AGE_BRACKETS.AGE_45_49]: 983, // 16:23 (40-49 bracket)
+    [AGE_BRACKETS.AGE_50_54]: 1000, // 16:40
+    [AGE_BRACKETS.AGE_55_59]: 1000, // 16:40 (50-59 bracket)
+    [AGE_BRACKETS.AGE_60_PLUS]: 1018, // 16:58
+  },
+  F: {
+    [AGE_BRACKETS.UNDER_25]: 1042, // 17:22
+    [AGE_BRACKETS.AGE_25_29]: 1042, // 17:22 (under 30 bracket)
+    [AGE_BRACKETS.AGE_30_34]: 1048, // 17:28
+    [AGE_BRACKETS.AGE_35_39]: 1048, // 17:28 (30-39 bracket)
+    [AGE_BRACKETS.AGE_40_44]: 1069, // 17:49
+    [AGE_BRACKETS.AGE_45_49]: 1069, // 17:49 (40-49 bracket)
+    [AGE_BRACKETS.AGE_50_54]: 1091, // 18:11
+    [AGE_BRACKETS.AGE_55_59]: 1091, // 18:11 (50-59 bracket)
+    [AGE_BRACKETS.AGE_60_PLUS]: 1133, // 18:53
+  },
+}
+
+/**
+ * Get walk time limit for a given gender and age bracket
+ * @param {string} gender - 'M' or 'F'
+ * @param {string} ageBracket - Age bracket constant
+ * @returns {number|null} Time limit in seconds, or null if not found
+ */
+export function getWalkTimeLimit(gender, ageBracket) {
+  return WALK_TIME_LIMITS[gender]?.[ageBracket] ?? null
+}
+
 // Diagnostic period (non-scored) per DAFMAN 36-2905
 export const DIAGNOSTIC_PERIOD_START = '2026-03-01'
 export const DIAGNOSTIC_PERIOD_END = '2026-06-30'

@@ -69,6 +69,25 @@ const RECOMMENDATIONS = {
         'Mental Practice: Visualization of perfect runs, pacing strategy',
       ],
     },
+    [EXERCISES.WALK_2KM]: {
+      // Walk is pass/fail only - recommendations focus on meeting the time limit.
+      // Percentage is always 0 for walk (no points scored), so all users hit FAILING tier.
+      [TIERS.FAILING]: [
+        'Pace Practice: Walk at 4.5+ mph (13:20/mile) to build speed for the time limit',
+        'Interval Walking: 3 min brisk / 1 min easy × 8, progressively reduce easy time',
+        'Pre-Walk Warm-up: 3-minute warm-up is allowed before the test - use it to set your rhythm',
+      ],
+      [TIERS.MARGINAL]: [
+        'Course Familiarity: Practice on the exact test course to learn the distance and pacing',
+        'Stride Length: Focus on longer strides rather than faster turnover to maintain speed',
+        'Breathing: Steady, rhythmic breathing - inhale 3 steps, exhale 2 steps',
+      ],
+      [TIERS.STRONG]: [
+        'Speed Walking Technique: Arms bent at 90 degrees, drive elbows back for power',
+        'Hill Training: Walk hills 2×/week to build leg strength for flat course speed',
+        'Time Trials: Practice full 2km at target pace 1×/week to build confidence',
+      ],
+    },
   },
 
   [COMPONENTS.STRENGTH]: {
@@ -195,6 +214,13 @@ export function getRecommendations(componentType, exercise, percentage, exempt =
   // No recommendations for exempt components
   if (exempt) {
     return null
+  }
+
+  // Walk is pass/fail (percentage is always 0) - use a fixed tier based on pass status
+  if (exercise === EXERCISES.WALK_2KM) {
+    const walkTier = TIERS.FAILING // Walk has no points; show preparation tips
+    const walkRecs = RECOMMENDATIONS[componentType]?.[exercise]?.[walkTier]
+    return walkRecs ? walkRecs.slice(0, 3) : null
   }
 
   // No recommendations if no valid percentage
