@@ -487,7 +487,7 @@ describe('SL-07 - 2km walk excluded from composite', () => {
     expect(result.pass).toBe(true)
   })
 
-  it('failed walk does not propagate to overall pass', () => {
+  it('EC-05: failed walk propagates to overall fail', () => {
     const walkCardio = { tested: true, exempt: false, walkOnly: true,  points: 5, maxPoints: 50, pass: false }
     const bodyComp   = { tested: true, exempt: false, walkOnly: false, points: 16, maxPoints: 20, pass: true }
     const strength   = { tested: true, exempt: false, walkOnly: false, points: 12, maxPoints: 15, pass: true }
@@ -495,11 +495,12 @@ describe('SL-07 - 2km walk excluded from composite', () => {
 
     const result = calculateCompositeScore([walkCardio, bodyComp, strength, core])
 
-    // Walk fail must not bleed into allComponentsPass
+    // Walk fail must not bleed into allComponentsPass (non-walk components still pass)
     expect(result.allComponentsPass).toBe(true)
     // Composite from remaining 3: (40/50)*100 = 80.0
     expect(result.composite).toBe(80.0)
-    expect(result.pass).toBe(true)
+    // EC-05: Walk failed = overall FAIL regardless of composite
+    expect(result.pass).toBe(false)
   })
 
   it('walk result appears in walkComponents array, not testedComponents', () => {
@@ -530,13 +531,13 @@ describe('SL-07 - 2km walk excluded from composite', () => {
 
   it('composite correctly scaled to remaining-3 possible (50 pts)', () => {
     // Airman scores 75% of each remaining component
-    const walkCardio = { tested: true, exempt: false, walkOnly: true,  points: 0, maxPoints: 50, pass: false }
+    const walkCardio = { tested: true, exempt: false, walkOnly: true,  points: 0, maxPoints: 50, pass: true }
     const bodyComp   = { tested: true, exempt: false, walkOnly: false, points: 15, maxPoints: 20, pass: true } // 75%
     const strength   = { tested: true, exempt: false, walkOnly: false, points: 11.25, maxPoints: 15, pass: true } // 75%
     const core       = { tested: true, exempt: false, walkOnly: false, points: 11.25, maxPoints: 15, pass: true } // 75%
 
     const result = calculateCompositeScore([walkCardio, bodyComp, strength, core])
-    // (37.5/50)*100 = 75.0 → passes
+    // (37.5/50)*100 = 75.0 → passes (walk passed so no EC-05 fail)
     expect(result.composite).toBe(75.0)
     expect(result.pass).toBe(true)
   })

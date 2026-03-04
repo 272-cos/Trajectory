@@ -102,10 +102,10 @@ On load, app reads query parameters and hydrates state.
 | Param | Value | Behavior |
 |---|---|---|
 | `d` | D-code string | Decoded, loaded into demographics. Profile tab auto-populates. |
-| `s` | S-code string | Decoded, loaded as self-check. Multiple allowed: `?s=S1-xxx&s=S1-yyy` |
+| `s` | S-code string | Decoded, loaded as self-check. Multiple allowed: `?s=S3-xxx&s=S3-yyy` |
 | `tab` | profile \| check \| project \| history \| report | Navigates to tab on load. |
 
-Example: `https://app.example.com/?d=D1-abc123ef&s=S1-xyz789ab&tab=check`
+Example: `https://app.example.com/?d=D1-abc123ef&s=S3-xyz789ab&tab=check`
 
 On load: decode D-code, decode S-code(s), navigate to tab. CRC failure on any code = specific error, ignore that param.
 
@@ -198,7 +198,7 @@ When AF publishes altitude correction tables, factors will be per-base. The regi
 
 | ID | Rule | Why |
 |---|---|---|
-| CS-01 | D-code prefix: `D1-`. S-code prefix: `S1-`. Digit = schema version. | Self-identifying. Version enables schema evolution. |
+| CS-01 | D-code prefix: `D1-`. S-code prefix: `S3-`. Digit = schema version. | Self-identifying. Version enables schema evolution. |
 | CS-02 | CRC-8 appended to every code. | Catches truncation/corruption. |
 | CS-03 | Decode failure = specific error. Never silent wrong data. | "Invalid code: checksum mismatch." |
 | CS-04 | D-code: schema version + DOB + gender. | No height. No PII. Maximally compact. |
@@ -293,38 +293,27 @@ Format: `D1-[base64url payload][CRC-8]`
 
 Everything else derived at runtime: age group from DOB + any date, bracket from gender + age group.
 
-### 7.2 S-Code (Self-Check)
+### 7.2 S-Code V3 (Self-Check)
 
-Format: `S1-[base64url payload][CRC-8]`
+Format: `S3-[base64url(bit-packed payload + CRC-8)]`
 
-| Field | Type | Bits | Range |
-|---|---|---|---|
-| schema_version | uint | 4 | Current: 1. |
-| chart_version | uint | 4 | 0=v2025_sep. 1-14=future. |
-| self_check_date | uint | 16 | Days since 1950-01-01. |
-| is_diagnostic | bool | 1 | Auto-set if Mar-Jun 2026. |
-| height_inches | uint | 7 | 48-84 mapped to 0-36. |
-| waist_tenths | uint | 9 | 20.0-55.0 in 0.1 increments (0-350). |
-| whtr_measured_offset | uint | 3 | 0-5 days before self-check. |
-| cardio_type | enum | 2 | 0=2mi run, 1=HAMR, 2=walk, 3=reserved. |
-| cardio_status | enum | 2 | 0=tested, 1=exempt, 2=walk_passfail. |
-| cardio_value | uint | 13 | Seconds for run/walk (0-7200). Shuttles for HAMR. |
-| cardio_walk_pass | bool | 1 | Only for walk. |
-| strength_type | enum | 1 | 0=pushups, 1=HRPU. |
-| strength_status | enum | 1 | 0=tested, 1=exempt. |
-| strength_reps | uint | 7 | 0-127. |
-| core_type | enum | 2 | 0=situps, 1=CLRC, 2=plank, 3=reserved. |
-| core_status | enum | 1 | 0=tested, 1=exempt. |
-| core_value | uint | 9 | Reps 0-127 or plank seconds 0-511. |
-| base_id | enum | 3 | 0=N/A, 1-7=altitude base registry. |
-| rpe | uint | 3 | 1-5 mapped to 0-4. |
-| sleep_quality | enum | 2 | 0=poor, 1=fair, 2=good, 3=excellent. |
-| nutrition | enum | 2 | 0=fasted, 1=light, 2=normal, 3=heavy. |
-| injured | bool | 1 | 0=no, 1=yes. |
-| environment_flags | bitmask | 6 | hot, cold, humid, windy, altitude_notable, indoor. |
-| confidence | uint | 3 | 1-5 mapped to 0-4. |
+**V3 bit layout (~110 bits, all 4 components present with run):**
 
-**Total fixed payload: ~104 bits = 13 bytes.** With prefix + Base64url + CRC = ~22 characters.
+| Block | Bits | Details |
+|---|---|---|
+| Header | 24 | version:4, chart:4, date:15, diagnostic:1 |
+| Flags | 4 | hasCardio:1, hasStrength:1, hasCore:1, hasBodyComp:1 |
+| Cardio | 14+ | exercise:2, exempt:1, value:11, [walk_pass:1] |
+| Strength | 9 | exercise:1, exempt:1, value:7 |
+| Core | 14 | exercise:2, exempt:1, value:11 |
+| Body Comp | 25 | exempt:1, height:11, waist:10, offset:3 |
+| Feedback | 20 | base_id:3, rpe:3, sleep:2, nutrition:2, injured:1, env:6, confidence:3 |
+
+**Note:** The feedback block is always encoded (20 bits, defaults to zeros) but UI collection is descoped - these fields are not actionable within the app's scope. The bits are reserved for future use.
+
+**Backward compat:** S2-prefixed codes decoded via V2 path. V2 codes lack the feedback block and body comp offset.
+
+**Total: ~110 bits.** With prefix + Base64url + CRC = ~22 characters.
 
 No free text. No notes. No coordinates. All enumerated or numeric.
 
@@ -392,16 +381,18 @@ Component weights: Cardio 50 | WHtR 20 | Strength 15 | Core 15 | Total 100
 | 4 | History | S-code paste, decoded list, outlier flag, trend mini-chart. |
 | 5 | Report | Rank/name/unit (not stored), feedback review, projection toggle, Copy + Print. |
 
-### Feedback (Structured Only)
+### Feedback (Descoped from UI)
 
-| Field | Type | Values | Bits |
-|---|---|---|---|
-| RPE | Enum (5) | Easy / Moderate / Hard / Very Hard / Maximal | 3 |
-| Sleep | Enum (4) | Poor / Fair / Good / Excellent | 2 |
-| Nutrition | Enum (4) | Fasted / Light / Normal / Heavy | 2 |
-| Injured | Bool | No / Yes → guidance text | 1 |
-| Environment | Bitmask (6) | Hot, Cold, Humid, Windy, Altitude Notable, Indoor | 6 |
-| Confidence | Enum (5) | Not Ready / Uncertain / Neutral / Confident / Very Confident | 3 |
+The feedback block is encoded in the S-code V3 bit layout (20 bits, defaults to zeros) but UI collection is descoped. These fields (RPE, sleep quality, nutrition, injured, environment, confidence) are not individually actionable within the app's scope. The bits are reserved for potential future use.
+
+| Field | Type | Values | Bits | Status |
+|---|---|---|---|---|
+| RPE | Enum (5) | Easy / Moderate / Hard / Very Hard / Maximal | 3 | Encoded only |
+| Sleep | Enum (4) | Poor / Fair / Good / Excellent | 2 | Encoded only |
+| Nutrition | Enum (4) | Fasted / Light / Normal / Heavy | 2 | Encoded only |
+| Injured | Bool | No / Yes | 1 | Encoded only |
+| Environment | Bitmask (6) | Hot, Cold, Humid, Windy, Altitude Notable, Indoor | 6 | Encoded only |
+| Confidence | Enum (5) | Not Ready / Uncertain / Neutral / Confident / Very Confident | 3 | Encoded only |
 
 ### Tech Stack
 

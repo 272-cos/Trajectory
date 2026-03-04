@@ -106,7 +106,7 @@
 ```javascript
 localStorage = {
   'pfa_dcode': 'D1-abc123ef',
-  'pfa_scodes': ['S1-xyz...', 'S1-abc...', ...],
+  'pfa_scodes': ['S3-xyz...', 'S3-abc...', ...],
   'pfa_target_date': '2026-07-01',
   'pfa_onboarded': true
 }
@@ -123,17 +123,12 @@ localStorage = {
 4. Set expectations: "Your data stays private"
 5. Dismiss → never show again (localStorage flag)
 
-### 9. Simplified Scoring for MVP
+### 9. Scoring Brackets
 
-**Start with 2-3 Age Brackets:**
-- Male 20-29 (most common)
-- Female 20-29 (most common)
-- One additional (30-39) for age rollover testing
-
-**Full 18 Brackets: Sprint 3**
-- All age groups: <20, 20-29, 30-39, 40-49, 50-59, 60+
+**Full 18 Brackets: Complete (Sprint 2)**
+- All 9 AFPC age brackets: <25, 25-29, 30-34, 35-39, 40-44, 45-49, 50-54, 55-59, 60+
 - Both genders: Male, Female
-- Total: 6 age groups × 2 genders × 4 components = 48 scoring tables
+- Total: 9 age brackets x 2 genders x 4+ exercise tables = all AFPC scoring charts
 
 ### 10. Military Fitness Research (TODO)
 
@@ -251,7 +246,7 @@ function calculateScore(components, demographics) {
 
 ## Implementation Priority
 
-**Sprint 1 (This Session):**
+**Sprint 1 (Complete):**
 1. ✅ Update design docs
 2. ✅ Research military fitness programs
 3. ✅ Build tab navigation
@@ -261,18 +256,22 @@ function calculateScore(components, demographics) {
 7. ✅ Implement simplified scoring (2-3 brackets)
 8. ✅ Build recommendation engine
 9. ✅ localStorage integration
-10. ✅ Web Share API
 
-**Sprint 2:**
-- History tab with S-code management
-- Trend visualization
-- URL hydration for code sharing
+**Sprint 2 (Complete):**
+- ✅ S-code V3 (feedback block, bit-packed)
+- ✅ All 18 AFPC scoring brackets (9 age x 2 gender)
+- ✅ History tab with S-code paste, decode, timeline
+- ✅ Trend visualization
 
-**Sprint 3:**
-- Full 18-bracket scoring engine
-- Project tab with projections
-- Advanced recommendations from historical data
-- Report generation
+**Sprint 3 (In Progress):**
+- ✅ URL hydration for code sharing (?d=, ?s=, ?tab=)
+- ✅ Web Share API with clipboard fallback
+- ✅ 2km walk option (IV-11, profile-only)
+- ✅ HAMR time-to-shuttle conversion (IV-12)
+- ✅ Input validation caps (run max 2:00:00, plank max 10:00)
+- ✅ EC-05: Walk failed = overall FAIL
+- Projection engine (linear/log models, gap analysis)
+- Report tab (supervisor report generation)
 
 ---
 

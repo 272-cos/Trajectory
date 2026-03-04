@@ -119,7 +119,7 @@ Users can test any subset of components. Rules:
 |--------|-------------|----------------------------------------------------------|
 | 1      | Complete    | Core tabs, scoring, codecs, recommendations, localStorage |
 | 2      | Complete    | S-code V3 (feedback block), all 18 AFPC scoring brackets, History tab |
-| 3      | In Progress | URL hydration, Web Share API, Projection engine, Report tab |
+| 3      | In Progress | URL hydration, Web Share API, 2km walk, HAMR conversion, input validation, Projection engine, Report tab |
 
 ## Documentation
 

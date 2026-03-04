@@ -149,7 +149,7 @@ export function calculateComponentScore(component, gender, ageBracket) {
       points: 0,
       maxPoints: getMaxPointsForComponent(type),
       percentage: 0,
-      pass: true, // pass/fail adjudicated separately (EC-05, Sprint 3)
+      pass: component.walkPass !== undefined ? component.walkPass : true, // EC-05
     }
   }
 
@@ -277,7 +277,9 @@ export function calculateCompositeScore(componentResults) {
   // Round BEFORE the pass check so the displayed value matches the decision.
   const composite = Math.round((totalEarned / totalPossible) * 1000) / 10
   const compositePass = composite >= PASSING_COMPOSITE
-  const overallPass = compositePass && allComponentsPass
+  // EC-05: Walk failed = overall FAIL regardless of composite
+  const walkFailed = walkComponents.some(w => w.pass === false)
+  const overallPass = compositePass && allComponentsPass && !walkFailed
 
   return {
     composite, // SL-06: already rounded to 1 decimal
@@ -339,6 +341,58 @@ export function isTimeIncomplete(timeStr) {
     if (parts[1] && parts[1].length === 1) return true
   }
   return false
+}
+
+/**
+ * IV-12: Convert HAMR time (mm:ss) to shuttle count
+ * Based on standard 20m shuttle run Leger protocol
+ * Round down to last completed shuttle
+ * @param {string} timeStr - Time in "mm:ss" format
+ * @returns {number|null} Shuttle count
+ */
+export function hamrTimeToShuttles(timeStr) {
+  const seconds = parseTime(timeStr)
+  if (seconds === null || seconds <= 0) return null
+
+  // Standard Leger 20m shuttle run protocol
+  // Level 1 starts at 8.0 km/h, level 2 at 9.0, then +0.5 per level
+  const levels = [
+    { speed: 8.0,  shuttles: 7  },
+    { speed: 9.0,  shuttles: 8  },
+    { speed: 9.5,  shuttles: 8  },
+    { speed: 10.0, shuttles: 9  },
+    { speed: 10.5, shuttles: 9  },
+    { speed: 11.0, shuttles: 10 },
+    { speed: 11.5, shuttles: 10 },
+    { speed: 12.0, shuttles: 11 },
+    { speed: 12.5, shuttles: 11 },
+    { speed: 13.0, shuttles: 11 },
+    { speed: 13.5, shuttles: 12 },
+    { speed: 14.0, shuttles: 12 },
+    { speed: 14.5, shuttles: 13 },
+    { speed: 15.0, shuttles: 13 },
+    { speed: 15.5, shuttles: 13 },
+    { speed: 16.0, shuttles: 14 },
+    { speed: 16.5, shuttles: 14 },
+    { speed: 17.0, shuttles: 15 },
+    { speed: 17.5, shuttles: 15 },
+    { speed: 18.0, shuttles: 16 },
+    { speed: 18.5, shuttles: 16 },
+  ]
+
+  let elapsed = 0
+  let totalShuttles = 0
+
+  for (const level of levels) {
+    const timePerShuttle = 72 / level.speed // 20m / (speed in m/s)
+    for (let s = 0; s < level.shuttles; s++) {
+      elapsed += timePerShuttle
+      if (elapsed > seconds) return totalShuttles
+      totalShuttles++
+    }
+  }
+
+  return totalShuttles
 }
 
 export function parseTime(timeStr) {

@@ -16,6 +16,7 @@ import {
   setOnboarded,
 } from '../utils/storage/localStorage.js'
 import { decodeDCode } from '../utils/codec/dcode.js'
+import { decodeSCode } from '../utils/codec/scode.js'
 
 const AppContext = createContext(null)
 
@@ -36,12 +37,12 @@ export function AppProvider({ children }) {
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
 
-  // Load data from localStorage on mount
+  // Load data from localStorage on mount, then hydrate from URL params
   useEffect(() => {
+    // 1. Load from localStorage
     const storedDCode = getDCode()
     if (storedDCode) {
       setDCode(storedDCode)
-      // Decode D-code to populate demographics
       try {
         const decoded = decodeDCode(storedDCode)
         setDemographics(decoded)
@@ -50,12 +51,56 @@ export function AppProvider({ children }) {
       }
     }
 
-    const storedSCodes = getSCodes()
-    setSCodes(storedSCodes)
+    let currentSCodes = getSCodes()
+    setSCodes(currentSCodes)
 
     const storedTargetDate = getTargetDate()
     if (storedTargetDate) {
       setTargetPfaDate(storedTargetDate)
+    }
+
+    // 2. URL hydration - overrides/merges with localStorage
+    const params = new URLSearchParams(window.location.search)
+
+    const urlDCode = params.get('d')
+    if (urlDCode) {
+      try {
+        const decoded = decodeDCode(urlDCode)
+        setDCode(urlDCode)
+        setDemographics(decoded)
+        saveDCode(urlDCode)
+      } catch (err) {
+        console.warn('Invalid D-code in URL:', err.message)
+      }
+    }
+
+    const urlSCodes = params.getAll('s')
+    let scodesChanged = false
+    for (const code of urlSCodes) {
+      try {
+        decodeSCode(code) // validates CRC + structure
+        if (!currentSCodes.includes(code)) {
+          addSCodeToStorage(code)
+          currentSCodes = [...currentSCodes, code]
+          scodesChanged = true
+        }
+      } catch (err) {
+        console.warn('Invalid S-code in URL:', err.message)
+      }
+    }
+    if (scodesChanged) {
+      setSCodes(currentSCodes)
+    }
+
+    const urlTab = params.get('tab')
+    if (urlTab) {
+      const tabMap = { profile: 'profile', check: 'selfcheck', project: 'project', history: 'history', report: 'report' }
+      if (tabMap[urlTab]) setActiveTab(tabMap[urlTab])
+    }
+
+    // Clean URL params without reload
+    if (params.toString()) {
+      window.history.replaceState({}, '', window.location.pathname)
     }
 
     // Show onboarding if first visit

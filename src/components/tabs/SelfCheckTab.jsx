@@ -7,10 +7,10 @@ import { useApp } from '../../context/AppContext.jsx'
 import { encodeSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod } from '../../utils/scoring/constants.js'
-import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete } from '../../utils/scoring/scoringEngine.js'
+import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 
 export default function SelfCheckTab() {
-  const { demographics, addSCode } = useApp()
+  const { demographics, addSCode, dcode } = useApp()
 
   // Assessment data - automatically use today's date
   const assessmentDate = new Date().toISOString().split('T')[0]
@@ -30,6 +30,11 @@ export default function SelfCheckTab() {
   const [coreValue, setCoreValue] = useState('')
   const [coreExempt, setCoreExempt] = useState(false)
 
+  // Walk (when cardio exempt - IV-11)
+  const [walkSelected, setWalkSelected] = useState(false)
+  const [walkTime, setWalkTime] = useState('')
+  const [walkPass, setWalkPass] = useState(true)
+
   // Body Composition
   const [heightInches, setHeightInches] = useState('')
   const [waistInches, setWaistInches] = useState('')
@@ -40,6 +45,14 @@ export default function SelfCheckTab() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [scores, setScores] = useState(null)
+
+  // Reset walk when cardio exempt toggled off
+  useEffect(() => {
+    if (!cardioExempt) {
+      setWalkSelected(false)
+      setWalkTime('')
+    }
+  }, [cardioExempt])
 
   // Check if we have demographics
   const hasDemographics = demographics && demographics.dob && demographics.gender
@@ -60,14 +73,32 @@ export default function SelfCheckTab() {
 
       // Cardio
       if (!cardioExempt && cardioValue) {
-        const value = cardioExercise === EXERCISES.RUN_2MILE ? parseTime(cardioValue) : parseInt(cardioValue, 10)
-        if (value) {
+        let value
+        if (cardioExercise === EXERCISES.RUN_2MILE) {
+          value = parseTime(cardioValue)
+        } else if (cardioExercise === EXERCISES.HAMR) {
+          // IV-12: colon in HAMR input triggers time-to-shuttle conversion
+          value = cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10)
+        }
+        // IV-07: Run time max 2:00:00 (7200s)
+        if (value && !(cardioExercise === EXERCISES.RUN_2MILE && value > 7200)) {
           const cardioScore = calculateComponentScore(
             { type: COMPONENTS.CARDIO, exercise: cardioExercise, value, exempt: false },
             gender,
             ageBracket
           )
           components.push({ ...cardioScore, type: COMPONENTS.CARDIO, exercise: cardioExercise })
+        }
+      } else if (cardioExempt && walkSelected && walkTime) {
+        // IV-11: 2km walk for profiled members
+        const value = parseTime(walkTime)
+        if (value) {
+          const walkScore = calculateComponentScore(
+            { type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM, value, exempt: false, walkPass },
+            gender,
+            ageBracket
+          )
+          components.push({ ...walkScore, type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM })
         }
       } else if (cardioExempt) {
         components.push({ type: COMPONENTS.CARDIO, exempt: true, tested: false, pass: true })
@@ -91,7 +122,8 @@ export default function SelfCheckTab() {
       // Core
       if (!coreExempt && coreValue) {
         const value = coreExercise === EXERCISES.PLANK ? parseTime(coreValue) : parseInt(coreValue, 10)
-        if (value || value === 0) {
+        // IV-09: Plank max 10:00 (600s)
+        if ((value || value === 0) && !(coreExercise === EXERCISES.PLANK && value > 600)) {
           const coreScore = calculateComponentScore(
             { type: COMPONENTS.CORE, exercise: coreExercise, value, exempt: false },
             gender,
@@ -126,7 +158,7 @@ export default function SelfCheckTab() {
       console.error('Error calculating scores:', err)
       setScores(null)
     }
-  }, [hasDemographics, demographics, cardioExercise, cardioValue, cardioExempt, strengthExercise, strengthValue, strengthExempt, coreExercise, coreValue, coreExempt, heightInches, waistInches, bodyCompExempt])
+  }, [hasDemographics, demographics, cardioExercise, cardioValue, cardioExempt, walkSelected, walkTime, walkPass, strengthExercise, strengthValue, strengthExempt, coreExercise, coreValue, coreExempt, heightInches, waistInches, bodyCompExempt])
 
   const handleGenerateSCode = () => {
     setError('')
@@ -138,13 +170,42 @@ export default function SelfCheckTab() {
     }
 
     try {
+      // IV-07: Run time max 2:00:00
+      if (!cardioExempt && cardioExercise === EXERCISES.RUN_2MILE && cardioValue) {
+        const runTime = parseTime(cardioValue)
+        if (runTime && runTime > 7200) {
+          setError('Maximum run time is 2:00:00')
+          return
+        }
+      }
+      // IV-09: Plank max 10:00
+      if (!coreExempt && coreExercise === EXERCISES.PLANK && coreValue) {
+        const plankTime = parseTime(coreValue)
+        if (plankTime && plankTime > 600) {
+          setError('Maximum plank entry is 10 minutes')
+          return
+        }
+      }
+
+      // Build cardio data
+      let cardioData = null
+      if (!cardioExempt && cardioValue) {
+        let cardioVal
+        if (cardioExercise === EXERCISES.RUN_2MILE) {
+          cardioVal = parseTime(cardioValue)
+        } else if (cardioExercise === EXERCISES.HAMR) {
+          cardioVal = cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10)
+        }
+        cardioData = { exercise: cardioExercise, value: cardioVal, exempt: false }
+      } else if (cardioExempt && walkSelected && walkTime) {
+        cardioData = { exercise: EXERCISES.WALK_2KM, value: parseTime(walkTime), exempt: false, walkPass }
+      } else if (cardioExempt) {
+        cardioData = { exercise: cardioExercise, value: null, exempt: true }
+      }
+
       const assessment = {
         date: assessmentDate,
-        cardio: !cardioExempt && cardioValue ? {
-          exercise: cardioExercise,
-          value: cardioExercise === EXERCISES.RUN_2MILE ? parseTime(cardioValue) : parseInt(cardioValue, 10),
-          exempt: false
-        } : cardioExempt ? { exercise: cardioExercise, value: null, exempt: true } : null,
+        cardio: cardioData,
         strength: !strengthExempt && strengthValue ? {
           exercise: strengthExercise,
           value: parseInt(strengthValue, 10),
@@ -179,6 +240,23 @@ export default function SelfCheckTab() {
       setTimeout(() => setSuccess(''), 2000)
     } catch {
       setError('Failed to copy to clipboard')
+    }
+  }
+
+  // UX-08: Web Share API with clipboard fallback
+  const shareCode = async () => {
+    if (!scode) return
+    const shareUrl = `${window.location.origin}${window.location.pathname}?s=${encodeURIComponent(scode)}${dcode ? `&d=${encodeURIComponent(dcode)}` : ''}`
+    if (navigator.canShare?.({ text: shareUrl })) {
+      try {
+        await navigator.share({ title: 'PFA Self-Check', text: shareUrl })
+        setSuccess('Shared!')
+        setTimeout(() => setSuccess(''), 2000)
+      } catch (err) {
+        if (err.name !== 'AbortError') await copyToClipboard()
+      }
+    } else {
+      await copyToClipboard()
     }
   }
 
@@ -249,6 +327,51 @@ export default function SelfCheckTab() {
           exempt={cardioExempt}
           onExemptChange={setCardioExempt}
           score={scores?.components.find(c => c.type === COMPONENTS.CARDIO)}
+          exemptContent={
+            <div className="mt-2">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={walkSelected}
+                  onChange={(e) => setWalkSelected(e.target.checked)}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700">Completing 2km Walk (profile-only)</span>
+              </label>
+              {walkSelected && (
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Walk Time (mm:ss)</label>
+                    <input
+                      type="text"
+                      value={walkTime}
+                      onChange={(e) => setWalkTime(e.target.value)}
+                      placeholder="25:30"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                    {walkTime && !isTimeIncomplete(walkTime) && (
+                      <p className="text-xs mt-1" style={{ color: parseTime(walkTime) != null ? '#6b7280' : '#ef4444' }}>
+                        {parseTime(walkTime) != null
+                          ? formatTime(parseTime(walkTime))
+                          : 'Invalid format - use MM:SS'}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Result</label>
+                    <select
+                      value={walkPass ? 'pass' : 'fail'}
+                      onChange={(e) => setWalkPass(e.target.value === 'pass')}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="pass">Pass</option>
+                      <option value="fail">Fail</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          }
         >
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -278,8 +401,19 @@ export default function SelfCheckTab() {
               {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !cardioExempt && !isTimeIncomplete(cardioValue) && (
                 <p className="text-xs mt-1" style={{ color: parseTime(cardioValue) != null ? '#6b7280' : '#ef4444' }}>
                   {parseTime(cardioValue) != null
-                    ? formatTime(parseTime(cardioValue))
+                    ? (() => {
+                        const t = parseTime(cardioValue)
+                        if (t > 7200) return 'Maximum run time is 2:00:00'
+                        return formatTime(t)
+                      })()
                     : 'Invalid format - use MM:SS or whole minutes'}
+                </p>
+              )}
+              {cardioExercise === EXERCISES.HAMR && cardioValue && cardioValue.includes(':') && !cardioExempt && !isTimeIncomplete(cardioValue) && (
+                <p className="text-xs mt-1" style={{ color: hamrTimeToShuttles(cardioValue) != null ? '#6b7280' : '#ef4444' }}>
+                  {hamrTimeToShuttles(cardioValue) != null
+                    ? `Converted: ${hamrTimeToShuttles(cardioValue)} shuttles`
+                    : 'Invalid time format'}
                 </p>
               )}
             </div>
@@ -357,7 +491,11 @@ export default function SelfCheckTab() {
               {coreExercise === EXERCISES.PLANK && coreValue && !coreExempt && !isTimeIncomplete(coreValue) && (
                 <p className="text-xs mt-1" style={{ color: parseTime(coreValue) != null ? '#6b7280' : '#ef4444' }}>
                   {parseTime(coreValue) != null
-                    ? formatTime(parseTime(coreValue))
+                    ? (() => {
+                        const t = parseTime(coreValue)
+                        if (t > 600) return 'Maximum plank entry is 10 minutes'
+                        return formatTime(t)
+                      })()
                     : 'Invalid format - use MM:SS or whole minutes'}
                 </p>
               )}
@@ -446,6 +584,12 @@ export default function SelfCheckTab() {
               >
                 Copy
               </button>
+              <button
+                onClick={shareCode}
+                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors whitespace-nowrap"
+              >
+                Share
+              </button>
             </div>
             <p className="text-xs text-gray-600 mt-2">
               Save this code and check the Trajectory tab for personalized improvement tips!
@@ -458,7 +602,7 @@ export default function SelfCheckTab() {
 }
 
 // Component Section with score display
-function ComponentSection({ title, exempt, onExemptChange, score, children }) {
+function ComponentSection({ title, exempt, onExemptChange, score, children, exemptContent }) {
   return (
     <div className="mb-6 pb-6 border-b border-gray-200">
       <div className="flex items-center justify-between mb-4">
@@ -489,6 +633,7 @@ function ComponentSection({ title, exempt, onExemptChange, score, children }) {
         </div>
       </div>
       {!exempt && children}
+      {exempt && exemptContent}
     </div>
   )
 }
