@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { lookupScore, parseTime, calculateCompositeScore, calculateComponentScore, calculateWHtR } from './scoringEngine.js'
-import { EXERCISES, AGE_BRACKETS, GENDER, COMPONENTS, calculateAge, getAgeBracket, getProjectionAgeBracket } from './constants.js'
+import { EXERCISES, AGE_BRACKETS, GENDER, COMPONENTS, calculateAge, getAgeBracket, getProjectionAgeBracket, getWalkTimeLimit, WALK_TIME_LIMITS } from './constants.js'
 
 // Male <25 table reference values (from scoringTables.js)
 // RUN_2MILE: best=805s(13:25)/50pts, worst=1185s(19:45)/29.5pts
@@ -540,6 +540,78 @@ describe('SL-07 - 2km walk excluded from composite', () => {
     // (37.5/50)*100 = 75.0 → passes (walk passed so no EC-05 fail)
     expect(result.composite).toBe(75.0)
     expect(result.pass).toBe(true)
+  })
+})
+
+// ─── Walk Time Limits (Table 3.1, DAFMAN 36-2905) ───────────────────────────
+
+describe('Walk time limits', () => {
+  it('getWalkTimeLimit returns correct male <25 limit', () => {
+    expect(getWalkTimeLimit('M', AGE_BRACKETS.UNDER_25)).toBe(976) // 16:16
+  })
+
+  it('getWalkTimeLimit returns correct female 60+ limit', () => {
+    expect(getWalkTimeLimit('F', AGE_BRACKETS.AGE_60_PLUS)).toBe(1133) // 18:53
+  })
+
+  it('all 18 brackets have walk time limits defined', () => {
+    for (const gender of ['M', 'F']) {
+      for (const bracket of Object.values(AGE_BRACKETS)) {
+        const limit = getWalkTimeLimit(gender, bracket)
+        expect(limit).toBeGreaterThan(0)
+        expect(limit).toBeLessThan(1200) // under 20 minutes
+      }
+    }
+  })
+
+  it('female limits are more generous than male limits for same bracket', () => {
+    for (const bracket of Object.values(AGE_BRACKETS)) {
+      const maleLimit = getWalkTimeLimit('M', bracket)
+      const femaleLimit = getWalkTimeLimit('F', bracket)
+      expect(femaleLimit).toBeGreaterThan(maleLimit)
+    }
+  })
+
+  it('older brackets have more generous limits than younger brackets', () => {
+    const maleLimits = Object.values(WALK_TIME_LIMITS.M)
+    for (let i = 1; i < maleLimits.length; i++) {
+      expect(maleLimits[i]).toBeGreaterThanOrEqual(maleLimits[i - 1])
+    }
+  })
+
+  it('walk auto-pass when time within limit', () => {
+    const result = calculateComponentScore(
+      { type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM, value: 900 }, // 15:00 - well under limit
+      M, U25,
+    )
+    expect(result.walkOnly).toBe(true)
+    expect(result.pass).toBe(true)
+  })
+
+  it('walk auto-fail when time exceeds limit', () => {
+    const result = calculateComponentScore(
+      { type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM, value: 1100 }, // 18:20 - over male <25 limit of 16:16
+      M, U25,
+    )
+    expect(result.walkOnly).toBe(true)
+    expect(result.pass).toBe(false)
+  })
+
+  it('explicit walkPass overrides auto-determination', () => {
+    // Time is over limit but walkPass=true explicitly set
+    const result = calculateComponentScore(
+      { type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM, value: 1100, walkPass: true },
+      M, U25,
+    )
+    expect(result.pass).toBe(true)
+  })
+
+  it('walkTimeLimit is returned in result', () => {
+    const result = calculateComponentScore(
+      { type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM, value: 900 },
+      M, U25,
+    )
+    expect(result.walkTimeLimit).toBe(976) // 16:16
   })
 })
 
