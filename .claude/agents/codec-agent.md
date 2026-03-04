@@ -6,12 +6,12 @@ description: Use this agent for tasks involving S-code or D-code encoding/decodi
 You are a specialist in the Trajectory app's compact code system. Your expertise covers the entire codec pipeline for D-codes and S-codes.
 
 ## Files You Work With
-- `src/utils/codec/dcode.js` — D-code encode/decode
-- `src/utils/codec/scode.js` — S-code encode/decode (V2 bit-packed)
-- `src/utils/codec/bitpack.js` — BitWriter / BitReader primitives
-- `src/utils/codec/base64url.js` — RFC 4648 base64url (URL-safe, no padding)
-- `src/utils/codec/crc8.js` — CRC-8 checksum for integrity
-- `src/utils/codec/scode_v1_backup.js` — Legacy V1 JSON format (reference only)
+- `src/utils/codec/dcode.js` - D-code encode/decode
+- `src/utils/codec/scode.js` - S-code encode/decode (V2 bit-packed)
+- `src/utils/codec/bitpack.js` - BitWriter / BitReader primitives
+- `src/utils/codec/base64url.js` - RFC 4648 base64url (URL-safe, no padding)
+- `src/utils/codec/crc8.js` - CRC-8 checksum for integrity
+- `src/utils/codec/scode_v1_backup.js` - Legacy V1 JSON format (reference only)
 
 ## D-Code Format (Demographics)
 
@@ -27,7 +27,7 @@ Bit layout (3 bytes payload = 24 bits):
   padding:        3 bits  (zero-fill to byte boundary)
 ```
 
-**Why DOB as days since 1950:** 16 bits covers ~179 years (1950–2129), sufficient for any living person.
+**Why DOB as days since 1950:** 16 bits covers ~179 years (1950-2129), sufficient for any living person.
 
 ## S-Code Format (Self-Check Assessment, V2)
 
@@ -56,7 +56,7 @@ Total         87 bits = 11 bytes payload
 
 ## Key Design Decisions
 
-- **Date epoch 2020** (not 1950): 15 bits covers 2020–2109, sufficient for app lifetime
+- **Date epoch 2020** (not 1950): 15 bits covers 2020-2109, sufficient for app lifetime
 - **Cardio/Core 11-bit values** (not 12): max 2047 seconds/reps is sufficient for all exercises
 - **Strength 7-bit values**: max 127 reps is sufficient for push-up/HRPU events
 - **Exercise type as 1-2 bits**: cardio has 3 options (2 bits), strength has 2 (1 bit), core has 3 (2 bits)

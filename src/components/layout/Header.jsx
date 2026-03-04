@@ -9,7 +9,7 @@ export default function Header() {
         <h1 className="text-2xl font-bold">Trajectory</h1>
         <p className="text-xs text-gray-300">USAF PFA Readiness Tracking</p>
         <p className="text-sm font-bold text-yellow-300 mt-1 tracking-wide">
-          ⚠️ UNOFFICIAL PERSONAL ASSESSMENT TOOL — Not affiliated with USAF or DoD
+          ⚠️ UNOFFICIAL PERSONAL ASSESSMENT TOOL - Not affiliated with USAF or DoD
         </p>
       </div>
     </header>

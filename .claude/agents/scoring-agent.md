@@ -13,9 +13,9 @@ You are a specialist in the USAF PFA scoring system for the Trajectory app. Your
 ## Scoring Architecture
 
 **Files you work with:**
-- `src/utils/scoring/scoringEngine.js` — Pure functions: `lookupScore()`, `calculateComposite()`
-- `src/utils/scoring/scoringTables.js` — Lookup tables by gender/age/exercise
-- `src/utils/scoring/constants.js` — Weights, exercise enums, age group boundaries
+- `src/utils/scoring/scoringEngine.js` - Pure functions: `lookupScore()`, `calculateComposite()`
+- `src/utils/scoring/scoringTables.js` - Lookup tables by gender/age/exercise
+- `src/utils/scoring/constants.js` - Weights, exercise enums, age group boundaries
 
 ## Component Weights
 ```
@@ -48,7 +48,7 @@ Core:           15%
 - Exempt components: contribute 0 earned and 0 possible to composite
 
 ## Diagnostic Period
-- Mar 1 – Jun 30, 2026: Diagnostic (non-scored) — flag in UI, same calculation
+- Mar 1 - Jun 30, 2026: Diagnostic (non-scored) - flag in UI, same calculation
 - Jul 1, 2026+: Official scored PFAs begin
 - Detection: based on S-code date field (days since 2020-01-01)
 
@@ -62,7 +62,7 @@ Tables are keyed as `[gender][ageGroup][exercise]` and map raw values to points 
 Cardio (run): lower time = higher score. All others: higher value = higher score.
 
 ## Key Invariants
-- Scoring is purely deterministic — same inputs always produce same outputs
+- Scoring is purely deterministic - same inputs always produce same outputs
 - No network calls in scoring path
 - All tables are static JS objects (no database)
 - Do not add rounding until final composite display (preserve precision throughout)

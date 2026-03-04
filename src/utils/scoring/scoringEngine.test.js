@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { lookupScore, parseTime, calculateCompositeScore, calculateComponentScore, calculateWHtR } from './scoringEngine.js'
-import { EXERCISES, AGE_GROUPS, GENDER, COMPONENTS, calculateAge, getAgeGroup, getProjectionAgeGroup } from './constants.js'
+import { EXERCISES, AGE_BRACKETS, GENDER, COMPONENTS, calculateAge, getAgeBracket, getProjectionAgeBracket } from './constants.js'
 
 // Male <25 table reference values (from scoringTables.js)
 // RUN_2MILE: best=805s(13:25)/50pts, worst=1185s(19:45)/29.5pts
@@ -15,11 +15,11 @@ import { EXERCISES, AGE_GROUPS, GENDER, COMPONENTS, calculateAge, getAgeGroup, g
 // SITUPS:    best=58reps/15pts,       worst=39reps/2.3pts
 
 const M = GENDER.MALE
-const U25 = AGE_GROUPS.UNDER_25
+const U25 = AGE_BRACKETS.UNDER_25
 
 // ─── EC-01: above-chart-max clamps to max points ─────────────────────────────
 
-describe('EC-01 – reps above chart max → max points', () => {
+describe('EC-01 - reps above chart max → max points', () => {
   it('pushups: value above chart max (67) returns max 15.0 pts', () => {
     const result = lookupScore(EXERCISES.PUSHUPS, 100, M, U25)
     expect(result.points).toBe(15.0)
@@ -49,7 +49,7 @@ describe('EC-01 – reps above chart max → max points', () => {
   })
 })
 
-describe('EC-01 – plank time above chart max → max points', () => {
+describe('EC-01 - plank time above chart max → max points', () => {
   it('plank: time above chart max (215s) returns max 15.0 pts', () => {
     const result = lookupScore(EXERCISES.PLANK, 400, M, U25)
     expect(result.points).toBe(15.0)
@@ -62,7 +62,7 @@ describe('EC-01 – plank time above chart max → max points', () => {
   })
 })
 
-describe('EC-01 – run time faster than chart min → max points', () => {
+describe('EC-01 - run time faster than chart min → max points', () => {
   it('2-mile run: time faster than chart best (805s) returns max 50.0 pts', () => {
     const result = lookupScore(EXERCISES.RUN_2MILE, 600, M, U25)
     expect(result.points).toBe(50.0)
@@ -77,7 +77,7 @@ describe('EC-01 – run time faster than chart min → max points', () => {
 
 // ─── EC-01: below-chart-min clamps to minimum points (never 0) ───────────────
 
-describe('EC-01 – reps below chart min → minimum chart points, never 0', () => {
+describe('EC-01 - reps below chart min → minimum chart points, never 0', () => {
   it('pushups: value below chart min (30) returns minimum 0.8 pts, not 0', () => {
     const result = lookupScore(EXERCISES.PUSHUPS, 5, M, U25)
     expect(result.points).toBe(0.8)
@@ -103,7 +103,7 @@ describe('EC-01 – reps below chart min → minimum chart points, never 0', () 
   })
 })
 
-describe('EC-01 – plank time below chart min → minimum chart points, never 0', () => {
+describe('EC-01 - plank time below chart min → minimum chart points, never 0', () => {
   it('plank: time below chart min (65s) returns minimum 7.5 pts, not 0', () => {
     const result = lookupScore(EXERCISES.PLANK, 10, M, U25)
     expect(result.points).toBe(7.5)
@@ -111,7 +111,7 @@ describe('EC-01 – plank time below chart min → minimum chart points, never 0
   })
 })
 
-describe('EC-01 – run time slower than chart worst → minimum chart points, never 0', () => {
+describe('EC-01 - run time slower than chart worst → minimum chart points, never 0', () => {
   it('2-mile run: time slower than chart worst (1185s) returns minimum 29.5 pts, not 0', () => {
     const result = lookupScore(EXERCISES.RUN_2MILE, 2000, M, U25)
     expect(result.points).toBe(29.5)
@@ -123,7 +123,7 @@ describe('EC-01 – run time slower than chart worst → minimum chart points, n
 // Supersedes SL-02: 0 reps no longer returns 0 pts; it clamps to chart min
 // (same EC-01 logic) so "attempted with 0 reps" ≠ "not tested" (null).
 
-describe('SL-10 – 0 reps → chart minimum points (not 0, not null)', () => {
+describe('SL-10 - 0 reps → chart minimum points (not 0, not null)', () => {
   it('pushups: 0 reps → chart min 0.8 pts (not 0)', () => {
     const result = lookupScore(EXERCISES.PUSHUPS, 0, M, U25)
     expect(result.points).toBe(0.8)
@@ -166,7 +166,7 @@ describe('SL-10 – 0 reps → chart minimum points (not 0, not null)', () => {
   })
 })
 
-describe('EC-10 – 0 reps on non-exempt component → always pass:false', () => {
+describe('EC-10 - 0 reps on non-exempt component → always pass:false', () => {
   it('strength: 0 pushups → tested=true, pass=false', () => {
     const result = calculateComponentScore(
       { type: 'strength', exercise: EXERCISES.PUSHUPS, value: 0 },
@@ -219,7 +219,7 @@ describe('EC-10 – 0 reps on non-exempt component → always pass:false', () =>
 //   Row 20: 1176s (19:36) → 31.0 pts
 //   Row 21: 1185s (19:45) → 29.5 pts  ← chart worst
 
-describe('SL-03 / EC-07 – run time at exact boundary earns that row\'s points (inclusive)', () => {
+describe('SL-03 / EC-07 - run time at exact boundary earns that row\'s points (inclusive)', () => {
   it('2-mile run: exactly at boundary 17:55 (1075s) → 37.5 pts', () => {
     const result = lookupScore(EXERCISES.RUN_2MILE, 1075, M, U25)
     expect(result.points).toBe(37.5)
@@ -262,12 +262,12 @@ describe('SL-03 / EC-07 – run time at exact boundary earns that row\'s points 
 //
 // Male U25 HAMR rows used here:
 //   threshold 100 → 50.0 pts
-//   threshold  94 → 49.4 pts  (gap: 95–99)
+//   threshold  94 → 49.4 pts  (gap: 95-99)
 //   threshold  45 → 32.5 pts
-//   threshold  42 → 31.0 pts  (gap: 43–44)
+//   threshold  42 → 31.0 pts  (gap: 43-44)
 //   threshold  39 → 29.5 pts  ← chart worst
 
-describe('SL-04 – HAMR gap values use containing bracket (no interpolation)', () => {
+describe('SL-04 - HAMR gap values use containing bracket (no interpolation)', () => {
   it('43 shuttles (gap between 42 and 45) → 31.0 pts, not interpolated 31.5', () => {
     const result = lookupScore(EXERCISES.HAMR, 43, M, U25)
     expect(result.points).toBe(31.0)
@@ -284,7 +284,7 @@ describe('SL-04 – HAMR gap values use containing bracket (no interpolation)', 
     expect(result.points).toBe(32.5)
   })
 
-  it('46 shuttles (1 above lower boundary of 45–47 range) → 32.5 pts', () => {
+  it('46 shuttles (1 above lower boundary of 45-47 range) → 32.5 pts', () => {
     const result = lookupScore(EXERCISES.HAMR, 46, M, U25)
     expect(result.points).toBe(32.5)
   })
@@ -308,7 +308,7 @@ describe('SL-04 – HAMR gap values use containing bracket (no interpolation)', 
 
 // ─── SL-05 / EC-06: WHtR rounded to 2 decimals before lookup ─────────────────
 // Raw ratios like 0.494 must round to 0.49 BEFORE comparison against the table,
-// not after – otherwise 0.494 would fall in the 0.50 bracket (wrong row).
+// not after - otherwise 0.494 would fall in the 0.50 bracket (wrong row).
 //
 // WHTR_TABLE (universal, not age/gender specific):
 //   threshold 0.49 → 20.0 pts
@@ -316,7 +316,7 @@ describe('SL-04 – HAMR gap values use containing bracket (no interpolation)', 
 //   threshold 0.51 → 18.0 pts
 //   threshold 0.60 →  0.0 pts  ← chart worst
 
-describe('SL-05 / EC-06 – WHtR rounded to 2 decimals before lookup', () => {
+describe('SL-05 / EC-06 - WHtR rounded to 2 decimals before lookup', () => {
   it('0.494 → rounds to 0.49 → 20.0 pts (not 19.0 from 0.50 bracket)', () => {
     const result = lookupScore(EXERCISES.WHTR, 0.494, M, U25)
     expect(result.points).toBe(20.0)
@@ -360,7 +360,7 @@ describe('SL-05 / EC-06 – WHtR rounded to 2 decimals before lookup', () => {
 // must return null before the division executes.
 // The guard: !waistInches || !heightInches covers both zero and null/undefined.
 
-describe('EC-23 – height=0 or waist=0 → calculateWHtR returns null', () => {
+describe('EC-23 - height=0 or waist=0 → calculateWHtR returns null', () => {
   it('waist=0, height=60 → null (no ratio calculated)', () => {
     expect(calculateWHtR(0, 60)).toBeNull()
   })
@@ -398,7 +398,7 @@ const makeComp = (points, maxPoints, pass = true) => ({
   tested: true, exempt: false, points, maxPoints, pass,
 })
 
-describe('SL-06 – composite rounded to 1 decimal before pass check', () => {
+describe('SL-06 - composite rounded to 1 decimal before pass check', () => {
   it('composite is the rounded value, not raw float', () => {
     // raw = (37.5/50)*100 = 75.0 → 75.0
     const result = calculateCompositeScore([makeComp(37.5, 50)])
@@ -452,7 +452,7 @@ describe('SL-06 – composite rounded to 1 decimal before pass check', () => {
 
 // ─── SL-07: Walk = 0 earned, 0 possible for cardio; composite from remaining 3 ─
 
-describe('SL-07 – 2km walk excluded from composite', () => {
+describe('SL-07 - 2km walk excluded from composite', () => {
   it('calculateComponentScore marks walk result as walkOnly', () => {
     const result = calculateComponentScore(
       { type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM, value: 1500 },
@@ -547,9 +547,9 @@ describe('SL-07 – 2km walk excluded from composite', () => {
 // bodyComp 50%). These are enforced at component level; the composite threshold
 // (75.0) is a separate, independent check.
 
-describe('SL-08 – component pass/fail independent of composite', () => {
+describe('SL-08 - component pass/fail independent of composite', () => {
   it('high composite but one component fails minimum → overall fail', () => {
-    // Strength 8/15 = 53.3% – below 60% minimum; everything else excellent
+    // Strength 8/15 = 53.3% - below 60% minimum; everything else excellent
     const cardio   = makeComp(50, 50, true)
     const bodyComp = makeComp(20, 20, true)
     const strength = makeComp(8, 15, false) // 53.3% < 60%
@@ -636,7 +636,7 @@ describe('SL-08 – component pass/fail independent of composite', () => {
 
   it('component pass field on calculateComponentScore result is not affected by other components', () => {
     // Verify the pass flag on a component result reflects only that component's
-    // own performance – tested by checking two components separately
+    // own performance - tested by checking two components separately
     const passingStrength = calculateComponentScore(
       { type: COMPONENTS.STRENGTH, exercise: EXERCISES.PUSHUPS, value: 67 }, // best possible
       M, U25,
@@ -647,7 +647,7 @@ describe('SL-08 – component pass/fail independent of composite', () => {
     )
     expect(passingStrength.pass).toBe(true)
     expect(failingStrength.pass).toBe(false)
-    // pass decisions are independent – checking one doesn't change the other
+    // pass decisions are independent - checking one doesn't change the other
     expect(passingStrength.pass).toBe(true)
   })
 })
@@ -656,7 +656,7 @@ describe('SL-08 – component pass/fail independent of composite', () => {
 
 const makeExempt = () => ({ tested: false, exempt: true, points: 0, maxPoints: 0, pass: true })
 
-describe('SL-09 – all components exempt → composite null', () => {
+describe('SL-09 - all components exempt → composite null', () => {
   it('all 4 exempt → composite=null, pass=null', () => {
     const result = calculateCompositeScore([makeExempt(), makeExempt(), makeExempt(), makeExempt()])
     expect(result.composite).toBeNull()
@@ -738,58 +738,58 @@ describe('SL-09 – all components exempt → composite null', () => {
 // must be scored on the NEW bracket's tables, not today's.
 // All examples anchored to today = 2026-03-03.
 
-describe('EC-02 – getProjectionAgeGroup uses target date, not today', () => {
+describe('EC-02 - getProjectionAgeBracket uses target date, not today', () => {
   // ─ rollover: 25-29 → 30-34 ─────────────────────────────────────────────────
   it('DOB 1996-06-15: age 29 today, turns 30 before target → AGE_30_34', () => {
     const dob = '1996-06-15'
     // Today (2026-03-03): age 29 → AGE_25_29
-    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.AGE_25_29)
+    expect(getAgeBracket(calculateAge(dob, '2026-03-03'))).toBe(AGE_BRACKETS.AGE_25_29)
     // Target (2026-07-01): age 30 → AGE_30_34
-    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_30_34)
+    expect(getProjectionAgeBracket(dob, '2026-07-01')).toBe(AGE_BRACKETS.AGE_30_34)
   })
 
   // ─ rollover: UNDER_25 → 25-29 ───────────────────────────────────────────────
   it('DOB 2001-06-15: age 24 today, turns 25 before target → AGE_25_29', () => {
     const dob = '2001-06-15'
-    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.UNDER_25)
-    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_25_29)
+    expect(getAgeBracket(calculateAge(dob, '2026-03-03'))).toBe(AGE_BRACKETS.UNDER_25)
+    expect(getProjectionAgeBracket(dob, '2026-07-01')).toBe(AGE_BRACKETS.AGE_25_29)
   })
 
   // ─ rollover: 35-39 → 40-44 ──────────────────────────────────────────────────
   it('DOB 1986-04-01: age 39 today, turns 40 before target → AGE_40_44', () => {
     const dob = '1986-04-01'
-    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.AGE_35_39)
-    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_40_44)
+    expect(getAgeBracket(calculateAge(dob, '2026-03-03'))).toBe(AGE_BRACKETS.AGE_35_39)
+    expect(getProjectionAgeBracket(dob, '2026-07-01')).toBe(AGE_BRACKETS.AGE_40_44)
   })
 
   // ─ no rollover ───────────────────────────────────────────────────────────────
   it('DOB 1993-01-01: age 33 today and at target → stays AGE_30_34', () => {
     const dob = '1993-01-01'
-    expect(getProjectionAgeGroup(dob, '2026-03-03')).toBe(AGE_GROUPS.AGE_30_34)
-    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_30_34)
+    expect(getProjectionAgeBracket(dob, '2026-03-03')).toBe(AGE_BRACKETS.AGE_30_34)
+    expect(getProjectionAgeBracket(dob, '2026-07-01')).toBe(AGE_BRACKETS.AGE_30_34)
   })
 
   // ─ birthday exactly on target date ───────────────────────────────────────────
   it('birthday falls exactly on target date → new bracket applies', () => {
     // DOB 1996-07-01: turns 30 on 2026-07-01 exactly
     const dob = '1996-07-01'
-    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.AGE_25_29)
-    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_30_34)
+    expect(getAgeBracket(calculateAge(dob, '2026-03-03'))).toBe(AGE_BRACKETS.AGE_25_29)
+    expect(getProjectionAgeBracket(dob, '2026-07-01')).toBe(AGE_BRACKETS.AGE_30_34)
   })
 
   // ─ birthday one day after target date → still in old bracket ────────────────
   it('birthday one day after target date → old bracket still applies', () => {
     // DOB 1996-07-02: turns 30 the day AFTER target date
     const dob = '1996-07-02'
-    expect(getAgeGroup(calculateAge(dob, '2026-03-03'))).toBe(AGE_GROUPS.AGE_25_29)
-    expect(getProjectionAgeGroup(dob, '2026-07-01')).toBe(AGE_GROUPS.AGE_25_29)
+    expect(getAgeBracket(calculateAge(dob, '2026-03-03'))).toBe(AGE_BRACKETS.AGE_25_29)
+    expect(getProjectionAgeBracket(dob, '2026-07-01')).toBe(AGE_BRACKETS.AGE_25_29)
   })
 
-  // ─ getProjectionAgeGroup accepts Date objects ─────────────────────────────
+  // ─ getProjectionAgeBracket accepts Date objects ─────────────────────────────
   it('accepts Date objects as well as ISO strings', () => {
     const dob = new Date('1996-06-15')
     const target = new Date('2026-07-01')
-    expect(getProjectionAgeGroup(dob, target)).toBe(AGE_GROUPS.AGE_30_34)
+    expect(getProjectionAgeBracket(dob, target)).toBe(AGE_BRACKETS.AGE_30_34)
   })
 })
 
@@ -801,7 +801,7 @@ describe('EC-02 – getProjectionAgeGroup uses target date, not today', () => {
 //   HAMR:      100=50.0, 94=49.4, 93→48.8, 39=29.5
 //   PUSHUPS:   67=15.0, 66=14.9
 
-describe('EC-07 – exact boundary value is inclusive', () => {
+describe('EC-07 - exact boundary value is inclusive', () => {
   // ─ 2-mile run (lower time = better; threshold is MAX time for the tier) ───────
 
   it('run: exact best threshold 805s (13:25) → 50.0 pts', () => {
@@ -870,7 +870,7 @@ describe('EC-07 – exact boundary value is inclusive', () => {
 //   100-∞  → 50.0     94-99  → 49.4     92-93  → 48.8
 //   88-91  → 48.1     86-87  → 47.5     83-85  → 46.9
 
-describe('EC-08 – HAMR between published thresholds lands in containing bracket', () => {
+describe('EC-08 - HAMR between published thresholds lands in containing bracket', () => {
   // ─ Wide gap: 94-99 (6-wide gap above 94) ────────────────────────────────────
 
   it('HAMR 99 (just below 100) → 49.4 pts (94 tier)', () => {
@@ -930,7 +930,7 @@ describe('EC-08 – HAMR between published thresholds lands in containing bracke
 
 // ─── Mid-table lookups ────────────────────────────────────────────────────────
 
-describe('lookupScore – mid-table values', () => {
+describe('lookupScore - mid-table values', () => {
   it('2-mile run: 17:55 (1075s) → 37.5 pts', () => {
     const result = lookupScore(EXERCISES.RUN_2MILE, 1075, M, U25)
     expect(result.points).toBe(37.5)
@@ -985,7 +985,7 @@ describe('parseTime', () => {
 
 // ─── null / undefined inputs ──────────────────────────────────────────────────
 
-describe('lookupScore – null/undefined value', () => {
+describe('lookupScore - null/undefined value', () => {
   it('null value → null result', () => {
     expect(lookupScore(EXERCISES.PUSHUPS, null, M, U25)).toBeNull()
   })
@@ -997,7 +997,7 @@ describe('lookupScore – null/undefined value', () => {
 
 // ─── maxPoints derivation ─────────────────────────────────────────────────────
 
-describe('lookupScore – maxPoints always equals table[0].points', () => {
+describe('lookupScore - maxPoints always equals table[0].points', () => {
   it('pushups maxPoints is always 15', () => {
     const low = lookupScore(EXERCISES.PUSHUPS, 5, M, U25)
     const high = lookupScore(EXERCISES.PUSHUPS, 100, M, U25)

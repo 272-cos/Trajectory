@@ -1,4 +1,4 @@
-# USAF PFA Readiness Tracker — Development Plan
+# USAF PFA Readiness Tracker - Development Plan
 
 **Basis:** `docs/design.md` v1.3 | **Date:** February 2026
 **Branch strategy:** One GitHub issue per sprint task → `claude/<slug>` branch → PR to `main`
@@ -10,7 +10,7 @@
 | Layer | Status | Gap |
 |---|---|---|
 | Scoring tables | ✅ Complete | All 18 brackets. WHTR universal table. |
-| Scoring engine | ⚠️ Partial | Missing: walk pass/fail (SL-07), remaining edge cases EC-02/SL-03–SL-09 unverified |
+| Scoring engine | ⚠️ Partial | Missing: walk pass/fail (SL-07), remaining edge cases EC-02/SL-03-SL-09 unverified |
 | D-code codec | ✅ Complete | Encode/decode/CRC verified |
 | S-code codec | ⚠️ Partial | 87-bit V2; missing: `base_id`, `rpe`, `sleep`, `nutrition`, `injured`, `env_flags`, `confidence`, `whtr_offset`, `cardio_walk_pass` |
 | Input validation | ⚠️ Partial | IV-01 through IV-13; most not enforced in UI |
@@ -28,13 +28,13 @@
 
 ## Sprint Plan
 
-### Sprint 2 — Engine Hardening + URL Hydration + S-Code Expansion
+### Sprint 2 - Engine Hardening + URL Hydration + S-Code Expansion
 
 **Goal:** All scoring logic correct and tested. S-code carries full design-spec payload. URL hydration works.
 
 ---
 
-#### Task 2.1 — Scoring Engine Edge Cases + Unit Tests
+#### Task 2.1 - Scoring Engine Edge Cases + Unit Tests
 
 **Design references:** SL-01 through SL-10, EC-01, EC-02, EC-06, EC-07, EC-08, EC-10, EC-23
 
@@ -44,7 +44,7 @@
 - [X] **SL-03:** Run time boundary: listed time is slowest valid time for that row (inclusive)
 - [X] **SL-04:** HAMR gaps between ranges use containing bracket (no interpolation)
 - [X] **SL-05 / EC-06:** WHtR rounded to 2 decimals before lookup (`0.495 → 0.50`)
-- [X] **SL-06:** Composite = `round((earned/possible)*100, 1)` — match official rounding
+- [X] **SL-06:** Composite = `round((earned/possible)*100, 1)` - match official rounding
 - [X] **SL-07:** Walk = 0 earned, 0 possible for cardio; composite from remaining 3
 - [X] **SL-08:** Component pass/fail checked independently of composite
 - [X] **SL-09:** All components exempt → `composite = null`, no score
@@ -58,7 +58,7 @@
 
 ---
 
-#### Task 2.2 — S-Code V3: Full Design-Spec Payload
+#### Task 2.2 - S-Code V3: Full Design-Spec Payload
 
 **Design references:** §7.2 S-Code data model, GR-13 (altitude), GR-07 (injury), GR-08 (RPE), §10 Feedback
 
@@ -66,15 +66,15 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 | New Field | Bits | Range |
 |---|---|---|
-| `whtr_measured_offset` | 3 | 0–5 days before self-check |
+| `whtr_measured_offset` | 3 | 0-5 days before self-check |
 | `cardio_walk_pass` | 1 | Boolean (only when cardio_type=walk) |
-| `base_id` | 3 | 0=N/A, 1–7 (altitude base registry) |
-| `rpe` | 3 | 0–4 mapped from 1–5 |
+| `base_id` | 3 | 0=N/A, 1-7 (altitude base registry) |
+| `rpe` | 3 | 0-4 mapped from 1-5 |
 | `sleep_quality` | 2 | 0=poor / 1=fair / 2=good / 3=excellent |
 | `nutrition` | 2 | 0=fasted / 1=light / 2=normal / 3=heavy |
 | `injured` | 1 | 0=no / 1=yes |
 | `environment_flags` | 6 | hot, cold, humid, windy, altitude\_notable, indoor |
-| `confidence` | 3 | 0–4 mapped from 1–5 |
+| `confidence` | 3 | 0-4 mapped from 1-5 |
 
 - [X] Bump schema version to `S3-` prefix, update `SCHEMA_VERSION = 3`
 - [X] Update `BitWriter`/`BitReader` field sequence in `scode.js`
@@ -82,14 +82,14 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 - [X] Backward-compat: V2 decode still works (detect prefix `S2-`)
 - [X] Update `encodeSCode()` and `decodeSCode()` for new fields
 - [X] Add base registry constant: `BASE_REGISTRY` array of 7 installations (§4)
-- [X] CS-01 / CS-09: version detection — `S3-` current, `S2-` legacy decode, higher = "update the app"
+- [X] CS-01 / CS-09: version detection - `S3-` current, `S2-` legacy decode, higher = "update the app"
 - [X] Unit tests: encode → decode round-trip for all new fields; boundary values
 
 **Acceptance:** Round-trip encode/decode passes for V2 and V3. All new fields survive codec. ~22-char output.
 
 ---
 
-#### Task 2.3 — URL Hydration + Web Share API
+#### Task 2.3 - URL Hydration + Web Share API
 
 **Design references:** §3.1 Web Share API, §3.2 URL Hydration, §3.3 Manual Code Entry, EC-28, EC-29, UX-08, UX-09, CS-03, CS-08
 
@@ -100,7 +100,7 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 - [ ] EC-28: invalid code in URL param → error per bad param, still load valid params
 - [ ] EC-29: mismatched schema versions across `d`/`s` params → warn, load independently
 - [ ] Web Share API: `navigator.canShare()` feature detect; show Share button if supported
-- [ ] Share payload: `{ title: 'PFA Self-Check', text: url }` (use `text`, not `url` — iOS Safari fix)
+- [ ] Share payload: `{ title: 'PFA Self-Check', text: url }` (use `text`, not `url` - iOS Safari fix)
 - [ ] Fallback: Copy button + "Copied!" confirmation toast on unsupported browsers
 - [ ] UX-09: paste fields strip whitespace and newlines before decode
 - [ ] Share URLs constructed from current D-code + active S-code(s)
@@ -109,22 +109,22 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
-### Sprint 3 — Self-Check UI Completion
+### Sprint 3 - Self-Check UI Completion
 
 **Goal:** Self-Check tab fully implements design spec: altitude, walk, feedback fields, all IV/UX rules.
 
 ---
 
-#### Task 3.1 — Input Validation (IV Rules)
+#### Task 3.1 - Input Validation (IV Rules)
 
 **Design references:** §5.1 IV-01 through IV-13
 
 - [ ] **IV-01:** Self-check date picker max = today; future dates greyed out
 - [ ] **IV-02:** Target PFA date must be after most recent self-check date
 - [ ] **IV-03:** Target PFA date ≤ 365 days out ("beyond 1 year = unreliable")
-- [ ] **IV-04:** DOB age 17–65 at self-check date ("outside USAF service range")
-- [ ] **IV-05:** Height input clamped 48–84 inches; out-of-range rejected
-- [ ] **IV-06:** Waist input clamped 20.0–55.0 inches
+- [ ] **IV-04:** DOB age 17-65 at self-check date ("outside USAF service range")
+- [ ] **IV-05:** Height input clamped 48-84 inches; out-of-range rejected
+- [ ] **IV-06:** Waist input clamped 20.0-55.0 inches
 - [ ] **IV-07:** Run/walk time > 0:00 and ≤ 2:00:00; accepts `mm:ss` or `h:mm:ss`
 - [ ] **IV-08:** Reps input `min=0`; spinner enforces floor
 - [ ] **IV-09:** Plank time ≤ 10:00 (600 s); "Maximum plank entry is 10 minutes."
@@ -137,7 +137,7 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
-#### Task 3.2 — Altitude + Walk Support in Self-Check UI
+#### Task 3.2 - Altitude + Walk Support in Self-Check UI
 
 **Design references:** §4 Altitude Model, GR-13, UX-13, IV-11, SL-07, EC-04, EC-05, EC-19
 
@@ -158,7 +158,7 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
-#### Task 3.3 — Feedback Fields + UX Polish in Self-Check
+#### Task 3.3 - Feedback Fields + UX Polish in Self-Check
 
 **Design references:** §10 Feedback table, UX-01 through UX-13, GR-06, GR-07, GR-08
 
@@ -177,13 +177,13 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
-### Sprint 4 — Projection Engine
+### Sprint 4 - Projection Engine
 
 **Goal:** Full projection engine per §9 + §5.3, displayed in Project tab.
 
 ---
 
-#### Task 4.1 — Projection Engine (Pure Functions)
+#### Task 4.1 - Projection Engine (Pure Functions)
 
 **Design references:** §9 Projection Engine, §5.3 PG-01 through PG-08
 
@@ -204,7 +204,7 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
-#### Task 4.2 — Project Tab UI
+#### Task 4.2 - Project Tab UI
 
 **Design references:** §10 Tab 3 (Project), §5.3 PG rules
 
@@ -220,13 +220,13 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
-### Sprint 5 — History Tab
+### Sprint 5 - History Tab
 
 **Goal:** Full History tab per §10 Tab 4.
 
 ---
 
-#### Task 5.1 — History Tab: S-Code Paste + Trend Chart
+#### Task 5.1 - History Tab: S-Code Paste + Trend Chart
 
 **Design references:** §10 Tab 4 (History), §3.3 Manual Code Entry, PG-06
 
@@ -235,22 +235,22 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 - [ ] Per-S-code outlier flag toggle (PG-06)
 - [ ] Trend mini-chart: time series of composite score across S-codes (Recharts)
 - [ ] Per-component sparklines
-- [ ] Historical trend requires 3+ S-codes — show "Need 3+ self-checks" below threshold (EC-12)
+- [ ] Historical trend requires 3+ S-codes - show "Need 3+ self-checks" below threshold (EC-12)
 - [ ] EC-20: two S-codes same date → both shown, let member flag outlier
 - [ ] CS-08: D-code pasted into S-code field → "This is a D-code. Paste it in Profile."
 - [ ] EC-14: S-code in diagnostic period → "DIAGNOSTIC PERIOD" badge in list
 
-**Acceptance:** Paste → decode → display works. Chart renders with 1–5 S-codes. Outlier toggle excludes from trend.
+**Acceptance:** Paste → decode → display works. Chart renders with 1-5 S-codes. Outlier toggle excludes from trend.
 
 ---
 
-### Sprint 6 — Report Tab
+### Sprint 6 - Report Tab
 
 **Goal:** Full report generation per §10 Tab 5 + §5.6 RP rules.
 
 ---
 
-#### Task 6.1 — Report Tab
+#### Task 6.1 - Report Tab
 
 **Design references:** §10 Tab 5 (Report), §5.6 RP-01 through RP-08
 
@@ -269,13 +269,13 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
-### Sprint 7 — Polish, Accessibility, PWA
+### Sprint 7 - Polish, Accessibility, PWA
 
 **Goal:** Production-ready. Offline capable. Accessible.
 
 ---
 
-#### Task 7.1 — Accessibility + Responsive Polish
+#### Task 7.1 - Accessibility + Responsive Polish
 
 **Design references:** GR-09 (mobile-first), §10 Tech Stack
 
@@ -288,7 +288,7 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
-#### Task 7.2 — PWA + Service Worker
+#### Task 7.2 - PWA + Service Worker
 
 **Design references:** §12 Phase P7
 
@@ -300,7 +300,7 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 ---
 
-#### Task 7.3 — Scoring Chart Update Banner
+#### Task 7.3 - Scoring Chart Update Banner
 
 **Design references:** EC-24, Risk Register (chart revision HIGH prob)
 
@@ -324,9 +324,9 @@ Per design GR-06 and project constraints:
 ### Testing Strategy
 
 Every pure-function module gets Vitest unit tests before the UI is wired up:
-1. `scoringEngine.js` — all SL rules + EC edge cases (Task 2.1)
-2. `scode.js` V3 — round-trip encode/decode, boundary values (Task 2.2)
-3. `projectionEngine.js` — model accuracy, clamping, age-rollover (Task 4.1)
+1. `scoringEngine.js` - all SL rules + EC edge cases (Task 2.1)
+2. `scode.js` V3 - round-trip encode/decode, boundary values (Task 2.2)
+3. `projectionEngine.js` - model accuracy, clamping, age-rollover (Task 4.1)
 
 UI component tests via React Testing Library for critical flows (Self-Check live score, code paste/validate, report generation).
 

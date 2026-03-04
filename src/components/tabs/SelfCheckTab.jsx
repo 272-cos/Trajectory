@@ -6,8 +6,8 @@ import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { encodeSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
-import { calculateAge, getAgeGroup, isDiagnosticPeriod } from '../../utils/scoring/constants.js'
-import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime } from '../../utils/scoring/scoringEngine.js'
+import { calculateAge, getAgeBracket, isDiagnosticPeriod } from '../../utils/scoring/constants.js'
+import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete } from '../../utils/scoring/scoringEngine.js'
 
 export default function SelfCheckTab() {
   const { demographics, addSCode } = useApp()
@@ -53,7 +53,7 @@ export default function SelfCheckTab() {
 
     try {
       const age = calculateAge(demographics.dob, assessmentDate)
-      const ageGroup = getAgeGroup(age)
+      const ageBracket = getAgeBracket(age)
       const gender = demographics.gender
 
       const components = []
@@ -65,7 +65,7 @@ export default function SelfCheckTab() {
           const cardioScore = calculateComponentScore(
             { type: COMPONENTS.CARDIO, exercise: cardioExercise, value, exempt: false },
             gender,
-            ageGroup
+            ageBracket
           )
           components.push({ ...cardioScore, type: COMPONENTS.CARDIO, exercise: cardioExercise })
         }
@@ -80,7 +80,7 @@ export default function SelfCheckTab() {
           const strengthScore = calculateComponentScore(
             { type: COMPONENTS.STRENGTH, exercise: strengthExercise, value, exempt: false },
             gender,
-            ageGroup
+            ageBracket
           )
           components.push({ ...strengthScore, type: COMPONENTS.STRENGTH, exercise: strengthExercise })
         }
@@ -95,7 +95,7 @@ export default function SelfCheckTab() {
           const coreScore = calculateComponentScore(
             { type: COMPONENTS.CORE, exercise: coreExercise, value, exempt: false },
             gender,
-            ageGroup
+            ageBracket
           )
           components.push({ ...coreScore, type: COMPONENTS.CORE, exercise: coreExercise })
         }
@@ -112,7 +112,7 @@ export default function SelfCheckTab() {
           const bodyCompScore = calculateComponentScore(
             { type: COMPONENTS.BODY_COMP, exercise: EXERCISES.WHTR, value: whtr, exempt: false },
             gender,
-            ageGroup
+            ageBracket
           )
           components.push({ ...bodyCompScore, type: COMPONENTS.BODY_COMP, exercise: EXERCISES.WHTR, whtr })
         }
@@ -275,11 +275,11 @@ export default function SelfCheckTab() {
                 placeholder={cardioExercise === EXERCISES.RUN_2MILE ? '13:30' : '94'}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
               />
-              {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !cardioExempt && (
+              {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !cardioExempt && !isTimeIncomplete(cardioValue) && (
                 <p className="text-xs mt-1" style={{ color: parseTime(cardioValue) != null ? '#6b7280' : '#ef4444' }}>
                   {parseTime(cardioValue) != null
                     ? formatTime(parseTime(cardioValue))
-                    : 'Invalid format — use MM:SS or whole minutes'}
+                    : 'Invalid format - use MM:SS or whole minutes'}
                 </p>
               )}
             </div>
@@ -354,11 +354,11 @@ export default function SelfCheckTab() {
                 placeholder={coreExercise === EXERCISES.PLANK ? '2:30' : '42'}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
               />
-              {coreExercise === EXERCISES.PLANK && coreValue && !coreExempt && (
+              {coreExercise === EXERCISES.PLANK && coreValue && !coreExempt && !isTimeIncomplete(coreValue) && (
                 <p className="text-xs mt-1" style={{ color: parseTime(coreValue) != null ? '#6b7280' : '#ef4444' }}>
                   {parseTime(coreValue) != null
                     ? formatTime(parseTime(coreValue))
-                    : 'Invalid format — use MM:SS or whole minutes'}
+                    : 'Invalid format - use MM:SS or whole minutes'}
                 </p>
               )}
             </div>

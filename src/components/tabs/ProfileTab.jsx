@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { encodeDCode, decodeDCode } from '../../utils/codec/dcode.js'
-import { GENDER } from '../../utils/scoring/constants.js'
+import { GENDER, calculateAge } from '../../utils/scoring/constants.js'
 
 export default function ProfileTab() {
   const { dcode, demographics, updateDCode, targetPfaDate, updateTargetPfaDate } = useApp()
@@ -16,6 +16,8 @@ export default function ProfileTab() {
   const [pasteCode, setPasteCode] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [dobError, setDobError] = useState('')
+  const [targetDateError, setTargetDateError] = useState('')
 
   // Load demographics and target date if available
   useEffect(() => {
@@ -31,15 +33,77 @@ export default function ProfileTab() {
     }
   }, [targetPfaDate])
 
+  // IV-04: Validate DOB produces age 17-65
+  const validateDob = (dobValue) => {
+    if (!dobValue) {
+      setDobError('')
+      return
+    }
+    const age = calculateAge(dobValue)
+    if (age < 17) {
+      setDobError('Age must be at least 17 for USAF service.')
+    } else if (age > 65) {
+      setDobError('Age exceeds maximum USAF service range (65).')
+    } else {
+      setDobError('')
+    }
+  }
+
+  const handleDobChange = (e) => {
+    const newDob = e.target.value
+    setDob(newDob)
+    validateDob(newDob)
+  }
+
+  // IV-02/IV-03: Validate target PFA date
+  const validateTargetDate = (dateValue) => {
+    if (!dateValue) {
+      setTargetDateError('')
+      return true
+    }
+    const target = new Date(dateValue)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    if (target <= today) {
+      setTargetDateError('Target PFA date must be in the future.')
+      return false
+    }
+
+    const maxDate = new Date(today)
+    maxDate.setFullYear(maxDate.getFullYear() + 1)
+    if (target > maxDate) {
+      setTargetDateError('Target dates beyond 1 year produce unreliable projections.')
+      return false
+    }
+
+    setTargetDateError('')
+    return true
+  }
+
   const handleTargetDateChange = (e) => {
     const newDate = e.target.value
     setTargetDate(newDate)
-    updateTargetPfaDate(newDate)
+    if (validateTargetDate(newDate)) {
+      updateTargetPfaDate(newDate)
+    }
   }
 
   const handleGenerateDCode = () => {
     setError('')
     setSuccess('')
+
+    if (!dob) {
+      setError('Date of birth is required.')
+      return
+    }
+
+    // IV-04: Validate age range
+    const age = calculateAge(dob)
+    if (age < 17 || age > 65) {
+      setError('Date of birth must produce age 17-65 for USAF service range.')
+      return
+    }
 
     try {
       const code = encodeDCode({ dob, gender })
@@ -98,9 +162,12 @@ export default function ProfileTab() {
             <input
               type="date"
               value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onChange={handleDobChange}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${dobError ? 'border-red-400' : 'border-gray-300'}`}
             />
+            {dobError && (
+              <p className="text-xs text-red-600 mt-1">{dobError}</p>
+            )}
           </div>
 
           {/* Gender */}
@@ -142,11 +209,15 @@ export default function ProfileTab() {
               value={targetDate}
               onChange={handleTargetDateChange}
               min={new Date().toISOString().split('T')[0]}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${targetDateError ? 'border-red-400' : 'border-gray-300'}`}
             />
-            <p className="text-xs text-gray-600 mt-1">
-              Set your upcoming official PFA date to see your trajectory
-            </p>
+            {targetDateError ? (
+              <p className="text-xs text-red-600 mt-1">{targetDateError}</p>
+            ) : (
+              <p className="text-xs text-gray-600 mt-1">
+                Set your upcoming official PFA date to see your trajectory
+              </p>
+            )}
           </div>
 
           {/* Generate Button */}

@@ -1,5 +1,6 @@
 /**
  * Scoring constants for 2026 PFA (50-20-15-15 model)
+ * Per DAFMAN 36-2905 (Change 1, 22 Jan 2026) and AFPC scoring charts
  */
 
 // Component weights (total = 100) - keys match COMPONENTS values
@@ -38,8 +39,8 @@ export const EXERCISES = {
   WHTR: 'whtr',
 }
 
-// Age groups (official USAF 5-year brackets per AFPC charts)
-export const AGE_GROUPS = {
+// Age brackets (AFPC 5-year brackets per DAFMAN 36-2905)
+export const AGE_BRACKETS = {
   UNDER_25: '<25',
   AGE_25_29: '25-29',
   AGE_30_34: '30-34',
@@ -68,9 +69,9 @@ export const COMPONENT_MINIMUMS = {
   [COMPONENTS.BODY_COMP]: 50.0, // 10/20 points
 }
 
-// Diagnostic period (non-scored)
+// Diagnostic period (non-scored) per DAFMAN 36-2905
 export const DIAGNOSTIC_PERIOD_START = '2026-03-01'
-export const DIAGNOSTIC_PERIOD_END = '2026-08-31'
+export const DIAGNOSTIC_PERIOD_END = '2026-06-30'
 
 /**
  * Calculate age from DOB and date
@@ -90,32 +91,32 @@ export function calculateAge(dob, date = new Date()) {
 }
 
 /**
- * Get age group from age
+ * Get age bracket from age per AFPC scoring charts
  * @param {number} age - Age in years
- * @returns {string} Age group constant
+ * @returns {string} Age bracket constant
  */
-export function getAgeGroup(age) {
-  if (age < 25) return AGE_GROUPS.UNDER_25
-  if (age < 30) return AGE_GROUPS.AGE_25_29
-  if (age < 35) return AGE_GROUPS.AGE_30_34
-  if (age < 40) return AGE_GROUPS.AGE_35_39
-  if (age < 45) return AGE_GROUPS.AGE_40_44
-  if (age < 50) return AGE_GROUPS.AGE_45_49
-  if (age < 55) return AGE_GROUPS.AGE_50_54
-  if (age < 60) return AGE_GROUPS.AGE_55_59
-  return AGE_GROUPS.AGE_60_PLUS
+export function getAgeBracket(age) {
+  if (age < 25) return AGE_BRACKETS.UNDER_25
+  if (age < 30) return AGE_BRACKETS.AGE_25_29
+  if (age < 35) return AGE_BRACKETS.AGE_30_34
+  if (age < 40) return AGE_BRACKETS.AGE_35_39
+  if (age < 45) return AGE_BRACKETS.AGE_40_44
+  if (age < 50) return AGE_BRACKETS.AGE_45_49
+  if (age < 55) return AGE_BRACKETS.AGE_50_54
+  if (age < 60) return AGE_BRACKETS.AGE_55_59
+  return AGE_BRACKETS.AGE_60_PLUS
 }
 
 /**
- * EC-02: Get age group at a target date (handles bracket rollover).
+ * EC-02: Get age bracket at a target date (handles bracket rollover).
  * Projection calculations must use the Airman's age AT the target PFA date,
- * not today — someone who turns 30 before their PFA is scored on 30-34 tables.
+ * not today - someone who turns 30 before their PFA is scored on 30-34 tables.
  * @param {Date|string} dob - Date of birth
  * @param {Date|string} targetDate - Target PFA date
- * @returns {string} Age group constant
+ * @returns {string} Age bracket constant
  */
-export function getProjectionAgeGroup(dob, targetDate) {
-  return getAgeGroup(calculateAge(dob, targetDate))
+export function getProjectionAgeBracket(dob, targetDate) {
+  return getAgeBracket(calculateAge(dob, targetDate))
 }
 
 /**

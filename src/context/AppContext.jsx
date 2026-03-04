@@ -9,6 +9,7 @@ import {
   saveDCode,
   getSCodes,
   addSCode as addSCodeToStorage,
+  removeSCode as removeSCodeFromStorage,
   getTargetDate,
   saveTargetDate,
   isOnboarded,
@@ -81,6 +82,13 @@ export function AppProvider({ children }) {
     }
   }
 
+  // Remove S-code from list
+  const removeSCode = (scode) => {
+    const updated = scodes.filter(s => s !== scode)
+    setSCodes(updated)
+    removeSCodeFromStorage(scode)
+  }
+
   // Update target PFA date
   const updateTargetPfaDate = (date) => {
     setTargetPfaDate(date)
@@ -104,6 +112,7 @@ export function AppProvider({ children }) {
     // S-codes
     scodes,
     addSCode,
+    removeSCode,
 
     // Target PFA date
     targetPfaDate,

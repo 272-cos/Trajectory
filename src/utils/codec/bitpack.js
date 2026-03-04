@@ -4,7 +4,7 @@
  * V3 bit layout (~104 bits, all components present):
  * - Header:    24 bits  (version:4, chart:4, date:15, diagnostic:1)
  * - Flags:      4 bits  (component presence ×4)
- * - Cardio:   14–15 bits if present (exercise:2, exempt:1, [value:11], [walk_pass:1])
+ * - Cardio:   14-15 bits if present (exercise:2, exempt:1, [value:11], [walk_pass:1])
  * - Strength:   9 bits if present   (exercise:1, exempt:1, [value:7])
  * - Core:      14 bits if present   (exercise:2, exempt:1, [value:11])
  * - Body Comp: 25 bits if present   (exempt:1, [height:11, waist:10, whtr_offset:3])

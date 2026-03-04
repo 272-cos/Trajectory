@@ -1,10 +1,10 @@
-# USAF PFA Readiness Tracker — Software Design Document
+# USAF PFA Readiness Tracker - Software Design Document
 
 **v1.3 | February 2026 | DRAFT**
 
 Reference: DAFMAN 36-2905 (Change 1, 22 Jan 2026)
 Scoring Charts: AFPC 50-20-15-15 Model (23 Sep 2025, provisional)
-Timeline: Diagnostic Mar–Jun 2026 | Scored Jul 2026+
+Timeline: Diagnostic Mar-Jun 2026 | Scored Jul 2026+
 
 ---
 

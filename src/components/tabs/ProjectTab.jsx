@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { COMPONENTS } from '../../utils/scoring/constants.js'
-import { getProjectionAgeGroup } from '../../utils/scoring/constants.js'
+import { getProjectionAgeBracket } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore } from '../../utils/scoring/scoringEngine.js'
 import { getRecommendations, getTierLabel, getTierEmoji } from '../../utils/recommendations/recommendationEngine.js'
 
@@ -29,7 +29,7 @@ export default function ProjectTab() {
 
       // EC-02: use age at target PFA date (handles bracket rollover before PFA)
       const projectionDate = targetPfaDate ? new Date(targetPfaDate) : assessment.date
-      const ageGroup = getProjectionAgeGroup(demographics.dob, projectionDate)
+      const ageBracket = getProjectionAgeBracket(demographics.dob, projectionDate)
       const gender = demographics.gender
 
       const components = []
@@ -39,7 +39,7 @@ export default function ProjectTab() {
         const cardioScore = calculateComponentScore(
           { type: COMPONENTS.CARDIO, exercise: assessment.cardio.exercise, value: assessment.cardio.value, exempt: false },
           gender,
-          ageGroup
+          ageBracket
         )
         components.push({ ...cardioScore, type: COMPONENTS.CARDIO, exercise: assessment.cardio.exercise })
       } else if (assessment.cardio?.exempt) {
@@ -51,7 +51,7 @@ export default function ProjectTab() {
         const strengthScore = calculateComponentScore(
           { type: COMPONENTS.STRENGTH, exercise: assessment.strength.exercise, value: assessment.strength.value, exempt: false },
           gender,
-          ageGroup
+          ageBracket
         )
         components.push({ ...strengthScore, type: COMPONENTS.STRENGTH, exercise: assessment.strength.exercise })
       } else if (assessment.strength?.exempt) {
@@ -63,7 +63,7 @@ export default function ProjectTab() {
         const coreScore = calculateComponentScore(
           { type: COMPONENTS.CORE, exercise: assessment.core.exercise, value: assessment.core.value, exempt: false },
           gender,
-          ageGroup
+          ageBracket
         )
         components.push({ ...coreScore, type: COMPONENTS.CORE, exercise: assessment.core.exercise })
       } else if (assessment.core?.exempt) {
@@ -76,7 +76,7 @@ export default function ProjectTab() {
         const bodyCompScore = calculateComponentScore(
           { type: COMPONENTS.BODY_COMP, exercise: 'whtr', value: whtr, exempt: false },
           gender,
-          ageGroup
+          ageBracket
         )
         components.push({ ...bodyCompScore, type: COMPONENTS.BODY_COMP, exercise: 'whtr' })
       } else if (assessment.bodyComp?.exempt) {

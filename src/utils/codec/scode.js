@@ -1,14 +1,14 @@
 /**
  * S-code (Self-Check Code) encoding/decoding
  *
- * VERSION 3 — Full design-spec payload
+ * VERSION 3 - Full design-spec payload
  * Format: S3-[base64url(bit-packed payload + CRC-8)]
  *
  * V3 bit layout (~110 bits, all 4 components present with run):
  *   Header    24  version:4, chart:4, date:15, diagnostic:1
  *   Flags      4  hasCardio:1, hasStrength:1, hasCore:1, hasBodyComp:1
  *   Cardio    14  exercise:2, exempt:1, [value:11]
- *             +1  [cardio_walk_pass:1]  — only when exercise=2km_walk AND not exempt
+ *             +1  [cardio_walk_pass:1]  - only when exercise=2km_walk AND not exempt
  *   Strength   9  exercise:1, exempt:1, [value:7]
  *   Core      14  exercise:2, exempt:1, [value:11]
  *   BodyComp  25  exempt:1, [height:11, waist:10, whtr_measured_offset:3]

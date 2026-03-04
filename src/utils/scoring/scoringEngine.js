@@ -16,10 +16,10 @@ import {
  * @param {string} exercise - Exercise type
  * @param {number} value - Performance value (reps, seconds, ratio)
  * @param {string} gender - 'M' or 'F'
- * @param {string} ageGroup - Age group constant
+ * @param {string} ageBracket - Age bracket constant
  * @returns {{points: number, maxPoints: number, percentage: number}|null}
  */
-export function lookupScore(exercise, value, gender, ageGroup) {
+export function lookupScore(exercise, value, gender, ageBracket) {
   if (value === null || value === undefined) {
     return null // Not tested
   }
@@ -29,7 +29,7 @@ export function lookupScore(exercise, value, gender, ageGroup) {
     return null
   }
 
-  const table = getScoringTable(gender, ageGroup, exercise)
+  const table = getScoringTable(gender, ageBracket, exercise)
   if (!table || table.length === 0) {
     console.error(`No scoring table found for ${exercise}`)
     return null
@@ -66,7 +66,7 @@ export function lookupScore(exercise, value, gender, ageGroup) {
   let matched = false
 
   if (isTimeBasedExercise || exercise === EXERCISES.WHTR) {
-    // Lower is better – table sorted ascending (fastest/lowest first = max points)
+    // Lower is better - table sorted ascending (fastest/lowest first = max points)
     for (let i = 0; i < table.length; i++) {
       if (lookupValue <= table[i].threshold) {
         points = table[i].points
@@ -79,7 +79,7 @@ export function lookupScore(exercise, value, gender, ageGroup) {
       points = table[table.length - 1].points
     }
   } else if (isRepsBasedExercise || isPlank) {
-    // Higher is better – table sorted descending (highest reps/time first = max points)
+    // Higher is better - table sorted descending (highest reps/time first = max points)
     for (let i = 0; i < table.length; i++) {
       if (lookupValue >= table[i].threshold) {
         points = table[i].points
@@ -103,10 +103,10 @@ export function lookupScore(exercise, value, gender, ageGroup) {
  * Calculate component score
  * @param {object} component - Component data
  * @param {string} gender - 'M' or 'F'
- * @param {string} ageGroup - Age group constant
+ * @param {string} ageBracket - Age bracket constant
  * @returns {object} Component score result
  */
-export function calculateComponentScore(component, gender, ageGroup) {
+export function calculateComponentScore(component, gender, ageBracket) {
   const {
     type, // 'cardio', 'strength', 'core', 'bodyComp'
     exercise, // specific exercise
@@ -154,7 +154,7 @@ export function calculateComponentScore(component, gender, ageGroup) {
   }
 
   // Calculate score
-  const scoreResult = lookupScore(exercise, value, gender, ageGroup)
+  const scoreResult = lookupScore(exercise, value, gender, ageBracket)
   const walkOnly = false
 
   if (!scoreResult) {
@@ -273,7 +273,7 @@ export function calculateCompositeScore(componentResults) {
     }
   }
 
-  // SL-06: composite = round((earned/possible)*100, 1) – official rounding
+  // SL-06: composite = round((earned/possible)*100, 1) - official rounding
   // Round BEFORE the pass check so the displayed value matches the decision.
   const composite = Math.round((totalEarned / totalPossible) * 1000) / 10
   const compositePass = composite >= PASSING_COMPOSITE
@@ -324,6 +324,23 @@ export function formatTime(seconds) {
  * @param {string} timeStr - Time in "mm:ss" or "seconds" format
  * @returns {number|null} Time in seconds
  */
+/**
+ * Check if a time string is still being typed (incomplete but not invalid)
+ * @param {string} timeStr - Raw input string
+ * @returns {boolean} True if input looks incomplete (e.g. "18:", "1:")
+ */
+export function isTimeIncomplete(timeStr) {
+  if (!timeStr) return false
+  // Trailing colon means user just typed the separator, waiting for seconds
+  if (timeStr.endsWith(':')) return true
+  // Single digit after colon means user is still typing seconds (e.g. "18:3")
+  if (timeStr.includes(':')) {
+    const parts = timeStr.split(':')
+    if (parts[1] && parts[1].length === 1) return true
+  }
+  return false
+}
+
 export function parseTime(timeStr) {
   if (!timeStr) return null
 
@@ -337,7 +354,7 @@ export function parseTime(timeStr) {
     return total > 0 ? total : null
   }
 
-  // No colon: treat as whole minutes (e.g. "18" → 18:00 → 1080 s)
+  // No colon: treat as whole minutes (e.g. "18" -> 18:00 -> 1080 s)
   const mins = parseInt(timeStr, 10)
   if (isNaN(mins) || mins <= 0) return null
   return mins * 60

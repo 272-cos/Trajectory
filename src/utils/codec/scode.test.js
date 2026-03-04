@@ -1,5 +1,5 @@
 /**
- * Task 2.2 acceptance tests — S-code V3
+ * Task 2.2 acceptance tests - S-code V3
  *
  * Coverage:
  *  • V3 encode → decode round-trip (all components)
@@ -23,7 +23,7 @@ import { encodeBase64url } from './base64url.js'
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const SCORED_DATE     = '2026-09-01'   // after Aug 31 → not diagnostic
-const DIAGNOSTIC_DATE = '2026-04-01'   // Mar–Jun 2026 → diagnostic
+const DIAGNOSTIC_DATE = '2026-04-01'   // Mar-Jun 2026 → diagnostic
 
 const FULL_V3 = {
   date: SCORED_DATE,
@@ -69,7 +69,7 @@ function buildRawSCode(schemaVersion) {
 
 // ─── Round-trip: basic ────────────────────────────────────────────────────────
 
-describe('V3 round-trip – basic', () => {
+describe('V3 round-trip - basic', () => {
   it('encodes and decodes all 4 components', () => {
     const code = encodeSCode(FULL_V3)
     expect(code).toMatch(/^S3-/)

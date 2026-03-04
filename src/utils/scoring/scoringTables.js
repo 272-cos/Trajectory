@@ -1,10 +1,10 @@
 /**
  * Scoring tables for 2026 PFA (50-20-15-15 model)
  * Source: PT Charts New 50-20-15-15 with 2Mile FINAL 23 Sep 2025 (AFPC)
- * All 18 age/gender brackets (9 age groups × 2 genders)
+ * All 18 age/gender brackets (9 age brackets x 2 genders)
  */
 
-import { EXERCISES, GENDER, AGE_GROUPS } from './constants.js'
+import { EXERCISES, GENDER, AGE_BRACKETS } from './constants.js'
 
 /**
  * Scoring table structure:
@@ -28,7 +28,7 @@ import { EXERCISES, GENDER, AGE_GROUPS } from './constants.js'
 export const SCORING_TABLES = {
   [GENDER.MALE]: {
     // Male <25
-    [AGE_GROUPS.UNDER_25]: {
+    [AGE_BRACKETS.UNDER_25]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 805, points: 50.0 }, // 13:25
@@ -219,7 +219,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Male 25-29
-    [AGE_GROUPS.AGE_25_29]: {
+    [AGE_BRACKETS.AGE_25_29]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 805, points: 50.0 }, // 13:25
@@ -407,7 +407,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Male 30-34
-    [AGE_GROUPS.AGE_30_34]: {
+    [AGE_BRACKETS.AGE_30_34]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 822, points: 50.0 }, // 13:42
@@ -593,7 +593,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Male 35-39
-    [AGE_GROUPS.AGE_35_39]: {
+    [AGE_BRACKETS.AGE_35_39]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 822, points: 50.0 }, // 13:42
@@ -776,7 +776,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Male 40-44
-    [AGE_GROUPS.AGE_40_44]: {
+    [AGE_BRACKETS.AGE_40_44]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 845, points: 50.0 }, // 14:05
@@ -957,7 +957,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Male 45-49
-    [AGE_GROUPS.AGE_45_49]: {
+    [AGE_BRACKETS.AGE_45_49]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 870, points: 50.0 }, // 14:30
@@ -1145,7 +1145,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Male 50-54
-    [AGE_GROUPS.AGE_50_54]: {
+    [AGE_BRACKETS.AGE_50_54]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 909, points: 50.0 }, // 15:09
@@ -1329,7 +1329,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Male 55-59
-    [AGE_GROUPS.AGE_55_59]: {
+    [AGE_BRACKETS.AGE_55_59]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 928, points: 50.0 }, // 15:28
@@ -1510,7 +1510,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Male 60+
-    [AGE_GROUPS.AGE_60_PLUS]: {
+    [AGE_BRACKETS.AGE_60_PLUS]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 928, points: 50.0 }, // 15:28
@@ -1684,7 +1684,7 @@ export const SCORING_TABLES = {
   },
   [GENDER.FEMALE]: {
     // Female <25
-    [AGE_GROUPS.UNDER_25]: {
+    [AGE_BRACKETS.UNDER_25]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 930, points: 50.0 }, // 15:30
@@ -1879,7 +1879,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Female 25-29
-    [AGE_GROUPS.AGE_25_29]: {
+    [AGE_BRACKETS.AGE_25_29]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 930, points: 50.0 }, // 15:30
@@ -2075,7 +2075,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Female 30-34
-    [AGE_GROUPS.AGE_30_34]: {
+    [AGE_BRACKETS.AGE_30_34]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 948, points: 50.0 }, // 15:48
@@ -2272,7 +2272,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Female 35-39
-    [AGE_GROUPS.AGE_35_39]: {
+    [AGE_BRACKETS.AGE_35_39]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 951, points: 50.0 }, // 15:51
@@ -2466,7 +2466,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Female 40-44
-    [AGE_GROUPS.AGE_40_44]: {
+    [AGE_BRACKETS.AGE_40_44]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 960, points: 50.0 }, // 16:00
@@ -2659,7 +2659,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Female 45-49
-    [AGE_GROUPS.AGE_45_49]: {
+    [AGE_BRACKETS.AGE_45_49]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 990, points: 50.0 }, // 16:30
@@ -2846,7 +2846,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Female 50-54
-    [AGE_GROUPS.AGE_50_54]: {
+    [AGE_BRACKETS.AGE_50_54]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 1019, points: 50.0 }, // 16:59
@@ -3030,7 +3030,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Female 55-59
-    [AGE_GROUPS.AGE_55_59]: {
+    [AGE_BRACKETS.AGE_55_59]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 1038, points: 50.0 }, // 17:18
@@ -3212,7 +3212,7 @@ export const SCORING_TABLES = {
       ],
     },
     // Female 60+
-    [AGE_GROUPS.AGE_60_PLUS]: {
+    [AGE_BRACKETS.AGE_60_PLUS]: {
       // 2-mile run (cardio, 50 pts max) - time in seconds
       [EXERCISES.RUN_2MILE]: [
         { threshold: 1038, points: 50.0 }, // 17:18
