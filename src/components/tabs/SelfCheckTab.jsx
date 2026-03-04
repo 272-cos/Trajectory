@@ -619,13 +619,13 @@ function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, wal
           onChange={(e) => setWalkSelected(e.target.checked)}
           className="mr-2"
         />
-        <span className="text-sm text-gray-700">Completing 2km Walk (profile-only)</span>
+        <span className="text-sm font-semibold text-gray-900">2km Walk</span>
       </label>
       {walkSelected && (
         <div className="mt-3">
           {walkTimeLimit && (
             <p className="text-xs text-blue-600 mb-3">
-              Time limit for your bracket: {walkTimeLimitStr} (pass/fail - no points scored)
+              Time limit: {walkTimeLimitStr} (pass/fail - no points scored)
             </p>
           )}
           <div className="grid grid-cols-2 gap-4">
@@ -666,7 +666,7 @@ function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, wal
               </select>
               {!walkPass && (
                 <p className="text-xs text-red-600 mt-1">
-                  Walk failure results in overall PFA failure (EC-05)
+                  Walk failure results in overall PFA failure
                 </p>
               )}
             </div>
