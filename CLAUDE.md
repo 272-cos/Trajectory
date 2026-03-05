@@ -138,7 +138,7 @@ Specialized subagents for domain-specific development tasks live in [`.claude/ag
 
 ## Deployment
 
-- **Hosting:** GitHub Pages at `https://272-cos.github.io/PFA/`
+- **Hosting:** GitHub Pages at `https://272-cos.github.io/Trajectory/`
 - **Trigger:** Push to `main` - GitHub Actions builds and deploys
-- **Base path:** `/PFA/` (configured in `vite.config.js`)
+- **Base path:** `/Trajectory/` (configured in `vite.config.js`)
 - **SPA routing:** `public/404.html` redirects to `index.html` for client-side routing
