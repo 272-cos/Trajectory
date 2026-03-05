@@ -5,10 +5,11 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { encodeDCode, decodeDCode } from '../../utils/codec/dcode.js'
+import { decodeSCode } from '../../utils/codec/scode.js'
 import { GENDER, calculateAge } from '../../utils/scoring/constants.js'
 
 export default function ProfileTab() {
-  const { dcode, demographics, updateDCode, targetPfaDate, updateTargetPfaDate } = useApp()
+  const { dcode, demographics, updateDCode, targetPfaDate, updateTargetPfaDate, scodes } = useApp()
 
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState(GENDER.MALE)
@@ -65,11 +66,32 @@ export default function ProfileTab() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    if (target <= today) {
-      setTargetDateError('Target PFA date must be in the future.')
+    // IV-02: must be after most recent self-check date
+    let mostRecentSCodeDate = null
+    if (scodes && scodes.length > 0) {
+      for (const code of scodes) {
+        try {
+          const decoded = decodeSCode(code)
+          const d = new Date(decoded.date)
+          d.setHours(0, 0, 0, 0)
+          if (!mostRecentSCodeDate || d > mostRecentSCodeDate) mostRecentSCodeDate = d
+        } catch { /* skip invalid */ }
+      }
+    }
+
+    const lowerBound = mostRecentSCodeDate && mostRecentSCodeDate > today ? mostRecentSCodeDate : today
+
+    if (target <= lowerBound) {
+      if (mostRecentSCodeDate && mostRecentSCodeDate >= today) {
+        const dateStr = mostRecentSCodeDate.toLocaleDateString()
+        setTargetDateError(`Target date must be after your last self-check (${dateStr}).`)
+      } else {
+        setTargetDateError('Target PFA date must be in the future.')
+      }
       return false
     }
 
+    // IV-03: max 365 days out
     const maxDate = new Date(today)
     maxDate.setFullYear(maxDate.getFullYear() + 1)
     if (target > maxDate) {

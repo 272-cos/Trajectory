@@ -12,8 +12,9 @@ import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseT
 export default function SelfCheckTab() {
   const { demographics, addSCode, dcode } = useApp()
 
-  // Assessment data - automatically use today's date
-  const assessmentDate = new Date().toISOString().split('T')[0]
+  // IV-01: Assessment date - picker with max = today
+  const today = new Date().toISOString().split('T')[0]
+  const [assessmentDate, setAssessmentDate] = useState(today)
 
   // Cardio
   const [cardioExercise, setCardioExercise] = useState(EXERCISES.RUN_2MILE)
@@ -39,6 +40,8 @@ export default function SelfCheckTab() {
   const [heightInches, setHeightInches] = useState('')
   const [waistInches, setWaistInches] = useState('')
   const [bodyCompExempt, setBodyCompExempt] = useState(false)
+  const [heightError, setHeightError] = useState('')
+  const [waistError, setWaistError] = useState('')
 
   // UI state
   const [scode, setSCode] = useState('')
@@ -80,8 +83,8 @@ export default function SelfCheckTab() {
           // IV-12: colon in HAMR input triggers time-to-shuttle conversion
           value = cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10)
         }
-        // IV-07: Run time max 2:00:00 (7200s)
-        if (value && !(cardioExercise === EXERCISES.RUN_2MILE && value > 7200)) {
+        // IV-07: Run time > 0 and max 2:00:00 (7200s)
+        if (value && value > 0 && !(cardioExercise === EXERCISES.RUN_2MILE && value > 7200)) {
           const cardioScore = calculateComponentScore(
             { type: COMPONENTS.CARDIO, exercise: cardioExercise, value, exempt: false },
             gender,
@@ -160,6 +163,38 @@ export default function SelfCheckTab() {
     }
   }, [hasDemographics, demographics, cardioExercise, cardioValue, cardioExempt, walkSelected, walkTime, walkPass, strengthExercise, strengthValue, strengthExempt, coreExercise, coreValue, coreExempt, heightInches, waistInches, bodyCompExempt])
 
+  // IV-05: Height must be 48-84 inches
+  const handleHeightChange = (e) => {
+    const val = e.target.value
+    setHeightInches(val)
+    if (val) {
+      const h = parseFloat(val)
+      if (h < 48 || h > 84) {
+        setHeightError('Height must be between 48 and 84 inches.')
+      } else {
+        setHeightError('')
+      }
+    } else {
+      setHeightError('')
+    }
+  }
+
+  // IV-06: Waist must be 20.0-55.0 inches
+  const handleWaistChange = (e) => {
+    const val = e.target.value
+    setWaistInches(val)
+    if (val) {
+      const w = parseFloat(val)
+      if (w < 20 || w > 55) {
+        setWaistError('Waist must be between 20.0 and 55.0 inches.')
+      } else {
+        setWaistError('')
+      }
+    } else {
+      setWaistError('')
+    }
+  }
+
   const handleGenerateSCode = () => {
     setError('')
     setSuccess('')
@@ -170,21 +205,63 @@ export default function SelfCheckTab() {
     }
 
     try {
-      // IV-07: Run time max 2:00:00
+      // IV-05: Height range
+      if (!bodyCompExempt && heightInches) {
+        const h = parseFloat(heightInches)
+        if (h < 48 || h > 84) {
+          setError('Height must be between 48 and 84 inches.')
+          return
+        }
+      }
+      // IV-06: Waist range
+      if (!bodyCompExempt && waistInches) {
+        const w = parseFloat(waistInches)
+        if (w < 20 || w > 55) {
+          setError('Waist must be between 20.0 and 55.0 inches.')
+          return
+        }
+      }
+      // IV-07: Run time > 0:00 and max 2:00:00
       if (!cardioExempt && cardioExercise === EXERCISES.RUN_2MILE && cardioValue) {
         const runTime = parseTime(cardioValue)
-        if (runTime && runTime > 7200) {
-          setError('Maximum run time is 2:00:00')
+        if (runTime != null && runTime === 0) {
+          setError('Enter a valid time between 0:01 and 2:00:00.')
+          return
+        }
+        if (runTime != null && runTime > 7200) {
+          setError('Maximum run time is 2:00:00.')
+          return
+        }
+      }
+      // IV-07: Walk time > 0:00 and max 2:00:00
+      if (cardioExempt && walkSelected && walkTime) {
+        const wt = parseTime(walkTime)
+        if (wt != null && wt === 0) {
+          setError('Enter a valid walk time greater than 0:00.')
+          return
+        }
+        if (wt != null && wt > 7200) {
+          setError('Maximum walk time is 2:00:00.')
           return
         }
       }
       // IV-09: Plank max 10:00
       if (!coreExempt && coreExercise === EXERCISES.PLANK && coreValue) {
         const plankTime = parseTime(coreValue)
-        if (plankTime && plankTime > 600) {
-          setError('Maximum plank entry is 10 minutes')
+        if (plankTime != null && plankTime > 600) {
+          setError('Maximum plank entry is 10 minutes.')
           return
         }
+      }
+      // IV-10: At least one component non-exempt
+      if (cardioExempt && strengthExempt && coreExempt && bodyCompExempt) {
+        setError('All components exempt. No composite score possible.')
+        return
+      }
+      // IV-13: Height and waist both required for WHtR
+      if (!bodyCompExempt && ((heightInches && !waistInches) || (!heightInches && waistInches))) {
+        setError('Enter both height and waist for body composition scoring.')
+        return
       }
 
       // Build cardio data
@@ -289,6 +366,12 @@ export default function SelfCheckTab() {
 
   const isDiagnostic = isDiagnosticPeriod(assessmentDate)
 
+  // IV-10: Warn when all components are exempt
+  const allExempt = cardioExempt && strengthExempt && coreExempt && bodyCompExempt
+
+  // IV-13: Both height and waist needed for WHtR
+  const missingBodyCompPair = !bodyCompExempt && ((heightInches && !waistInches) || (!heightInches && waistInches))
+
   // Helper function to convert inches to feet and inches
   const inchesToFeetInches = (inches) => {
     if (!inches || isNaN(inches)) return ''
@@ -339,15 +422,21 @@ export default function SelfCheckTab() {
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Personal Assessment</h2>
 
+        {/* IV-01: Self-check date picker - max = today */}
         <div className="mb-6">
-          <p className="text-sm text-gray-600">
-            Recording today's self-check ({new Date().toLocaleDateString()})
-            {isDiagnostic && (
-              <span className="ml-2 text-blue-600">
-                📋 Diagnostic Period (non-scored)
-              </span>
-            )}
-          </p>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Assessment Date</label>
+          <input
+            type="date"
+            value={assessmentDate}
+            onChange={(e) => setAssessmentDate(e.target.value)}
+            max={today}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          {isDiagnostic && (
+            <p className="text-xs text-blue-600 mt-1">
+              Diagnostic Period (non-scored)
+            </p>
+          )}
         </div>
 
         {/* Cardio Component */}
@@ -395,11 +484,12 @@ export default function SelfCheckTab() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
               />
               {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !cardioExempt && !isTimeIncomplete(cardioValue) && (
-                <p className="text-xs mt-1" style={{ color: parseTime(cardioValue) != null ? '#6b7280' : '#ef4444' }}>
+                <p className="text-xs mt-1" style={{ color: parseTime(cardioValue) != null && parseTime(cardioValue) > 0 && parseTime(cardioValue) <= 7200 ? '#6b7280' : '#ef4444' }}>
                   {parseTime(cardioValue) != null
                     ? (() => {
                         const t = parseTime(cardioValue)
-                        if (t > 7200) return 'Maximum run time is 2:00:00'
+                        if (t === 0) return 'Enter a valid time between 0:01 and 2:00:00.'
+                        if (t > 7200) return 'Maximum run time is 2:00:00.'
                         return formatTime(t)
                       })()
                     : 'Invalid format - use MM:SS or whole minutes'}
@@ -512,15 +602,18 @@ export default function SelfCheckTab() {
               <input
                 type="number"
                 value={heightInches}
-                onChange={(e) => setHeightInches(e.target.value)}
+                onChange={handleHeightChange}
                 disabled={bodyCompExempt}
                 placeholder="70"
                 min="48"
                 max="84"
                 step="0.1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                className={`w-full px-4 py-2 border rounded-lg disabled:bg-gray-100 ${heightError ? 'border-red-400' : 'border-gray-300'}`}
               />
-              {heightInches && !bodyCompExempt && (
+              {heightError && !bodyCompExempt && (
+                <p className="text-xs text-red-600 mt-1">{heightError}</p>
+              )}
+              {heightInches && !bodyCompExempt && !heightError && (
                 <p className="text-xs text-gray-500 mt-1">
                   {inchesToFeetInches(heightInches)}
                 </p>
@@ -531,22 +624,35 @@ export default function SelfCheckTab() {
               <input
                 type="number"
                 value={waistInches}
-                onChange={(e) => setWaistInches(e.target.value)}
+                onChange={handleWaistChange}
                 disabled={bodyCompExempt}
                 placeholder="32.5"
                 min="20"
                 max="55"
                 step="0.1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                className={`w-full px-4 py-2 border rounded-lg disabled:bg-gray-100 ${waistError ? 'border-red-400' : 'border-gray-300'}`}
               />
+              {waistError && !bodyCompExempt && (
+                <p className="text-xs text-red-600 mt-1">{waistError}</p>
+              )}
             </div>
           </div>
-          {!bodyCompExempt && heightInches && waistInches && (
+          {missingBodyCompPair && (
+            <p className="text-xs text-amber-700 mt-2">Enter both height and waist for body composition scoring.</p>
+          )}
+          {!bodyCompExempt && heightInches && waistInches && !heightError && !waistError && (
             <p className="text-sm text-gray-600 mt-2">
               WHtR: {calculateWHtR(parseFloat(waistInches), parseFloat(heightInches))?.toFixed(2)}
             </p>
           )}
         </ComponentSection>
+
+        {/* IV-10: All-exempt warning */}
+        {allExempt && (
+          <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-800 text-sm mb-4">
+            All components exempt. No composite score possible.
+          </div>
+        )}
 
         {/* Generate S-Code Button */}
         <button
