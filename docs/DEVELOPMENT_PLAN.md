@@ -120,19 +120,19 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 **Design references:** §5.1 IV-01 through IV-13
 
-- [ ] **IV-01:** Self-check date picker max = today; future dates greyed out
-- [ ] **IV-02:** Target PFA date must be after most recent self-check date
-- [ ] **IV-03:** Target PFA date ≤ 365 days out ("beyond 1 year = unreliable")
-- [ ] **IV-04:** DOB age 17-65 at self-check date ("outside USAF service range")
-- [ ] **IV-05:** Height input clamped 48-84 inches; out-of-range rejected
-- [ ] **IV-06:** Waist input clamped 20.0-55.0 inches
-- [ ] **IV-07:** Run/walk time > 0:00 and ≤ 2:00:00; accepts `mm:ss` or `h:mm:ss`
-- [ ] **IV-08:** Reps input `min=0`; spinner enforces floor
-- [ ] **IV-09:** Plank time ≤ 10:00 (600 s); "Maximum plank entry is 10 minutes."
-- [ ] **IV-10:** At least one component non-exempt; show "All components exempt. No composite score possible."
-- [ ] **IV-11:** Walk option hidden unless cardio exemption ON (UX-05)
-- [ ] **IV-12:** HAMR accepts whole numbers OR `mm:ss`; colon triggers silent time-to-shuttle conversion (EC-25)
-- [ ] **IV-13:** Height required with waist for WHtR ("Enter both height and waist.")
+- [x] **IV-01:** Self-check date picker max = today; future dates greyed out
+- [x] **IV-02:** Target PFA date must be after most recent self-check date
+- [x] **IV-03:** Target PFA date ≤ 365 days out ("beyond 1 year = unreliable")
+- [x] **IV-04:** DOB age 17-65 at self-check date ("outside USAF service range")
+- [x] **IV-05:** Height input clamped 48-84 inches; out-of-range rejected
+- [x] **IV-06:** Waist input clamped 20.0-55.0 inches
+- [x] **IV-07:** Run/walk time > 0:00 and ≤ 2:00:00; accepts `mm:ss` or `h:mm:ss`
+- [x] **IV-08:** Reps input `min=0`; spinner enforces floor
+- [x] **IV-09:** Plank time ≤ 10:00 (600 s); "Maximum plank entry is 10 minutes."
+- [x] **IV-10:** At least one component non-exempt; show "All components exempt. No composite score possible."
+- [x] **IV-11:** Walk option hidden unless cardio exemption ON (UX-05)
+- [x] **IV-12:** HAMR accepts whole numbers OR `mm:ss`; colon triggers silent time-to-shuttle conversion (EC-25)
+- [x] **IV-13:** Height required with waist for WHtR ("Enter both height and waist.")
 
 **Acceptance:** Each validation rule has a manual test case. Invalid inputs show correct message. No silent failures.
 
