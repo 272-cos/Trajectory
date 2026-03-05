@@ -142,20 +142,16 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 **Design references:** §4 Altitude Model, GR-13, UX-13, IV-11, SL-07, EC-04, EC-05, EC-19
 
-**Altitude:**
-- [ ] State toggle: "Are you at a base in CO, WY, or NM?" Default: No
-- [ ] Toggle ON → dropdown of 7 bases appears (from `BASE_REGISTRY`)
-- [ ] Toggle OFF → `base_id = 0`, dropdown hidden
-- [ ] Selected base writes `base_id` to S-code
+**Altitude:** (removed from scope)
 
 **Walk:**
-- [ ] Walk option only shown when cardio exemption toggle is ON (IV-11)
-- [ ] Walk: separate pass/fail input (not scored like run/HAMR)
-- [X] Walk pass: 0 earned, 0 possible for cardio; composite from remaining 3 (SL-07)
-- [ ] Walk fail: overall FAIL regardless of other components (EC-05)
-- [ ] EC-19: selecting walk clears/disables run input
+- [x] Walk option only shown when cardio exemption toggle is ON (IV-11)
+- [x] Walk: separate pass/fail input (not scored like run/HAMR)
+- [x] Walk pass: 0 earned, 0 possible for cardio; composite from remaining 3 (SL-07)
+- [x] Walk fail: overall FAIL regardless of other components (EC-05)
+- [x] EC-19: selecting walk clears/disables run input (run input hidden when cardio exempt)
 
-**Acceptance:** Altitude toggle/dropdown round-trips through S-code. Walk pass/fail displays correctly. Walk fail always produces overall FAIL.
+**Acceptance:** Walk pass/fail displays correctly. Walk fail always produces overall FAIL.
 
 ---
 
