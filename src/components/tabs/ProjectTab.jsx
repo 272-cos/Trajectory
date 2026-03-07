@@ -38,7 +38,7 @@ const CONFIDENCE_LABELS = {
 
 const CONFIDENCE_HINTS = {
   HIGH:   'Solid data behind this - keep logging check-ins to stay current.',
-  MEDIUM: 'Keep logging self-checks to build toward a mature prediction.',
+  MEDIUM: 'Keep logging self-checks to build toward a mature prediction model.',
   LOW:    'Based on a single check-in - log a few more to strengthen the forecast.',
 }
 
