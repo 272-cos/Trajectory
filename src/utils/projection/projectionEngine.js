@@ -333,7 +333,7 @@ export function projectTrend(dataPoints, daysToTarget) {
  * @param {number} daysToTarget - days from the most recent history entry to target date
  * @returns {object | null}
  */
-export function projectComponent(history, exercise, componentType, gender, ageBracket, daysToTarget) {
+export function projectComponent(history, exercise, componentType, gender, ageBracket, daysToTarget, forceModel = null) {
   if (!history || history.length === 0) return null
 
   // PG-05: Cannot project exempt component
@@ -353,9 +353,15 @@ export function projectComponent(history, exercise, componentType, gender, ageBr
   const t0 = isoToDays(fitData[0].date)
   const dataPoints = fitData.map(h => ({ days: isoToDays(h.date) - t0, value: h.value }))
 
-  // Select model
+  // Select model - forceModel overrides auto-selection when provided
   let modelResult
-  if (dataPoints.length >= 3) {
+  if (forceModel === 'trend') {
+    modelResult = projectTrend(dataPoints, daysToTarget) // null if < 3 pts
+  } else if (forceModel === 'log') {
+    modelResult = projectLog(dataPoints, daysToTarget)
+  } else if (forceModel === 'linear') {
+    modelResult = projectLinear(dataPoints, daysToTarget)
+  } else if (dataPoints.length >= 3) {
     modelResult = projectTrend(dataPoints, daysToTarget)
   } else if (dataPoints.length === 2) {
     modelResult = projectLog(dataPoints, daysToTarget)
@@ -363,7 +369,10 @@ export function projectComponent(history, exercise, componentType, gender, ageBr
     modelResult = projectLinear(dataPoints, daysToTarget)
   }
 
-  if (!modelResult) return null
+  if (!modelResult) {
+    // projectTrend returned null (forced 'trend' with < 3 data points)
+    return { cannotProject: true, reason: 'PG-03: need 3+ self-checks for trend model' }
+  }
 
   // PG-01: Clamp projected value to chart bounds
   const clampedValue = clampToChartBounds(modelResult.projected, exercise, gender, ageBracket)
@@ -458,10 +467,11 @@ export function projectComposite(componentProjections) {
  * @param {string} targetPfaDate - ISO date string (YYYY-MM-DD)
  * @returns {object | null}
  */
-export function generateProjection(decodedScodes, demographics, targetPfaDate) {
+export function generateProjection(decodedScodes, demographics, targetPfaDate, options = {}) {
   if (!decodedScodes || decodedScodes.length === 0) return null
   if (!demographics || !targetPfaDate) return null
 
+  const { modelOverride } = options // 'linear' | 'log' | 'trend' | null (auto)
   const { dob, gender } = demographics
 
   // PG-04: Age bracket computed from DOB + target_pfa_date (not today's date)
@@ -546,28 +556,28 @@ export function generateProjection(decodedScodes, demographics, targetPfaDate) {
   const cardioDays = getDaysToTarget(cardioHistory)
   if (cardioDays !== null) {
     componentProjections.cardio = projectComponent(
-      cardioHistory, getLatestExercise(cardioHistory), 'cardio', gender, ageBracket, cardioDays
+      cardioHistory, getLatestExercise(cardioHistory), 'cardio', gender, ageBracket, cardioDays, modelOverride
     )
   }
 
   const strengthDays = getDaysToTarget(strengthHistory)
   if (strengthDays !== null) {
     componentProjections.strength = projectComponent(
-      strengthHistory, getLatestExercise(strengthHistory), 'strength', gender, ageBracket, strengthDays
+      strengthHistory, getLatestExercise(strengthHistory), 'strength', gender, ageBracket, strengthDays, modelOverride
     )
   }
 
   const coreDays = getDaysToTarget(coreHistory)
   if (coreDays !== null) {
     componentProjections.core = projectComponent(
-      coreHistory, getLatestExercise(coreHistory), 'core', gender, ageBracket, coreDays
+      coreHistory, getLatestExercise(coreHistory), 'core', gender, ageBracket, coreDays, modelOverride
     )
   }
 
   const bodyCompDays = getDaysToTarget(bodyCompHistory)
   if (bodyCompDays !== null) {
     componentProjections.bodyComp = projectComponent(
-      bodyCompHistory, EXERCISES.WHTR, 'bodyComp', gender, ageBracket, bodyCompDays
+      bodyCompHistory, EXERCISES.WHTR, 'bodyComp', gender, ageBracket, bodyCompDays, modelOverride
     )
   }
 

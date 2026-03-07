@@ -174,16 +174,16 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 **Design references:** §9 Projection Engine, §5.3 PG-01 through PG-08
 
-- [ ] **Linear model (1+ S-codes):** `daily_rate = (target - current) / days`; clamped to chart bounds (PG-01)
-- [ ] **Logarithmic model (2+ S-codes):** `projected = current + k * ln(1 + days/tau)`; diminishing returns
-- [ ] **Historical trend (3+ S-codes):** least-squares on non-outlier S-codes; linear or quadratic by R²; disabled below 3 (PG-03)
-- [ ] **PG-02:** Log model falls back to linear with only 1 data point
-- [ ] **PG-04:** Age group for projection = DOB + target_pfa_date (not self-check date)
-- [ ] **PG-05:** Cannot project exempt components
-- [ ] **PG-06:** Outlier-flagged S-codes excluded from trend fit
-- [ ] **PG-07:** Output: projected value, projected points, pass/fail, gap to minimum, required weekly improvement
-- [ ] **PG-08:** Amber warning when projected composite within 3 pts of 75.0
-- [ ] Unit tests: linear accuracy, log clamping, age-rollover bracket, 3+ S-code trend fit
+- [X] **Linear model (1+ S-codes):** `daily_rate = (target - current) / days`; clamped to chart bounds (PG-01)
+- [X] **Logarithmic model (2+ S-codes):** `projected = current + k * ln(1 + days/tau)`; diminishing returns
+- [X] **Historical trend (3+ S-codes):** least-squares on non-outlier S-codes; linear or quadratic by R²; disabled below 3 (PG-03)
+- [X] **PG-02:** Log model falls back to linear with only 1 data point
+- [X] **PG-04:** Age group for projection = DOB + target_pfa_date (not self-check date)
+- [X] **PG-05:** Cannot project exempt components
+- [X] **PG-06:** Outlier-flagged S-codes excluded from trend fit
+- [X] **PG-07:** Output: projected value, projected points, pass/fail, gap to minimum, required weekly improvement
+- [X] **PG-08:** Amber warning when projected composite within 3 pts of 75.0
+- [X] Unit tests: linear accuracy, log clamping, age-rollover bracket, 3+ S-code trend fit
 
 **File:** `src/utils/projection/projectionEngine.js`
 
@@ -195,13 +195,13 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 **Design references:** §10 Tab 3 (Project), §5.3 PG rules
 
-- [ ] Target PFA date picker with IV-02/IV-03 validation
-- [ ] Model selector: Linear / Logarithmic / Historical Trend (historical disabled if <3 S-codes)
-- [ ] Per-component gap bars: current → projected → minimum threshold
-- [ ] Projected composite score
-- [ ] Amber warning banner when projected composite within 3 pts of 75.0 (PG-08)
-- [ ] "Days remaining" + "required weekly improvement" per failing component (PG-07)
-- [ ] GR-05: blocked until member has 1+ S-codes from 2026 self-checks
+- [X] Target PFA date picker with IV-02/IV-03 validation
+- [X] Model selector: Linear / Logarithmic / Historical Trend (historical disabled if <3 S-codes)
+- [X] Per-component gap bars: current -> projected -> minimum threshold
+- [X] Projected composite score
+- [X] Amber warning banner when projected composite within 3 pts of 75.0 (PG-08)
+- [X] "Days remaining" + "required weekly improvement" per failing component (PG-07)
+- [X] GR-05: blocked until member has 1+ S-codes from 2026 self-checks
 
 **Acceptance:** All three models display correctly. Age rollover handled. Outlier-excluded S-codes not plotted.
 
