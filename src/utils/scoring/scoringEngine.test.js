@@ -1023,8 +1023,8 @@ describe('lookupScore - mid-table values', () => {
 // ─── parseTime ────────────────────────────────────────────────────────────────
 
 describe('parseTime', () => {
-  it('"18" treated as 18 seconds (UX-11: plain number = total seconds)', () => {
-    expect(parseTime('18')).toBe(18)
+  it('"18" treated as 18 minutes = 1080 seconds (1-2 digit number = minutes)', () => {
+    expect(parseTime('18')).toBe(1080)
   })
 
   it('"18:00" → 1080 seconds', () => {
@@ -1039,7 +1039,7 @@ describe('parseTime', () => {
     expect(parseTime('0:30')).toBe(30)
   })
 
-  it('"810" treated as 810 total seconds = 13:30 (UX-11: plain number = total seconds)', () => {
+  it('"810" treated as 810 total seconds = 13:30 (3+ digit number = total seconds)', () => {
     expect(parseTime('810')).toBe(810)
   })
 
