@@ -472,7 +472,6 @@ export default function ProjectTab() {
                   </p>
                 </div>
                 <div className="text-right text-sm text-gray-600">
-                  <p>Threshold: {PASSING_COMPOSITE}</p>
                   <p className="text-sm text-gray-600">
                     {CONFIDENCE_LABELS[composite.confidence] || composite.confidence}
                   </p>
