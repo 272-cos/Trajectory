@@ -272,7 +272,7 @@ export function AppProvider({ children }) {
           >
             <h3 className="text-lg font-bold text-gray-900 mb-2">Results not saved</h3>
             <p className="text-sm text-gray-600 mb-5">
-              Your self-check results have not been saved. Generate an S-Code to save them before leaving.
+              Your self-check results have not been saved. Save your assessment before leaving.
             </p>
             <div className="flex flex-col gap-2">
               <button
@@ -287,7 +287,7 @@ export function AppProvider({ children }) {
                 }}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
               >
-                Generate S-Code
+                Save Assessment
               </button>
               <button
                 onClick={() => {

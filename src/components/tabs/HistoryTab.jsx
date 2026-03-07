@@ -18,7 +18,7 @@ import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode, isValidSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, formatTime } from '../../utils/scoring/scoringEngine.js'
-import { getOutliers, toggleOutlier } from '../../utils/storage/localStorage.js'
+import { getOutliers, toggleOutlier, saveDraft } from '../../utils/storage/localStorage.js'
 
 const EXERCISE_LABELS = {
   [EXERCISES.RUN_2MILE]: '2-Mile Run',
@@ -66,12 +66,64 @@ function CompositeDot({ cx, cy, payload }) {
 }
 
 export default function HistoryTab() {
-  const { scodes, addSCode, removeSCode, demographics } = useApp()
+  const { scodes, addSCode, removeSCode, demographics, dcode, setActiveTab } = useApp()
   const [pasteValue, setPasteValue] = useState('')
   const [pasteError, setPasteError] = useState('')
   const [pasteSuccess, setPasteSuccess] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [outliers, setOutliers] = useState(() => new Set(getOutliers()))
+  const [showImport, setShowImport] = useState(false)
+  const [importValue, setImportValue] = useState('')
+  const [importResult, setImportResult] = useState(null)
+  const [exportSuccess, setExportSuccess] = useState('')
+  const [undoDelete, setUndoDelete] = useState(null) // { code, timer }
+
+  // Edit: convert decoded S-code to draft and navigate to Self-Check
+  const handleEditAssessment = (decoded) => {
+    const draft = {
+      assessmentDate: decoded.date instanceof Date
+        ? decoded.date.toISOString().split('T')[0]
+        : new Date(decoded.date).toISOString().split('T')[0],
+    }
+    if (decoded.cardio) {
+      draft.cardioExercise = decoded.cardio.exercise
+      draft.cardioExempt = decoded.cardio.exempt || false
+      if (!decoded.cardio.exempt && decoded.cardio.value != null) {
+        if (decoded.cardio.exercise === EXERCISES.RUN_2MILE || decoded.cardio.exercise === EXERCISES.WALK_2KM) {
+          draft.cardioValue = formatTime(decoded.cardio.value)
+        } else {
+          draft.cardioValue = String(decoded.cardio.value)
+        }
+      }
+    }
+    if (decoded.strength) {
+      draft.strengthExercise = decoded.strength.exercise
+      draft.strengthExempt = decoded.strength.exempt || false
+      if (!decoded.strength.exempt && decoded.strength.value != null) {
+        draft.strengthValue = String(decoded.strength.value)
+      }
+    }
+    if (decoded.core) {
+      draft.coreExercise = decoded.core.exercise
+      draft.coreExempt = decoded.core.exempt || false
+      if (!decoded.core.exempt && decoded.core.value != null) {
+        if (decoded.core.exercise === EXERCISES.PLANK) {
+          draft.coreValue = formatTime(decoded.core.value)
+        } else {
+          draft.coreValue = String(decoded.core.value)
+        }
+      }
+    }
+    if (decoded.bodyComp) {
+      draft.bodyCompExempt = decoded.bodyComp.exempt || false
+      if (!decoded.bodyComp.exempt) {
+        if (decoded.bodyComp.heightInches) draft.heightInches = String(decoded.bodyComp.heightInches)
+        if (decoded.bodyComp.waistInches) draft.waistInches = String(decoded.bodyComp.waistInches)
+      }
+    }
+    saveDraft(draft)
+    setActiveTab('selfcheck')
+  }
 
   // Decode all S-codes and compute scores
   const decodedEntries = useMemo(() => {
@@ -176,41 +228,52 @@ export default function HistoryTab() {
     const trimmed = pasteValue.trim().replace(/\s+/g, '')
 
     if (!trimmed) {
-      setPasteError('Please enter an S-code.')
+      setPasteError('Please enter an assessment code.')
       return
     }
 
     // CS-08: D-code pasted into S-code field
     if (trimmed.startsWith('D')) {
-      setPasteError('This is a D-code. Paste it in the Profile tab instead.')
+      setPasteError('This is a profile code. Paste it in the Profile tab instead.')
       return
     }
 
     if (!trimmed.startsWith('S')) {
-      setPasteError('Invalid code format. S-codes start with "S".')
+      setPasteError('Invalid code format. Assessment codes start with "S".')
       return
     }
 
     if (scodes.includes(trimmed)) {
-      setPasteError('This S-code is already in your history.')
+      setPasteError('This assessment code is already in your history.')
       return
     }
 
     // CS-02/CS-03: validate CRC
     if (!isValidSCode(trimmed)) {
-      setPasteError('Invalid S-code. Check for typos or truncation.')
+      setPasteError('Invalid assessment code. Check for typos or truncation.')
       return
     }
 
     addSCode(trimmed)
     setPasteValue('')
-    setPasteSuccess('S-code added to history.')
+    setPasteSuccess('Assessment added to history.')
     setTimeout(() => setPasteSuccess(''), 3000)
   }
 
   const handleDelete = (code) => {
     removeSCode(code)
     setConfirmDelete(null)
+    // Soft delete: show undo for 60 seconds
+    if (undoDelete?.timer) clearTimeout(undoDelete.timer)
+    const timer = setTimeout(() => setUndoDelete(null), 60000)
+    setUndoDelete({ code, timer })
+  }
+
+  const handleUndoDelete = () => {
+    if (!undoDelete) return
+    addSCode(undoDelete.code)
+    clearTimeout(undoDelete.timer)
+    setUndoDelete(null)
   }
 
   const handleOutlierToggle = (code) => {
@@ -231,17 +294,96 @@ export default function HistoryTab() {
     }
   }
 
+  const handleExport = async () => {
+    if (scodes.length === 0) return
+    const text = scodes.join('\n')
+    try {
+      await navigator.clipboard.writeText(text)
+      setExportSuccess(`${scodes.length} assessment${scodes.length !== 1 ? 's' : ''} copied to clipboard`)
+      setTimeout(() => setExportSuccess(''), 3000)
+    } catch {
+      // Fallback: select textarea content
+      setExportSuccess('Copy failed - use the import/export area below')
+    }
+  }
+
+  const handleImport = () => {
+    setImportResult(null)
+    if (!importValue.trim()) return
+
+    // Split on newlines, commas, or whitespace to support multiple formats
+    const candidates = importValue
+      .split(/[\n,]+/)
+      .map(s => s.trim().replace(/\s+/g, ''))
+      .filter(Boolean)
+
+    let added = 0
+    let duplicates = 0
+    let invalid = 0
+
+    for (const code of candidates) {
+      if (!code.startsWith('S')) {
+        invalid++
+        continue
+      }
+      if (scodes.includes(code)) {
+        duplicates++
+        continue
+      }
+      if (!isValidSCode(code)) {
+        invalid++
+        continue
+      }
+      addSCode(code)
+      added++
+    }
+
+    setImportResult({ added, duplicates, invalid, total: candidates.length })
+    if (added > 0) {
+      setImportValue('')
+    }
+  }
+
   const hasScored = decodedEntries.some(e => !e.error && e.scores?.composite?.composite != null)
 
   return (
     <div className="space-y-6">
-      {/* Paste S-Code */}
+      {/* Undo delete banner */}
+      {undoDelete && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-2">
+          <p className="text-sm text-amber-800">Assessment removed.</p>
+          <button
+            onClick={handleUndoDelete}
+            className="px-3 py-1.5 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
+
+      {/* Profile code display */}
+      {dcode && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-medium text-gray-500">Profile Code</p>
+            <p className="font-mono text-sm text-blue-900">{dcode}</p>
+          </div>
+          <button
+            onClick={async () => { try { await navigator.clipboard.writeText(dcode) } catch { /* ignore */ } }}
+            className="px-3 py-2 min-h-[44px] text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+          >
+            Copy
+          </button>
+        </div>
+      )}
+
+      {/* Add Assessment Code */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Assessment History</h2>
 
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">
-            Add S-Code
+            Add Assessment Code
           </label>
           <div className="flex gap-2">
             <input
@@ -267,9 +409,67 @@ export default function HistoryTab() {
             <p className="text-xs text-green-600">{pasteSuccess}</p>
           )}
           <p className="text-xs text-gray-500">
-            Paste an S-code from a previous session or shared by another device.
+            Paste an assessment code from a previous session or shared by another device.
           </p>
         </div>
+
+        {/* Export / Import controls */}
+        <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+          <button
+            onClick={handleExport}
+            disabled={scodes.length === 0}
+            className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            Export All
+          </button>
+          <button
+            onClick={() => { setShowImport(!showImport); setImportResult(null) }}
+            className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            {showImport ? 'Hide Import' : 'Bulk Import'}
+          </button>
+          {exportSuccess && (
+            <span className="text-xs text-green-600">{exportSuccess}</span>
+          )}
+        </div>
+
+        {showImport && (
+          <div className="pt-3 space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Paste multiple assessment codes (one per line or comma-separated)
+            </label>
+            <textarea
+              value={importValue}
+              onChange={(e) => setImportValue(e.target.value)}
+              placeholder={"S3-abc123...\nS3-def456...\nS3-ghi789..."}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              onClick={handleImport}
+              disabled={!importValue.trim()}
+              className="px-4 py-2 min-h-[44px] bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              Import
+            </button>
+            {importResult && (
+              <div className="text-xs space-y-0.5">
+                {importResult.added > 0 && (
+                  <p className="text-green-600">{importResult.added} assessment{importResult.added !== 1 ? 's' : ''} imported successfully.</p>
+                )}
+                {importResult.duplicates > 0 && (
+                  <p className="text-gray-500">{importResult.duplicates} already in history (skipped).</p>
+                )}
+                {importResult.invalid > 0 && (
+                  <p className="text-red-600">{importResult.invalid} invalid or unrecognized (skipped).</p>
+                )}
+                {importResult.added === 0 && importResult.total > 0 && (
+                  <p className="text-amber-600">No new assessments were added.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Trend Chart - only show when demographics available and there are scored entries */}
@@ -280,7 +480,7 @@ export default function HistoryTab() {
           {/* EC-12: Need 3+ S-codes for meaningful trend */}
           {chartData.length < 3 && (
             <p className="text-xs text-amber-600 mb-3">
-              Need 3+ self-checks for a meaningful trend. Showing available data.
+              Need 3+ assessments for a meaningful trend. Showing available data.
             </p>
           )}
 
@@ -312,7 +512,7 @@ export default function HistoryTab() {
       {decodedEntries.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-6">
           <p className="text-gray-600">
-            No assessments yet. Complete a self-check or paste an S-code above.
+            No assessments yet. Complete a self-check or paste an assessment code above.
           </p>
         </div>
       ) : (
@@ -329,6 +529,7 @@ export default function HistoryTab() {
               onConfirmDelete={() => handleDelete(entry.code)}
               onCancelDelete={() => setConfirmDelete(null)}
               onCopy={() => copyCode(entry.code)}
+              onEdit={entry.decoded ? () => handleEditAssessment(entry.decoded) : null}
             />
           ))}
         </div>
@@ -342,7 +543,7 @@ function CompositeChart({ data }) {
   if (data.length === 0) {
     return (
       <p className="text-sm text-gray-400 py-8 text-center">
-        No scored assessments to chart. Add profile info and scored S-codes.
+        No scored assessments to chart. Add profile info and scored assessments.
       </p>
     )
   }
@@ -445,6 +646,7 @@ function AssessmentCard({
   onConfirmDelete,
   onCancelDelete,
   onCopy,
+  onEdit,
 }) {
   const { code, decoded, scores, error } = entry
   const [expanded, setExpanded] = useState(false)
@@ -578,27 +780,37 @@ function AssessmentCard({
             <p className="font-mono text-xs text-gray-500 flex-1 break-all">{code}</p>
             <button
               onClick={(e) => { e.stopPropagation(); onCopy() }}
-              aria-label="Copy S-Code to clipboard"
+              aria-label="Copy assessment code to clipboard"
               className="px-2 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
             >
               Copy
             </button>
           </div>
 
-          {/* Actions: outlier toggle + delete */}
-          <div className="pt-2 flex items-center justify-between gap-2">
-            {/* PG-06: Outlier flag toggle */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onOutlierToggle() }}
-              aria-pressed={isOutlier}
-              className={`text-xs px-3 py-2 min-h-[44px] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 ${
-                isOutlier
-                  ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {isOutlier ? 'Unflag outlier' : 'Flag as outlier'}
-            </button>
+          {/* Actions: edit, outlier toggle, delete */}
+          <div className="pt-2 flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              {onEdit && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEdit() }}
+                  className="text-xs px-3 py-2 min-h-[44px] rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  Edit
+                </button>
+              )}
+              {/* PG-06: Outlier flag toggle */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onOutlierToggle() }}
+                aria-pressed={isOutlier}
+                className={`text-xs px-3 py-2 min-h-[44px] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 ${
+                  isOutlier
+                    ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {isOutlier ? 'Unflag outlier' : 'Flag as outlier'}
+              </button>
+            </div>
 
             {/* Delete */}
             {isConfirmingDelete ? (

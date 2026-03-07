@@ -420,7 +420,7 @@ function ReportPreview({ rank, name, unit, dcode, reportEntries, allExempt, incl
           <div className="pl-2 border-l-2 border-gray-200 space-y-0.5 text-gray-700">
             <p>Member: {memberLine}</p>
             <p>Unit: {unitLine}</p>
-            {dcode && <p>D-Code: {dcode}</p>}
+            {dcode && <p>Profile Code: {dcode}</p>}
           </div>
         </section>
 
@@ -571,7 +571,7 @@ function AssessmentSection({ entry, index, total }) {
 
         {/* S-code (RP-02) */}
         <div className="pt-2 border-t border-gray-100">
-          <p className="text-xs text-gray-400 font-sans">S-Code: <span className="font-mono">{code}</span></p>
+          <p className="text-xs text-gray-400 font-sans">Assessment Code: <span className="font-mono">{code}</span></p>
         </div>
       </div>
     </div>
@@ -671,7 +671,7 @@ function buildPlainText({ rank, name, unit, dcode, reportEntries, allExempt, inc
   lines.push('MEMBER INFORMATION')
   lines.push(`  Member: ${memberLine}`)
   lines.push(`  Unit: ${unitLine}`)
-  if (dcode) lines.push(`  D-Code: ${dcode}`)
+  if (dcode) lines.push(`  Profile Code: ${dcode}`)
   lines.push('')
 
   if (allExempt) {
@@ -709,7 +709,7 @@ function buildPlainText({ rank, name, unit, dcode, reportEntries, allExempt, inc
         }
       })
 
-      lines.push(`  S-Code: ${code}`)
+      lines.push(`  Assessment Code: ${code}`)
       lines.push('')
     })
   }
@@ -824,7 +824,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
           <table class="comp-table">
             <tbody>${compRows}</tbody>
           </table>
-          <div class="scode-line">S-Code: <span class="mono">${esc(code)}</span></div>
+          <div class="scode-line">Assessment Code: <span class="mono">${esc(code)}</span></div>
         </div>`
       }).join('')
 
@@ -912,7 +912,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
   <div class="member-block">
     <p><strong>Member:</strong> ${memberLineEsc}</p>
     <p><strong>Unit:</strong> ${unitLineEsc}</p>
-    ${dcode ? `<p><strong>D-Code:</strong> <span class="mono">${esc(dcode)}</span></p>` : ''}
+    ${dcode ? `<p><strong>Profile Code:</strong> <span class="mono">${esc(dcode)}</span></p>` : ''}
   </div>
 
   <div class="section">

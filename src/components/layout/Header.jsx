@@ -1,16 +1,24 @@
 /**
  * Header with persistent unofficial banner
+ * Compact on mobile, expanded on desktop
  */
+
+const BASE = import.meta.env.BASE_URL
 
 export default function Header() {
   return (
     <header className="bg-blue-900 text-white">
-      <div className="container mx-auto px-4 py-4 max-w-4xl">
-        <h1 className="text-2xl font-bold">Trajectory</h1>
-        <p className="text-xs text-gray-300">USAF PFA Readiness Tracking</p>
-        <p className="text-sm font-bold text-yellow-300 mt-1 tracking-wide">
-          ⚠️ UNOFFICIAL PERSONAL ASSESSMENT TOOL - Not affiliated with USAF or DoD
-        </p>
+      <div className="container mx-auto px-4 py-2 sm:py-4 max-w-4xl">
+        <div className="flex items-center justify-between">
+          <img
+            src={`${BASE}icons/logo-header.png`}
+            alt="Trajectory"
+            className="h-10 sm:h-14 w-auto"
+          />
+          <p className="text-xs sm:text-sm font-bold text-yellow-300 tracking-wide">
+            UNOFFICIAL - Not affiliated with USAF/DoD
+          </p>
+        </div>
       </div>
     </header>
   )
