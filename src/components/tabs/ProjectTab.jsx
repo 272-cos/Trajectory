@@ -522,7 +522,7 @@ export default function ProjectTab() {
                 Minimum threshold
               </span>
             </div>
-            <p className="italic">Log more check-ins to refine your projected score.</p>
+            <p className="italic">Log more self-checks to refine your projected score.</p>
           </div>
         </>
       )}
