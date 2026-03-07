@@ -13,7 +13,16 @@ const TABS = [
 ]
 
 export default function TabNavigation() {
-  const { activeTab, setActiveTab } = useApp()
+  const { activeTab, setActiveTab, selfCheckDirty, suppressSelfCheckWarning, setPendingTabNavigation } = useApp()
+
+  const handleTabClick = (tabId) => {
+    if (tabId === activeTab) return
+    if (activeTab === 'selfcheck' && selfCheckDirty && !suppressSelfCheckWarning) {
+      setPendingTabNavigation(tabId)
+    } else {
+      setActiveTab(tabId)
+    }
+  }
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -22,7 +31,7 @@ export default function TabNavigation() {
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabClick(tab.id)}
               className={`
                 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors
                 ${

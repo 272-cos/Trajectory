@@ -2,7 +2,7 @@
  * Self-Check Tab - Personal assessment entry with live scoring
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { encodeSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
@@ -10,7 +10,7 @@ import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } fro
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 
 export default function SelfCheckTab() {
-  const { demographics, addSCode, dcode } = useApp()
+  const { demographics, addSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator } = useApp()
 
   // IV-01: Assessment date - picker with max = today
   const today = new Date().toISOString().split('T')[0]
@@ -48,6 +48,22 @@ export default function SelfCheckTab() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [scores, setScores] = useState(null)
+
+  // Track whether inputs have unsaved data
+  useEffect(() => {
+    const hasData = !!(cardioValue || strengthValue || coreValue || heightInches || waistInches || walkTime)
+    setSelfCheckDirty(hasData)
+  }, [cardioValue, strengthValue, coreValue, heightInches, waistInches, walkTime, setSelfCheckDirty])
+
+  // Register generate function so warning modal can trigger it; clear dirty on unmount
+  const generateRef = useRef(null)
+  useEffect(() => {
+    registerSelfCheckGenerator(() => generateRef.current?.())
+    return () => {
+      registerSelfCheckGenerator(null)
+      setSelfCheckDirty(false)
+    }
+  }, [registerSelfCheckGenerator, setSelfCheckDirty])
 
   // Reset walk when cardio exempt toggled off
   useEffect(() => {
@@ -201,7 +217,7 @@ export default function SelfCheckTab() {
 
     if (!hasDemographics) {
       setError('Please create your profile first (Profile tab)')
-      return
+      return false
     }
 
     try {
@@ -209,7 +225,7 @@ export default function SelfCheckTab() {
       const ageAtCheck = calculateAge(demographics.dob, assessmentDate)
       if (ageAtCheck < 17 || ageAtCheck > 65) {
         setError('Age must be 17-65 at the self-check date for USAF service range.')
-        return
+        return false
       }
 
       // IV-05: Height range
@@ -217,7 +233,7 @@ export default function SelfCheckTab() {
         const h = parseFloat(heightInches)
         if (h < 48 || h > 84) {
           setError('Height must be between 48 and 84 inches.')
-          return
+          return false
         }
       }
       // IV-06: Waist range
@@ -225,7 +241,7 @@ export default function SelfCheckTab() {
         const w = parseFloat(waistInches)
         if (w < 20 || w > 55) {
           setError('Waist must be between 20.0 and 55.0 inches.')
-          return
+          return false
         }
       }
       // IV-07: Run time > 0:00 and max 2:00:00
@@ -233,11 +249,11 @@ export default function SelfCheckTab() {
         const runTime = parseTime(cardioValue)
         if (runTime != null && runTime === 0) {
           setError('Enter a valid time between 0:01 and 2:00:00.')
-          return
+          return false
         }
         if (runTime != null && runTime > 7200) {
           setError('Maximum run time is 2:00:00.')
-          return
+          return false
         }
       }
       // IV-07: Walk time > 0:00 and max 2:00:00
@@ -245,11 +261,11 @@ export default function SelfCheckTab() {
         const wt = parseTime(walkTime)
         if (wt != null && wt === 0) {
           setError('Enter a valid walk time greater than 0:00.')
-          return
+          return false
         }
         if (wt != null && wt > 7200) {
           setError('Maximum walk time is 2:00:00.')
-          return
+          return false
         }
       }
       // IV-09: Plank max 10:00
@@ -257,18 +273,18 @@ export default function SelfCheckTab() {
         const plankTime = parseTime(coreValue)
         if (plankTime != null && plankTime > 600) {
           setError('Maximum plank entry is 10 minutes.')
-          return
+          return false
         }
       }
       // IV-10: At least one component non-exempt
       if (cardioExempt && strengthExempt && coreExempt && bodyCompExempt) {
         setError('All components exempt. No composite score possible.')
-        return
+        return false
       }
       // IV-13: Height and waist both required for WHtR
       if (!bodyCompExempt && ((heightInches && !waistInches) || (!heightInches && waistInches))) {
         setError('Enter both height and waist for body composition scoring.')
-        return
+        return false
       }
 
       // Build cardio data
@@ -319,11 +335,17 @@ export default function SelfCheckTab() {
       const code = encodeSCode(assessment)
       setSCode(code)
       addSCode(code)
+      setSelfCheckDirty(false)
       setSuccess('S-Code generated successfully!')
+      return true
     } catch (err) {
       setError(err.message)
+      return false
     }
   }
+
+  // Keep ref current so warning modal can call the latest version
+  generateRef.current = handleGenerateSCode
 
   const copyToClipboard = async () => {
     if (!scode) return

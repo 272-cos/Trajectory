@@ -3,7 +3,7 @@
  * Manages D-code, S-codes, current tab, onboarding state, and toast notifications
  */
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import {
   getDCode,
   saveDCode,
@@ -39,6 +39,23 @@ export function AppProvider({ children }) {
 
   // Toast notifications (EC-28: surface URL hydration errors to user)
   const [toasts, setToasts] = useState([])
+
+  // Self-check unsaved data warning
+  const [selfCheckDirty, setSelfCheckDirty] = useState(false)
+  const [pendingTabNavigation, setPendingTabNavigation] = useState(null)
+  const [suppressSelfCheckWarning, setSuppressSelfCheckWarning] = useState(false)
+  const selfCheckGeneratorRef = useRef(null)
+
+  const registerSelfCheckGenerator = useCallback((fn) => {
+    selfCheckGeneratorRef.current = fn
+  }, [])
+
+  const triggerSelfCheckGenerate = useCallback(() => {
+    if (selfCheckGeneratorRef.current) {
+      return selfCheckGeneratorRef.current()
+    }
+    return false
+  }, [])
 
   const addToast = useCallback((message, type = 'error') => {
     const id = Date.now() + Math.random()
@@ -224,11 +241,68 @@ export function AppProvider({ children }) {
     toasts,
     addToast,
     dismissToast,
+
+    // Self-check unsaved data warning
+    selfCheckDirty,
+    setSelfCheckDirty,
+    pendingTabNavigation,
+    setPendingTabNavigation,
+    suppressSelfCheckWarning,
+    setSuppressSelfCheckWarning,
+    registerSelfCheckGenerator,
+    triggerSelfCheckGenerate,
   }
 
   return (
     <AppContext.Provider value={value}>
       {children}
+      {/* Self-check unsaved data warning modal */}
+      {pendingTabNavigation !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => {
+            setActiveTab(pendingTabNavigation)
+            setPendingTabNavigation(null)
+            setSuppressSelfCheckWarning(true)
+          }}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl p-6 max-w-sm mx-4 w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Results not saved</h3>
+            <p className="text-sm text-gray-600 mb-5">
+              Your self-check results have not been saved. Generate an S-Code to save them before leaving.
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  const success = triggerSelfCheckGenerate()
+                  if (success) {
+                    setActiveTab(pendingTabNavigation)
+                    setPendingTabNavigation(null)
+                  } else {
+                    setPendingTabNavigation(null)
+                  }
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
+              >
+                Generate S-Code
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab(pendingTabNavigation)
+                  setPendingTabNavigation(null)
+                  setSuppressSelfCheckWarning(true)
+                }}
+                className="w-full bg-white hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-4 rounded-lg border border-gray-300 transition-colors"
+              >
+                Leave without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Toast container - renders above all content */}
       {toasts.length > 0 && (
         <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
