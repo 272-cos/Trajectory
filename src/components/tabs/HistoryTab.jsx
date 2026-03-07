@@ -18,7 +18,7 @@ import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode, isValidSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, formatTime } from '../../utils/scoring/scoringEngine.js'
-import { getOutliers, toggleOutlier } from '../../utils/storage/localStorage.js'
+import { getOutliers, toggleOutlier, saveDraft } from '../../utils/storage/localStorage.js'
 
 const EXERCISE_LABELS = {
   [EXERCISES.RUN_2MILE]: '2-Mile Run',
@@ -66,7 +66,7 @@ function CompositeDot({ cx, cy, payload }) {
 }
 
 export default function HistoryTab() {
-  const { scodes, addSCode, removeSCode, demographics } = useApp()
+  const { scodes, addSCode, removeSCode, demographics, dcode, setActiveTab } = useApp()
   const [pasteValue, setPasteValue] = useState('')
   const [pasteError, setPasteError] = useState('')
   const [pasteSuccess, setPasteSuccess] = useState('')
@@ -76,6 +76,54 @@ export default function HistoryTab() {
   const [importValue, setImportValue] = useState('')
   const [importResult, setImportResult] = useState(null)
   const [exportSuccess, setExportSuccess] = useState('')
+  const [undoDelete, setUndoDelete] = useState(null) // { code, timer }
+
+  // Edit: convert decoded S-code to draft and navigate to Self-Check
+  const handleEditAssessment = (decoded) => {
+    const draft = {
+      assessmentDate: decoded.date instanceof Date
+        ? decoded.date.toISOString().split('T')[0]
+        : new Date(decoded.date).toISOString().split('T')[0],
+    }
+    if (decoded.cardio) {
+      draft.cardioExercise = decoded.cardio.exercise
+      draft.cardioExempt = decoded.cardio.exempt || false
+      if (!decoded.cardio.exempt && decoded.cardio.value != null) {
+        if (decoded.cardio.exercise === EXERCISES.RUN_2MILE || decoded.cardio.exercise === EXERCISES.WALK_2KM) {
+          draft.cardioValue = formatTime(decoded.cardio.value)
+        } else {
+          draft.cardioValue = String(decoded.cardio.value)
+        }
+      }
+    }
+    if (decoded.strength) {
+      draft.strengthExercise = decoded.strength.exercise
+      draft.strengthExempt = decoded.strength.exempt || false
+      if (!decoded.strength.exempt && decoded.strength.value != null) {
+        draft.strengthValue = String(decoded.strength.value)
+      }
+    }
+    if (decoded.core) {
+      draft.coreExercise = decoded.core.exercise
+      draft.coreExempt = decoded.core.exempt || false
+      if (!decoded.core.exempt && decoded.core.value != null) {
+        if (decoded.core.exercise === EXERCISES.PLANK) {
+          draft.coreValue = formatTime(decoded.core.value)
+        } else {
+          draft.coreValue = String(decoded.core.value)
+        }
+      }
+    }
+    if (decoded.bodyComp) {
+      draft.bodyCompExempt = decoded.bodyComp.exempt || false
+      if (!decoded.bodyComp.exempt) {
+        if (decoded.bodyComp.heightInches) draft.heightInches = String(decoded.bodyComp.heightInches)
+        if (decoded.bodyComp.waistInches) draft.waistInches = String(decoded.bodyComp.waistInches)
+      }
+    }
+    saveDraft(draft)
+    setActiveTab('selfcheck')
+  }
 
   // Decode all S-codes and compute scores
   const decodedEntries = useMemo(() => {
@@ -215,6 +263,17 @@ export default function HistoryTab() {
   const handleDelete = (code) => {
     removeSCode(code)
     setConfirmDelete(null)
+    // Soft delete: show undo for 60 seconds
+    if (undoDelete?.timer) clearTimeout(undoDelete.timer)
+    const timer = setTimeout(() => setUndoDelete(null), 60000)
+    setUndoDelete({ code, timer })
+  }
+
+  const handleUndoDelete = () => {
+    if (!undoDelete) return
+    addSCode(undoDelete.code)
+    clearTimeout(undoDelete.timer)
+    setUndoDelete(null)
   }
 
   const handleOutlierToggle = (code) => {
@@ -289,7 +348,36 @@ export default function HistoryTab() {
 
   return (
     <div className="space-y-6">
-      {/* Paste S-Code */}
+      {/* Undo delete banner */}
+      {undoDelete && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-2">
+          <p className="text-sm text-amber-800">Assessment removed.</p>
+          <button
+            onClick={handleUndoDelete}
+            className="px-3 py-1.5 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
+
+      {/* Profile code display */}
+      {dcode && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-medium text-gray-500">Profile Code</p>
+            <p className="font-mono text-sm text-blue-900">{dcode}</p>
+          </div>
+          <button
+            onClick={async () => { try { await navigator.clipboard.writeText(dcode) } catch { /* ignore */ } }}
+            className="px-3 py-2 min-h-[44px] text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+          >
+            Copy
+          </button>
+        </div>
+      )}
+
+      {/* Add Assessment Code */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Assessment History</h2>
 
@@ -441,6 +529,7 @@ export default function HistoryTab() {
               onConfirmDelete={() => handleDelete(entry.code)}
               onCancelDelete={() => setConfirmDelete(null)}
               onCopy={() => copyCode(entry.code)}
+              onEdit={entry.decoded ? () => handleEditAssessment(entry.decoded) : null}
             />
           ))}
         </div>
@@ -557,6 +646,7 @@ function AssessmentCard({
   onConfirmDelete,
   onCancelDelete,
   onCopy,
+  onEdit,
 }) {
   const { code, decoded, scores, error } = entry
   const [expanded, setExpanded] = useState(false)
@@ -697,20 +787,30 @@ function AssessmentCard({
             </button>
           </div>
 
-          {/* Actions: outlier toggle + delete */}
-          <div className="pt-2 flex items-center justify-between gap-2">
-            {/* PG-06: Outlier flag toggle */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onOutlierToggle() }}
-              aria-pressed={isOutlier}
-              className={`text-xs px-3 py-2 min-h-[44px] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 ${
-                isOutlier
-                  ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {isOutlier ? 'Unflag outlier' : 'Flag as outlier'}
-            </button>
+          {/* Actions: edit, outlier toggle, delete */}
+          <div className="pt-2 flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              {onEdit && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEdit() }}
+                  className="text-xs px-3 py-2 min-h-[44px] rounded bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  Edit
+                </button>
+              )}
+              {/* PG-06: Outlier flag toggle */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onOutlierToggle() }}
+                aria-pressed={isOutlier}
+                className={`text-xs px-3 py-2 min-h-[44px] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 ${
+                  isOutlier
+                    ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {isOutlier ? 'Unflag outlier' : 'Flag as outlier'}
+              </button>
+            </div>
 
             {/* Delete */}
             {isConfirmingDelete ? (

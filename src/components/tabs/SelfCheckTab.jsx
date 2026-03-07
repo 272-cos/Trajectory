@@ -29,7 +29,7 @@ function formatTimeInput(rawValue) {
 }
 
 export default function SelfCheckTab() {
-  const { demographics, addSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator } = useApp()
+  const { demographics, addSCode, removeSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator } = useApp()
 
   // IV-01: Assessment date - picker with max = today
   const today = new Date().toISOString().split('T')[0]
@@ -72,6 +72,7 @@ export default function SelfCheckTab() {
   const [scores, setScores] = useState(null)
   const [draftRestored, setDraftRestored] = useState(false)
   const [draftSavedVisible, setDraftSavedVisible] = useState(false)
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState(null) // For undo
 
   // ── Draft restore on mount ─────────────────────────────────────────────────
   useEffect(() => {
@@ -251,9 +252,10 @@ export default function SelfCheckTab() {
     }
   }, [hasDemographics, demographics, assessmentDate, cardioExercise, cardioValue, cardioExempt, walkSelected, walkTime, walkPass, strengthExercise, strengthValue, strengthExempt, coreExercise, coreValue, coreExempt, heightInches, waistInches, bodyCompExempt])
 
-  // IV-05: Height must be 48-84 inches
+  // IV-05: Height must be 48-84 inches (enforce positive, validate range)
   const handleHeightChange = (e) => {
     const val = e.target.value
+    if (val && parseFloat(val) < 0) return // block negative
     setHeightInches(val)
     if (val) {
       const h = parseFloat(val)
@@ -267,9 +269,10 @@ export default function SelfCheckTab() {
     }
   }
 
-  // IV-06: Waist must be 20.0-55.0 inches
+  // IV-06: Waist must be 20.0-55.0 inches (enforce positive, validate range)
   const handleWaistChange = (e) => {
     const val = e.target.value
+    if (val && parseFloat(val) < 0) return // block negative
     setWaistInches(val)
     if (val) {
       const w = parseFloat(val)
@@ -419,6 +422,15 @@ export default function SelfCheckTab() {
       const code = encodeSCode(assessment)
       setSCode(code)
       addSCode(code)
+      // Save snapshot for undo (form stays populated; draft cleared)
+      setLastSavedSnapshot({
+        assessmentDate, cardioExercise, cardioValue, cardioExempt,
+        walkSelected, walkTime,
+        strengthExercise, strengthValue, strengthExempt,
+        coreExercise, coreValue, coreExempt,
+        bodyCompExempt, heightInches, waistInches,
+        savedCode: code,
+      })
       clearDraft()
       setSelfCheckDirty(false)
       setSuccess('Assessment code generated successfully!')
@@ -474,6 +486,63 @@ export default function SelfCheckTab() {
         setError('Failed to copy to clipboard')
       }
     }
+  }
+
+  // Clear all form fields
+  const handleClearForm = () => {
+    setAssessmentDate(today)
+    setCardioExercise(exercisePrefs[COMPONENTS.CARDIO] || EXERCISES.RUN_2MILE)
+    setCardioValue('')
+    setCardioExempt(false)
+    setWalkSelected(false)
+    setWalkTime('')
+    setWalkPass(true)
+    setStrengthExercise(exercisePrefs[COMPONENTS.STRENGTH] || EXERCISES.PUSHUPS)
+    setStrengthValue('')
+    setStrengthExempt(false)
+    setCoreExercise(exercisePrefs[COMPONENTS.CORE] || EXERCISES.SITUPS)
+    setCoreValue('')
+    setCoreExempt(false)
+    setHeightInches('')
+    setWaistInches('')
+    setBodyCompExempt(false)
+    setHeightError('')
+    setWaistError('')
+    setSCode('')
+    setError('')
+    setSuccess('')
+    setLastSavedSnapshot(null)
+    clearDraft()
+    setSelfCheckDirty(false)
+  }
+
+  // Start another test (clear values but keep exercise preferences and exemptions)
+  const handleAddAnother = () => {
+    setCardioValue('')
+    setWalkTime('')
+    setStrengthValue('')
+    setCoreValue('')
+    setHeightInches('')
+    setWaistInches('')
+    setHeightError('')
+    setWaistError('')
+    setSCode('')
+    setError('')
+    setSuccess('')
+    setLastSavedSnapshot(null)
+    clearDraft()
+    setSelfCheckDirty(false)
+    setAssessmentDate(today)
+  }
+
+  // Undo last save: remove code from history and keep form as-is
+  const handleUndoSave = () => {
+    if (!lastSavedSnapshot?.savedCode) return
+    removeSCode(lastSavedSnapshot.savedCode)
+    setSCode('')
+    setSuccess('')
+    setLastSavedSnapshot(null)
+    setSelfCheckDirty(true)
   }
 
   if (!hasDemographics) {
@@ -696,14 +765,21 @@ export default function SelfCheckTab() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Reps</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={strengthValue}
-              onChange={(e) => setStrengthValue(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, '')
+                const n = parseInt(v, 10)
+                if (v === '' || (n >= 0 && n <= 300)) setStrengthValue(v)
+              }}
               disabled={strengthExempt}
               placeholder="42"
-              min="0"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
             />
+            {strengthValue && parseInt(strengthValue, 10) > 200 && (
+              <p className="text-xs text-amber-600 mt-1">Unusually high count - double check your entry</p>
+            )}
           </div>
         </ComponentSection>
 
@@ -734,11 +810,17 @@ export default function SelfCheckTab() {
             </label>
             <input
               type="text"
-              inputMode={coreExercise === EXERCISES.PLANK ? 'numeric' : 'numeric'}
+              inputMode="numeric"
               value={coreValue}
-              onChange={(e) => setCoreValue(
-                coreExercise === EXERCISES.PLANK ? formatTimeInput(e.target.value) : e.target.value
-              )}
+              onChange={(e) => {
+                if (coreExercise === EXERCISES.PLANK) {
+                  setCoreValue(formatTimeInput(e.target.value))
+                } else {
+                  const v = e.target.value.replace(/\D/g, '')
+                  const n = parseInt(v, 10)
+                  if (v === '' || (n >= 0 && n <= 300)) setCoreValue(v)
+                }
+              }}
               disabled={coreExempt}
               placeholder={coreExercise === EXERCISES.PLANK ? '2:30' : '42'}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
@@ -768,14 +850,12 @@ export default function SelfCheckTab() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Height (inches)</label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={heightInches}
                 onChange={handleHeightChange}
                 disabled={bodyCompExempt}
                 placeholder="70"
-                min="48"
-                max="84"
-                step="0.1"
                 className={`w-full px-4 py-2 border rounded-lg disabled:bg-gray-100 ${heightError ? 'border-red-400' : 'border-gray-300'}`}
               />
               {heightError && !bodyCompExempt && (
@@ -790,14 +870,12 @@ export default function SelfCheckTab() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Waist (inches)</label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={waistInches}
                 onChange={handleWaistChange}
                 disabled={bodyCompExempt}
                 placeholder="32.5"
-                min="20"
-                max="55"
-                step="0.1"
                 className={`w-full px-4 py-2 border rounded-lg disabled:bg-gray-100 ${waistError ? 'border-red-400' : 'border-gray-300'}`}
               />
               {waistError && !bodyCompExempt && (
@@ -859,14 +937,22 @@ export default function SelfCheckTab() {
         )}
       </div>
 
-      {/* Generate S-Code - sticky action bar on mobile */}
+      {/* Action bar - sticky on mobile */}
       <div className="bg-white rounded-lg shadow-md p-6 sticky bottom-0 z-10 sm:static sm:shadow-md shadow-lg">
-        <button
-          onClick={handleGenerateSCode}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          Save Assessment
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleGenerateSCode}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Save Assessment
+          </button>
+          <button
+            onClick={handleClearForm}
+            className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+          >
+            Clear
+          </button>
+        </div>
 
         {/* Success/Error Messages */}
         {success && (
@@ -880,10 +966,11 @@ export default function SelfCheckTab() {
           </div>
         )}
 
-        {/* Display S-Code */}
+        {/* Display assessment code with undo + add another */}
         {scode && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm font-medium text-gray-700 mb-2">Your Assessment Code:</p>
+            <p className="text-sm font-medium text-gray-700 mb-1">Your Assessment Code:</p>
+            <p className="text-xs text-gray-500 mb-2">This compact code stores your exercise results. Share it to transfer data between devices.</p>
             <div className="flex items-center gap-2">
               <p className="font-mono text-sm text-blue-900 flex-1 break-all">{scode}</p>
               <button
@@ -904,6 +991,22 @@ export default function SelfCheckTab() {
             <p className="text-xs text-gray-600 mt-2">
               Assessment saved! Check the Trajectory tab for personalized improvement tips.
             </p>
+            <div className="flex gap-2 mt-3 pt-3 border-t border-blue-200">
+              {lastSavedSnapshot && (
+                <button
+                  onClick={handleUndoSave}
+                  className="px-3 py-2 min-h-[44px] text-sm bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors"
+                >
+                  Undo Save
+                </button>
+              )}
+              <button
+                onClick={handleAddAnother}
+                className="flex-1 px-3 py-2 min-h-[44px] text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium rounded-lg transition-colors"
+              >
+                Add Another Assessment
+              </button>
+            </div>
           </div>
         )}
       </div>

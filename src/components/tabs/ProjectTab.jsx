@@ -5,12 +5,22 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ReferenceLine,
+  CartesianGrid,
+} from 'recharts'
 import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { generateProjection, AMBER_MARGIN } from '../../utils/projection/projectionEngine.js'
-import { COMPONENT_WEIGHTS, COMPONENT_MINIMUMS, EXERCISES, PASSING_COMPOSITE } from '../../utils/scoring/constants.js'
+import { COMPONENT_WEIGHTS, COMPONENT_MINIMUMS, EXERCISES, PASSING_COMPOSITE, COMPONENTS } from '../../utils/scoring/constants.js'
 import { isDiagnosticPeriod, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
-import { calculateWHtR } from '../../utils/scoring/scoringEngine.js'
+import { calculateWHtR, calculateComponentScore, calculateCompositeScore } from '../../utils/scoring/scoringEngine.js'
 import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS } from '../../utils/scoring/strategyEngine.js'
 import { getRecommendations } from '../../utils/recommendations/recommendationEngine.js'
 import { getExercisePrefs } from '../../utils/storage/localStorage.js'
@@ -96,6 +106,109 @@ function exerciseName(exercise) {
     [EXERCISES.WHTR]:      'Waist-to-Height Ratio',
   }
   return names[exercise] || exercise
+}
+
+// ─── Projection Trajectory Chart ──────────────────────────────────────────────
+
+function ProjectionChart({ historicalScores, projectedComposite, targetDate }) {
+  if (historicalScores.length === 0) return null
+
+  // Build chart data: historical points + projected endpoint
+  const chartData = historicalScores.map(h => ({
+    date: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    rawDate: h.date,
+    actual: h.composite,
+    projected: null,
+  }))
+
+  // Add projection line: last actual point to projected target
+  if (projectedComposite != null && targetDate) {
+    const lastActual = historicalScores[historicalScores.length - 1]
+    // Bridge point: last historical value as start of projection
+    if (chartData.length > 0) {
+      chartData[chartData.length - 1].projected = lastActual.composite
+    }
+    // Projected target point
+    chartData.push({
+      date: new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      rawDate: targetDate,
+      actual: null,
+      projected: projectedComposite,
+    })
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">Score Trajectory</h3>
+      <div className="h-52 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 11, fill: '#6b7280' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
+              tick={{ fontSize: 11, fill: '#6b7280' }}
+              tickLine={false}
+              axisLine={false}
+              width={28}
+            />
+            <Tooltip
+              formatter={(value, name) => [
+                value != null ? value.toFixed(1) : '-',
+                name === 'actual' ? 'Actual' : 'Projected',
+              ]}
+              contentStyle={{ fontSize: 12, borderRadius: 6 }}
+            />
+            <ReferenceLine
+              y={75}
+              stroke="#ef4444"
+              strokeDasharray="4 3"
+              label={{ value: '75 (Pass)', position: 'insideTopRight', fontSize: 10, fill: '#ef4444' }}
+            />
+            {/* Actual scores - solid line */}
+            <Line
+              type="monotone"
+              dataKey="actual"
+              stroke="#6366f1"
+              strokeWidth={2}
+              dot={{ r: 4, fill: '#6366f1', stroke: 'white', strokeWidth: 1.5 }}
+              connectNulls={false}
+            />
+            {/* Projected line - dashed */}
+            <Line
+              type="monotone"
+              dataKey="projected"
+              stroke="#f59e0b"
+              strokeWidth={2}
+              strokeDasharray="6 3"
+              dot={{ r: 5, fill: '#f59e0b', stroke: 'white', strokeWidth: 2 }}
+              connectNulls={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex gap-4 justify-center mt-2 text-xs text-gray-500">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-4 h-0.5 bg-indigo-500" />
+          Actual
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-4 h-0.5 bg-amber-500 border-dashed" style={{ borderTop: '2px dashed #f59e0b', height: 0 }} />
+          Projected
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-4 h-0.5 bg-red-400" style={{ borderTop: '2px dashed #ef4444', height: 0 }} />
+          Pass (75)
+        </span>
+      </div>
+    </div>
+  )
 }
 
 // ─── Gap Bar ───────────────────────────────────────────────────────────────────
@@ -363,10 +476,99 @@ export default function ProjectTab() {
     }
   }, [decodedScodes, demographics, targetPfaDate])
 
+  // Compute historical composite scores for the trajectory chart
+  const historicalScores = useMemo(() => {
+    if (!demographics || decodedScodes.length === 0) return []
+    return decodedScodes.map(sc => {
+      try {
+        const age = calculateAge(demographics.dob, sc.date)
+        const ageBracket = getAgeBracket(age)
+        const gender = demographics.gender
+        const components = []
+
+        if (sc.cardio && !sc.cardio.exempt && sc.cardio.value != null && sc.cardio.exercise !== EXERCISES.WALK_2KM) {
+          const result = calculateComponentScore(
+            { type: COMPONENTS.CARDIO, exercise: sc.cardio.exercise, value: sc.cardio.value, exempt: false },
+            gender, ageBracket
+          )
+          components.push({ ...result, type: COMPONENTS.CARDIO })
+        } else if (sc.cardio?.exempt) {
+          components.push({ type: COMPONENTS.CARDIO, exempt: true, tested: false, pass: true })
+        }
+
+        if (sc.strength && !sc.strength.exempt && sc.strength.value != null) {
+          const result = calculateComponentScore(
+            { type: COMPONENTS.STRENGTH, exercise: sc.strength.exercise, value: sc.strength.value, exempt: false },
+            gender, ageBracket
+          )
+          components.push({ ...result, type: COMPONENTS.STRENGTH })
+        } else if (sc.strength?.exempt) {
+          components.push({ type: COMPONENTS.STRENGTH, exempt: true, tested: false, pass: true })
+        }
+
+        if (sc.core && !sc.core.exempt && sc.core.value != null) {
+          const result = calculateComponentScore(
+            { type: COMPONENTS.CORE, exercise: sc.core.exercise, value: sc.core.value, exempt: false },
+            gender, ageBracket
+          )
+          components.push({ ...result, type: COMPONENTS.CORE })
+        } else if (sc.core?.exempt) {
+          components.push({ type: COMPONENTS.CORE, exempt: true, tested: false, pass: true })
+        }
+
+        if (sc.bodyComp && !sc.bodyComp.exempt && sc.bodyComp.heightInches && sc.bodyComp.waistInches) {
+          const whtr = calculateWHtR(sc.bodyComp.waistInches, sc.bodyComp.heightInches)
+          const result = calculateComponentScore(
+            { type: COMPONENTS.BODY_COMP, exercise: EXERCISES.WHTR, value: whtr, exempt: false },
+            gender, ageBracket
+          )
+          components.push({ ...result, type: COMPONENTS.BODY_COMP })
+        } else if (sc.bodyComp?.exempt) {
+          components.push({ type: COMPONENTS.BODY_COMP, exempt: true, tested: false, pass: true })
+        }
+
+        const comp = calculateCompositeScore(components)
+        if (comp && comp.composite != null) {
+          return { date: sc.date, composite: comp.composite }
+        }
+        return null
+      } catch {
+        return null
+      }
+    }).filter(Boolean)
+  }, [demographics, decodedScodes])
+
   // Current component percentages from most recent S-code (for gap bar "current" marker)
   const currentPcts = useMemo(() => {
-    return {}
-  }, [])
+    if (!demographics || decodedScodes.length === 0) return {}
+    const latest = decodedScodes[decodedScodes.length - 1]
+    const age = calculateAge(demographics.dob, latest.date)
+    const ageBracket = getAgeBracket(age)
+    const gender = demographics.gender
+    const pcts = {}
+
+    try {
+      if (latest.cardio && !latest.cardio.exempt && latest.cardio.value != null && latest.cardio.exercise !== EXERCISES.WALK_2KM) {
+        const r = calculateComponentScore({ type: COMPONENTS.CARDIO, exercise: latest.cardio.exercise, value: latest.cardio.value, exempt: false }, gender, ageBracket)
+        if (r.tested) pcts.cardio = r.percentage
+      }
+      if (latest.strength && !latest.strength.exempt && latest.strength.value != null) {
+        const r = calculateComponentScore({ type: COMPONENTS.STRENGTH, exercise: latest.strength.exercise, value: latest.strength.value, exempt: false }, gender, ageBracket)
+        if (r.tested) pcts.strength = r.percentage
+      }
+      if (latest.core && !latest.core.exempt && latest.core.value != null) {
+        const r = calculateComponentScore({ type: COMPONENTS.CORE, exercise: latest.core.exercise, value: latest.core.value, exempt: false }, gender, ageBracket)
+        if (r.tested) pcts.core = r.percentage
+      }
+      if (latest.bodyComp && !latest.bodyComp.exempt && latest.bodyComp.heightInches && latest.bodyComp.waistInches) {
+        const whtr = calculateWHtR(latest.bodyComp.waistInches, latest.bodyComp.heightInches)
+        const r = calculateComponentScore({ type: COMPONENTS.BODY_COMP, exercise: EXERCISES.WHTR, value: whtr, exempt: false }, gender, ageBracket)
+        if (r.tested) pcts.bodyComp = r.percentage
+      }
+    } catch { /* ignore */ }
+
+    return pcts
+  }, [demographics, decodedScodes])
 
   // Strategy engine analysis from most recent S-code
   const strategyData = useMemo(() => {
@@ -576,6 +778,15 @@ export default function ProjectTab() {
                 ? 'Not enough component data for a composite projection.'
                 : 'Calculating projection...'}
             </div>
+          )}
+
+          {/* ── Trajectory Chart ───────────────────────────────────────── */}
+          {historicalScores.length > 0 && (
+            <ProjectionChart
+              historicalScores={historicalScores}
+              projectedComposite={composite?.projected ?? null}
+              targetDate={targetPfaDate}
+            />
           )}
 
           {/* ── Per-component cards ────────────────────────────────────────── */}

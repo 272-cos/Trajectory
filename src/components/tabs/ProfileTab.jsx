@@ -204,32 +204,34 @@ export default function ProfileTab() {
             )}
           </div>
 
-          {/* Gender */}
+          {/* Gender - segmented control matching Self-Check exercise selectors */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Gender
             </label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value={GENDER.MALE}
-                  checked={gender === GENDER.MALE}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="mr-2"
-                />
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setGender(GENDER.MALE)}
+                className={`flex-1 py-2.5 px-4 text-sm font-medium transition-colors min-h-[44px] border-r border-gray-300 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${
+                  gender === GENDER.MALE
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Male
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value={GENDER.FEMALE}
-                  checked={gender === GENDER.FEMALE}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="mr-2"
-                />
+              </button>
+              <button
+                type="button"
+                onClick={() => setGender(GENDER.FEMALE)}
+                className={`flex-1 py-2.5 px-4 text-sm font-medium transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${
+                  gender === GENDER.FEMALE
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Female
-              </label>
+              </button>
             </div>
           </div>
 
@@ -283,7 +285,8 @@ export default function ProfileTab() {
           {/* Display D-Code */}
           {dcode && (
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Your Profile Code:</p>
+              <p className="text-sm font-medium text-gray-700 mb-1">Your Profile Code:</p>
+              <p className="text-xs text-gray-500 mb-2">A short code that stores your DOB and gender. Share it to sync your profile across devices.</p>
               <div className="flex items-center gap-2">
                 <p className="font-mono text-lg text-blue-900 flex-1">{dcode}</p>
                 <button
@@ -330,6 +333,22 @@ export default function ProfileTab() {
             Load Profile
           </button>
         </div>
+      </div>
+
+      {/* Reference link */}
+      <div className="text-center">
+        <p className="text-xs text-gray-400">
+          Scoring based on{' '}
+          <a
+            href="https://www.e-publishing.af.mil/Product-Index/#/?view=pubs&orgID=10141&catID=1&series=65&modID=449&tabID=131"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-700 underline"
+          >
+            DAFMAN 36-2905
+          </a>
+          {' '}(Change 1, 22 Jan 2026)
+        </p>
       </div>
     </div>
   )

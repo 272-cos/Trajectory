@@ -1,7 +1,8 @@
 /**
- * Tab Navigation Component
+ * Tab Navigation Component with swipe gesture support
  */
 
+import { useRef } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 
 const TABS = [
@@ -14,6 +15,8 @@ const TABS = [
 
 export default function TabNavigation() {
   const { activeTab, setActiveTab, selfCheckDirty, suppressSelfCheckWarning, setPendingTabNavigation } = useApp()
+  const touchStartX = useRef(null)
+  const touchStartY = useRef(null)
 
   const handleTabClick = (tabId) => {
     if (tabId === activeTab) return
@@ -24,8 +27,39 @@ export default function TabNavigation() {
     }
   }
 
+  const navigateTab = (direction) => {
+    const currentIndex = TABS.findIndex(t => t.id === activeTab)
+    const nextIndex = currentIndex + direction
+    if (nextIndex >= 0 && nextIndex < TABS.length) {
+      handleTabClick(TABS[nextIndex].id)
+    }
+  }
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current
+    touchStartX.current = null
+    touchStartY.current = null
+
+    // Only swipe if horizontal movement is dominant and > 50px
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      navigateTab(deltaX < 0 ? 1 : -1)
+    }
+  }
+
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200" aria-label="Application tabs">
+    <nav
+      className="bg-white shadow-sm border-b border-gray-200"
+      aria-label="Application tabs"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="flex overflow-x-auto" role="tablist">
           {TABS.map(tab => (
