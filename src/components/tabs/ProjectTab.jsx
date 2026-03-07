@@ -17,13 +17,6 @@ import { getExercisePrefs } from '../../utils/storage/localStorage.js'
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const MODEL_OPTIONS = [
-  { value: 'auto', label: 'Auto', description: 'Best model for your data count' },
-  { value: 'linear', label: 'Linear', description: 'Available with 1+ self-checks' },
-  { value: 'log', label: 'Logarithmic', description: 'Available with 2+ self-checks (diminishing returns)' },
-  { value: 'trend', label: 'Historical Trend', description: '3+ self-checks required' },
-]
-
 const COMP_LABELS = {
   cardio:   'Cardio',
   strength: 'Strength',
@@ -337,7 +330,6 @@ function TrainingFocus({ item, isTopPriority, compType, proj }) {
 
 export default function ProjectTab() {
   const { scodes, demographics, targetPfaDate, updateTargetPfaDate } = useApp()
-  const [selectedModel, setSelectedModel] = useState('auto')
   const [targetDateInput, setTargetDateInput] = useState('')
   const [targetDateError, setTargetDateError] = useState('')
 
@@ -361,19 +353,15 @@ export default function ProjectTab() {
     }).sort((a, b) => (a.date > b.date ? 1 : -1))
   }, [scodes])
 
-  // Count non-outlier S-codes for model availability
-  const nonOutlierCount = decodedScodes.filter(s => !s.outlier).length
-
-  // Run projection engine
+  // Run projection engine (always auto-selects best model for data count)
   const projection = useMemo(() => {
     if (!decodedScodes.length || !demographics || !targetPfaDate) return null
-    const modelOverride = selectedModel === 'auto' ? null : selectedModel
     try {
-      return generateProjection(decodedScodes, demographics, targetPfaDate, { modelOverride })
+      return generateProjection(decodedScodes, demographics, targetPfaDate)
     } catch {
       return null
     }
-  }, [decodedScodes, demographics, targetPfaDate, selectedModel])
+  }, [decodedScodes, demographics, targetPfaDate])
 
   // Current component percentages from most recent S-code (for gap bar "current" marker)
   const currentPcts = useMemo(() => {
@@ -524,37 +512,6 @@ export default function ProjectTab() {
 
       {targetPfaDate && (
         <>
-          {/* ── Model selector ─────────────────────────────────────────────── */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p className="text-sm font-semibold text-gray-700 mb-2">Projection Model</p>
-            <div className="flex gap-2 flex-wrap">
-              {MODEL_OPTIONS.map(opt => {
-                const disabled = opt.value === 'trend' && nonOutlierCount < 3
-                const active = selectedModel === opt.value
-                return (
-                  <button
-                    key={opt.value}
-                    disabled={disabled}
-                    onClick={() => setSelectedModel(opt.value)}
-                    title={opt.description}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors
-                      ${disabled ? 'opacity-40 cursor-not-allowed border-gray-200 text-gray-400' :
-                        active   ? 'border-blue-600 bg-blue-600 text-white' :
-                                   'border-gray-300 text-gray-700 hover:border-blue-400'}`}
-                  >
-                    {opt.label}
-                    {opt.value === 'trend' && nonOutlierCount < 3 && (
-                      <span className="ml-1 opacity-70">(need {3 - nonOutlierCount} more)</span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-            <p className="text-xs text-gray-400 mt-1.5">
-              {nonOutlierCount} non-outlier self-check{nonOutlierCount !== 1 ? 's' : ''} available for projection.
-            </p>
-          </div>
-
           {/* ── Diagnostic period warning ──────────────────────────────────── */}
           {isDiagnosticPeriod(targetPfaDate) && (
             <div className="bg-blue-50 border border-blue-300 rounded-lg p-3 text-sm text-blue-800">

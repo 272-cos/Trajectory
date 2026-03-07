@@ -72,6 +72,10 @@ export default function HistoryTab() {
   const [pasteSuccess, setPasteSuccess] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [outliers, setOutliers] = useState(() => new Set(getOutliers()))
+  const [showImport, setShowImport] = useState(false)
+  const [importValue, setImportValue] = useState('')
+  const [importResult, setImportResult] = useState(null)
+  const [exportSuccess, setExportSuccess] = useState('')
 
   // Decode all S-codes and compute scores
   const decodedEntries = useMemo(() => {
@@ -231,6 +235,56 @@ export default function HistoryTab() {
     }
   }
 
+  const handleExport = async () => {
+    if (scodes.length === 0) return
+    const text = scodes.join('\n')
+    try {
+      await navigator.clipboard.writeText(text)
+      setExportSuccess(`${scodes.length} S-code${scodes.length !== 1 ? 's' : ''} copied to clipboard`)
+      setTimeout(() => setExportSuccess(''), 3000)
+    } catch {
+      // Fallback: select textarea content
+      setExportSuccess('Copy failed - use the import/export area below')
+    }
+  }
+
+  const handleImport = () => {
+    setImportResult(null)
+    if (!importValue.trim()) return
+
+    // Split on newlines, commas, or whitespace to support multiple formats
+    const candidates = importValue
+      .split(/[\n,]+/)
+      .map(s => s.trim().replace(/\s+/g, ''))
+      .filter(Boolean)
+
+    let added = 0
+    let duplicates = 0
+    let invalid = 0
+
+    for (const code of candidates) {
+      if (!code.startsWith('S')) {
+        invalid++
+        continue
+      }
+      if (scodes.includes(code)) {
+        duplicates++
+        continue
+      }
+      if (!isValidSCode(code)) {
+        invalid++
+        continue
+      }
+      addSCode(code)
+      added++
+    }
+
+    setImportResult({ added, duplicates, invalid, total: candidates.length })
+    if (added > 0) {
+      setImportValue('')
+    }
+  }
+
   const hasScored = decodedEntries.some(e => !e.error && e.scores?.composite?.composite != null)
 
   return (
@@ -270,6 +324,64 @@ export default function HistoryTab() {
             Paste an S-code from a previous session or shared by another device.
           </p>
         </div>
+
+        {/* Export / Import controls */}
+        <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+          <button
+            onClick={handleExport}
+            disabled={scodes.length === 0}
+            className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            Export All
+          </button>
+          <button
+            onClick={() => { setShowImport(!showImport); setImportResult(null) }}
+            className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            {showImport ? 'Hide Import' : 'Bulk Import'}
+          </button>
+          {exportSuccess && (
+            <span className="text-xs text-green-600">{exportSuccess}</span>
+          )}
+        </div>
+
+        {showImport && (
+          <div className="pt-3 space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Paste multiple S-codes (one per line or comma-separated)
+            </label>
+            <textarea
+              value={importValue}
+              onChange={(e) => setImportValue(e.target.value)}
+              placeholder={"S3-abc123...\nS3-def456...\nS3-ghi789..."}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              onClick={handleImport}
+              disabled={!importValue.trim()}
+              className="px-4 py-2 min-h-[44px] bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              Import
+            </button>
+            {importResult && (
+              <div className="text-xs space-y-0.5">
+                {importResult.added > 0 && (
+                  <p className="text-green-600">{importResult.added} S-code{importResult.added !== 1 ? 's' : ''} imported successfully.</p>
+                )}
+                {importResult.duplicates > 0 && (
+                  <p className="text-gray-500">{importResult.duplicates} already in history (skipped).</p>
+                )}
+                {importResult.invalid > 0 && (
+                  <p className="text-red-600">{importResult.invalid} invalid or unrecognized (skipped).</p>
+                )}
+                {importResult.added === 0 && importResult.total > 0 && (
+                  <p className="text-amber-600">No new S-codes were added.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Trend Chart - only show when demographics available and there are scored entries */}
