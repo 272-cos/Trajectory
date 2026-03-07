@@ -422,8 +422,9 @@ export function parseTime(timeStr) {
     return total > 0 ? total : null
   }
 
-  // No colon: treat as total seconds (e.g. "810" -> 810 s = 13:30)
-  const secs = parseInt(timeStr, 10)
-  if (isNaN(secs) || secs <= 0) return null
-  return secs
+  // No colon: 1-2 digit number treated as minutes (e.g. "19" -> 19:00 = 1140s)
+  // 3+ digit number treated as total seconds (e.g. "810" -> 810s = 13:30)
+  const n = parseInt(timeStr, 10)
+  if (isNaN(n) || n <= 0) return null
+  return timeStr.trim().length <= 2 ? n * 60 : n
 }
