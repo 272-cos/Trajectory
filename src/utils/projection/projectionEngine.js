@@ -3,9 +3,9 @@
  * Design refs: docs/design.md §9 Projection Engine, §5.3 PG-01 through PG-08
  *
  * Models (selected by number of non-outlier data points):
- *   1 data point  -> Linear (PG-02 fallback), confidence LOW
- *   2 data points -> Logarithmic (diminishing returns), confidence MEDIUM
- *   3+ data points-> Historical trend (least-squares), confidence HIGH/MEDIUM
+ *   1 data point  -> Linear (PG-02 fallback), confidence LOW (Preliminary)
+ *   2 data points -> Logarithmic (diminishing returns), confidence MEDIUM (Established)
+ *   3+ data points-> Historical trend (least-squares), confidence HIGH/MEDIUM (Mature/Established)
  */
 
 import {

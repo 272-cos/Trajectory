@@ -35,6 +35,12 @@ const CONFIDENCE_COLORS = {
   LOW:    'text-gray-500  bg-gray-50',
 }
 
+const CONFIDENCE_LABELS = {
+  HIGH:   'Mature',
+  MEDIUM: 'Established',
+  LOW:    'Preliminary',
+}
+
 // Format seconds as mm:ss
 function fmtTime(seconds) {
   if (!seconds && seconds !== 0) return '-'
@@ -198,7 +204,7 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget }) {
             {proj.pass ? 'PASS' : 'FAIL'}
           </span>
           <span className={`text-xs px-2 py-0.5 rounded ${CONFIDENCE_COLORS[proj.confidence] || 'text-gray-500 bg-gray-50'}`}>
-            {proj.confidence} confidence
+            {CONFIDENCE_LABELS[proj.confidence] || proj.confidence}
           </span>
         </div>
       </div>
@@ -472,7 +478,7 @@ export default function ProjectTab() {
                 <div className="text-right text-sm text-gray-600">
                   <p>Threshold: {PASSING_COMPOSITE}</p>
                   <p className={`font-medium ${CONFIDENCE_COLORS[composite.confidence] || ''} px-2 py-0.5 rounded`}>
-                    {composite.confidence} confidence
+                    {CONFIDENCE_LABELS[composite.confidence] || composite.confidence}
                   </p>
                 </div>
               </div>
