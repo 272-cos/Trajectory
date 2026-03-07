@@ -217,15 +217,15 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 **Design references:** §10 Tab 4 (History), §3.3 Manual Code Entry, PG-06
 
-- [ ] S-code paste field: strips whitespace/newlines (UX-09); validates CRC (CS-02/CS-03)
-- [ ] Decoded S-code list: date, exercise, component scores
-- [ ] Per-S-code outlier flag toggle (PG-06)
-- [ ] Trend mini-chart: time series of composite score across S-codes (Recharts)
-- [ ] Per-component sparklines
-- [ ] Historical trend requires 3+ S-codes - show "Need 3+ self-checks" below threshold (EC-12)
-- [ ] EC-20: two S-codes same date → both shown, let member flag outlier
-- [ ] CS-08: D-code pasted into S-code field → "This is a D-code. Paste it in Profile."
-- [ ] EC-14: S-code in diagnostic period → "DIAGNOSTIC PERIOD" badge in list
+- [x] S-code paste field: strips whitespace/newlines (UX-09); validates CRC (CS-02/CS-03)
+- [x] Decoded S-code list: date, exercise, component scores
+- [x] Per-S-code outlier flag toggle (PG-06)
+- [x] Trend mini-chart: time series of composite score across S-codes (Recharts)
+- [x] Per-component sparklines
+- [x] Historical trend requires 3+ S-codes - show "Need 3+ self-checks" below threshold (EC-12)
+- [x] EC-20: two S-codes same date → both shown, let member flag outlier
+- [x] CS-08: D-code pasted into S-code field → "This is a D-code. Paste it in Profile."
+- [x] EC-14: S-code in diagnostic period → "DIAGNOSTIC PERIOD" badge in list
 
 **Acceptance:** Paste → decode → display works. Chart renders with 1-5 S-codes. Outlier toggle excludes from trend.
 
@@ -241,16 +241,16 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 **Design references:** §10 Tab 5 (Report), §5.6 RP-01 through RP-08
 
-- [ ] **RP-01:** Rank/name/unit entered at render time; never stored, never encoded
-- [ ] **UX-07:** Tab blocked until 1+ self-checks scored
-- [ ] Report body: member info, D-code used, S-code(s) used, per-component score breakdown
-- [ ] **RP-03:** Watermark: "UNOFFICIAL SELF-CHECK" on every page
-- [ ] **RP-04:** Scoring chart version displayed ("Sep 2025 Provisional")
-- [ ] **RP-05:** S-codes in diagnostic period flagged "DIAGNOSTIC PERIOD (non-scored)"
-- [ ] **RP-07:** Footer: "Prepared by member for supervisory awareness."
-- [ ] **RP-08:** Projection section optional toggle; when ON, include per-component projections
-- [ ] **RP-06 / UX-08:** Output: clipboard (plain text) + print-optimized HTML (`window.print()`)
-- [ ] EC-03: all exempt → exemption-status-only report
+- [x] **RP-01:** Rank/name/unit entered at render time; never stored, never encoded
+- [x] **UX-07:** Tab blocked until 1+ self-checks scored
+- [x] Report body: member info, D-code used, S-code(s) used, per-component score breakdown
+- [x] **RP-03:** Watermark: "UNOFFICIAL SELF-CHECK" on every page
+- [x] **RP-04:** Scoring chart version displayed ("Sep 2025 Provisional")
+- [x] **RP-05:** S-codes in diagnostic period flagged "DIAGNOSTIC PERIOD (non-scored)"
+- [x] **RP-07:** Footer: "Prepared by member for supervisory awareness."
+- [x] **RP-08:** Projection section optional toggle; when ON, include per-component projections
+- [x] **RP-06 / UX-08:** Output: clipboard (plain text) + print-optimized HTML (`window.print()`)
+- [x] EC-03: all exempt → exemption-status-only report
 
 **Acceptance:** Report renders without PII stored. Print stylesheet hides UI chrome. Copy pastes clean text.
 
