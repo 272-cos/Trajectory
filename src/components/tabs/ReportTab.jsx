@@ -14,7 +14,7 @@
  * EC-03: All exempt = exemption-status-only report.
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, formatTime } from '../../utils/scoring/scoringEngine.js'
@@ -182,12 +182,17 @@ export default function ReportTab() {
     return allEntries.filter(e => !e.error && e.scores?.composite?.composite != null)
   }, [allEntries])
 
-  // Initialize selectedCodes when scored entries change (default: all selected)
-  useMemo(() => {
-    if (scoredEntries.length > 0 && selectedCodes.size === 0) {
-      setSelectedCodes(new Set(scoredEntries.map(e => e.code)))
-    }
-  }, [scoredEntries.length])
+  // Initialize selectedCodes when scored entries change (default: all selected).
+  // useEffect (not useMemo) because this is a side effect, not a derived value.
+  // Functional update avoids stale closure on selectedCodes.
+  useEffect(() => {
+    setSelectedCodes(prev => {
+      if (prev.size === 0 && scoredEntries.length > 0) {
+        return new Set(scoredEntries.map(e => e.code))
+      }
+      return prev
+    })
+  }, [scoredEntries])
 
   // Entries to show in the report (selected + scored)
   const reportEntries = useMemo(() => {
@@ -520,7 +525,7 @@ function AssessmentSection({ entry, index, total }) {
           } else if (compType === COMPONENTS.CORE && decoded.core && !decoded.core.exempt && decoded.core.value != null) {
             rawLine = `${EXERCISE_LABELS[decoded.core.exercise] || decoded.core.exercise}: ${formatValue(decoded.core.value, decoded.core.exercise)}`
           } else if (compType === COMPONENTS.BODY_COMP && decoded.bodyComp && !decoded.bodyComp.exempt && decoded.bodyComp.heightInches) {
-            const whtr = decoded.bodyComp.waistInches / decoded.bodyComp.heightInches
+            const whtr = calculateWHtR(decoded.bodyComp.waistInches, decoded.bodyComp.heightInches)
             rawLine = `WHtR: ${whtr.toFixed(2)} (${decoded.bodyComp.waistInches}" waist / ${decoded.bodyComp.heightInches}" height)`
           }
 
@@ -575,13 +580,6 @@ function AssessmentSection({ entry, index, total }) {
 
 // ─── Projection section ───────────────────────────────────────────────────────
 
-const COMP_LABELS_SHORT = {
-  cardio:   'Cardio',
-  strength: 'Strength',
-  core:     'Core',
-  bodyComp: 'Body Comp',
-}
-
 function ProjectionSection({ projectionData, targetPfaDate }) {
   const { components, composite, daysToTarget } = projectionData
   const targetDateStr = new Date(targetPfaDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -621,7 +619,7 @@ function ProjectionSection({ projectionData, targetPfaDate }) {
           return (
             <div key={compType} className="flex items-start justify-between gap-2 pl-2 border-l-2 border-blue-100">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-700 font-sans">{COMP_LABELS_SHORT[compType]}</p>
+                <p className="text-sm text-gray-700 font-sans">{COMPONENT_LABELS[compType]}</p>
                 {proj.projectedValue != null && proj.exercise && (
                   <p className="text-xs text-gray-500 font-sans">
                     Projected: {formatProjectedValue(proj.projectedValue, proj.exercise)}
@@ -649,6 +647,16 @@ function ProjectionSection({ projectionData, targetPfaDate }) {
 }
 
 // ─── Copy / Print handlers ────────────────────────────────────────────────────
+
+/** Escape user-supplied strings before injecting into print window HTML. */
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 function buildPlainText({ rank, name, unit, dcode, reportEntries, allExempt, includeProjection, projectionData, targetPfaDate }) {
   const memberLine = [rank, name].filter(Boolean).join(' ') || '(Not specified)'
@@ -718,7 +726,7 @@ function buildPlainText({ rank, name, unit, dcode, reportEntries, allExempt, inc
     if (components) {
       Object.entries(components).forEach(([compType, proj]) => {
         if (!proj || proj.exempt) return
-        const label = COMP_LABELS_SHORT[compType]
+        const label = COMPONENT_LABELS[compType]
         const pts = proj.projectedPoints != null ? `${proj.projectedPoints.toFixed(1)} pts` : ''
         const val = proj.projectedValue != null && proj.exercise ? `| ${formatProjectedValue(proj.projectedValue, proj.exercise)}` : ''
         lines.push(`  ${label}: ${pts} ${val} - ${proj.projectedPass ? 'PASS' : 'FAIL'}`)
@@ -765,6 +773,8 @@ function handleCopy({ rank, name, unit, dcode, reportEntries, allExempt, include
 function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includeProjection, projectionData, targetPfaDate }) {
   const memberLine = [rank, name].filter(Boolean).join(' ') || '(Not specified)'
   const unitLine = unit || '(Not specified)'
+  const memberLineEsc = esc(memberLine)
+  const unitLineEsc = esc(unitLine)
 
   const entryHtml = allExempt
     ? `<div class="section">
@@ -773,7 +783,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
        </div>`
     : reportEntries.map((entry, idx) => {
         const { code, decoded, scores } = entry
-        const dateStr = formatDate(decoded.date)
+        const dateStr = esc(formatDate(decoded.date))
         const isDiag = decoded.isDiagnostic
         const composite = scores?.composite
         const components = scores?.components ?? []
@@ -798,8 +808,8 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
             return ''
           }
           return `<tr>
-            <td>${label} <span class="weight">(${weight} pts max)</span></td>
-            <td class="${statusClass}">${scoreText}</td>
+            <td>${esc(label)} <span class="weight">(${esc(String(weight))} pts max)</span></td>
+            <td class="${statusClass}">${esc(scoreText)}</td>
             <td class="${statusClass} status">${comp.exempt ? '' : (comp.pass ? 'PASS' : 'FAIL')}</td>
           </tr>`
         }).join('')
@@ -814,7 +824,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
           <table class="comp-table">
             <tbody>${compRows}</tbody>
           </table>
-          <div class="scode-line">S-Code: <span class="mono">${code}</span></div>
+          <div class="scode-line">S-Code: <span class="mono">${esc(code)}</span></div>
         </div>`
       }).join('')
 
@@ -824,23 +834,23 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
         const { components, composite, daysToTarget } = projectionData
         const compRows = components ? Object.entries(components).map(([compType, proj]) => {
           if (!proj || proj.exempt) return ''
-          const label = COMP_LABELS_SHORT[compType]
+          const label = COMPONENT_LABELS[compType] ?? compType
           const pts = proj.projectedPoints != null ? `${proj.projectedPoints.toFixed(1)} pts` : '-'
           const val = proj.projectedValue != null && proj.exercise ? formatProjectedValue(proj.projectedValue, proj.exercise) : '-'
           return `<tr>
-            <td>${label}</td>
-            <td>${pts}</td>
-            <td>${val}</td>
+            <td>${esc(label)}</td>
+            <td>${esc(pts)}</td>
+            <td>${esc(val)}</td>
             <td class="${proj.projectedPass ? 'pass' : 'fail'}">${proj.projectedPass ? 'PASS' : 'FAIL'}</td>
           </tr>`
         }).join('') : ''
 
         return `<div class="section projection-section">
-          <div class="section-title">Readiness Projection - Target: ${targetStr}</div>
-          <p class="proj-note">Days remaining: ${daysToTarget} | Model: ${projectionData.model || 'Auto'} | Estimates only - not a guarantee.</p>
+          <div class="section-title">Readiness Projection - Target: ${esc(targetStr)}</div>
+          <p class="proj-note">Days remaining: ${esc(String(daysToTarget))} | Model: ${esc(projectionData.model || 'Auto')} | Estimates only - not a guarantee.</p>
           ${composite?.projectedComposite != null ? `
             <p class="proj-composite ${composite.projectedComposite >= 75 ? 'pass' : 'fail'}">
-              Projected Composite: ${composite.projectedComposite.toFixed(1)} - ${composite.projectedComposite >= 75 ? 'ON TRACK' : 'AT RISK'}
+              Projected Composite: ${esc(composite.projectedComposite.toFixed(1))} - ${composite.projectedComposite >= 75 ? 'ON TRACK' : 'AT RISK'}
             </p>` : ''}
           ${compRows ? `<table class="comp-table"><thead><tr><th>Component</th><th>Proj. Points</th><th>Proj. Value</th><th>Status</th></tr></thead><tbody>${compRows}</tbody></table>` : ''}
         </div>`
@@ -852,7 +862,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PFA Self-Check Report - ${memberLine}</title>
+  <title>PFA Self-Check Report - ${memberLineEsc}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11pt; color: #111; max-width: 700px; margin: 0 auto; padding: 24px; }
@@ -900,9 +910,9 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
   </div>
 
   <div class="member-block">
-    <p><strong>Member:</strong> ${memberLine}</p>
-    <p><strong>Unit:</strong> ${unitLine}</p>
-    ${dcode ? `<p><strong>D-Code:</strong> <span class="mono">${dcode}</span></p>` : ''}
+    <p><strong>Member:</strong> ${memberLineEsc}</p>
+    <p><strong>Unit:</strong> ${unitLineEsc}</p>
+    ${dcode ? `<p><strong>D-Code:</strong> <span class="mono">${esc(dcode)}</span></p>` : ''}
   </div>
 
   <div class="section">
