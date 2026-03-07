@@ -36,9 +36,15 @@ const CONFIDENCE_COLORS = {
 }
 
 const CONFIDENCE_LABELS = {
-  HIGH:   'Mature',
-  MEDIUM: 'Established',
-  LOW:    'Preliminary',
+  HIGH:   'Mature Prediction',
+  MEDIUM: 'Established Prediction',
+  LOW:    'Preliminary Prediction',
+}
+
+const CONFIDENCE_HINTS = {
+  HIGH:   'Solid data behind this - keep logging check-ins to stay current.',
+  MEDIUM: 'One more self-check will sharpen this into a mature prediction.',
+  LOW:    'Based on a single check-in - log a few more to strengthen the forecast.',
 }
 
 // Format seconds as mm:ss
@@ -208,6 +214,9 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget }) {
           </span>
         </div>
       </div>
+      {CONFIDENCE_HINTS[proj.confidence] && (
+        <p className="text-xs text-gray-500 mt-1">{CONFIDENCE_HINTS[proj.confidence]}</p>
+      )}
 
       {/* Projected score */}
       <div className="mt-2 flex items-baseline gap-3 flex-wrap">
@@ -480,6 +489,9 @@ export default function ProjectTab() {
                   <p className={`font-medium ${CONFIDENCE_COLORS[composite.confidence] || ''} px-2 py-0.5 rounded`}>
                     {CONFIDENCE_LABELS[composite.confidence] || composite.confidence}
                   </p>
+                  {CONFIDENCE_HINTS[composite.confidence] && (
+                    <p className="text-xs text-gray-500 mt-1 text-right">{CONFIDENCE_HINTS[composite.confidence]}</p>
+                  )}
                 </div>
               </div>
             </div>
