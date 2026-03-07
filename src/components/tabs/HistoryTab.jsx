@@ -1,13 +1,24 @@
 /**
- * History Tab - S-code management and assessment timeline
- * Paste S-codes, view decoded assessments, delete entries
+ * History Tab - S-code management, trend charts, and assessment timeline
+ * Features: paste/validate S-codes, composite + component sparklines, outlier flagging
  */
 
 import { useState, useMemo } from 'react'
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ReferenceLine,
+  CartesianGrid,
+} from 'recharts'
 import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode, isValidSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, formatTime } from '../../utils/scoring/scoringEngine.js'
+import { getOutliers, toggleOutlier } from '../../utils/storage/localStorage.js'
 
 const EXERCISE_LABELS = {
   [EXERCISES.RUN_2MILE]: '2-Mile Run',
@@ -21,14 +32,48 @@ const EXERCISE_LABELS = {
   [EXERCISES.WHTR]: 'WHtR',
 }
 
+const COMPONENT_LABELS = {
+  [COMPONENTS.CARDIO]: 'Cardio',
+  [COMPONENTS.STRENGTH]: 'Strength',
+  [COMPONENTS.CORE]: 'Core',
+  [COMPONENTS.BODY_COMP]: 'Body Comp',
+}
+
+const COMPONENT_COLORS = {
+  [COMPONENTS.CARDIO]: '#3b82f6',
+  [COMPONENTS.STRENGTH]: '#10b981',
+  [COMPONENTS.CORE]: '#f59e0b',
+  [COMPONENTS.BODY_COMP]: '#8b5cf6',
+}
+
+/** Extract component percentage (0-100) from decoded scores, or null if unavailable */
+function getComponentPct(components, type) {
+  const comp = components?.find(c => c.type === type)
+  if (!comp || comp.exempt || !comp.tested || comp.walkOnly) return null
+  return comp.percentage ?? null
+}
+
+/** Format a date for chart X-axis labels */
+function formatChartDate(date) {
+  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// Custom dot for composite chart - colored by pass/fail
+function CompositeDot({ cx, cy, payload }) {
+  if (!payload || payload.composite == null || !cx || !cy) return null
+  const color = payload.composite >= 75 ? '#16a34a' : '#dc2626'
+  return <circle cx={cx} cy={cy} r={4} fill={color} stroke="white" strokeWidth={1.5} />
+}
+
 export default function HistoryTab() {
   const { scodes, addSCode, removeSCode, demographics } = useApp()
   const [pasteValue, setPasteValue] = useState('')
   const [pasteError, setPasteError] = useState('')
   const [pasteSuccess, setPasteSuccess] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [outliers, setOutliers] = useState(() => new Set(getOutliers()))
 
-  // Decode all S-codes and score them
+  // Decode all S-codes and compute scores
   const decodedEntries = useMemo(() => {
     return scodes.map(code => {
       try {
@@ -90,12 +135,44 @@ export default function HistoryTab() {
       } catch (err) {
         return { code, decoded: null, scores: null, error: err.message }
       }
-    }).reverse()
+    }).reverse() // newest first for display
   }, [scodes, demographics])
+
+  // EC-20: detect same-date collisions
+  const sameDateCodes = useMemo(() => {
+    const dateCounts = {}
+    decodedEntries.forEach(e => {
+      if (!e.error && e.decoded?.date) {
+        const key = new Date(e.decoded.date).toDateString()
+        dateCounts[key] = (dateCounts[key] || 0) + 1
+      }
+    })
+    return new Set(
+      decodedEntries
+        .filter(e => !e.error && e.decoded?.date && dateCounts[new Date(e.decoded.date).toDateString()] > 1)
+        .map(e => e.code)
+    )
+  }, [decodedEntries])
+
+  // Chart data: chronological, excluding outliers, only entries with composite score
+  const chartData = useMemo(() => {
+    return [...decodedEntries]
+      .filter(e => !e.error && !outliers.has(e.code) && e.scores?.composite?.composite != null)
+      .sort((a, b) => new Date(a.decoded.date) - new Date(b.decoded.date))
+      .map(e => ({
+        date: formatChartDate(e.decoded.date),
+        composite: e.scores.composite.composite,
+        cardio: getComponentPct(e.scores.components, COMPONENTS.CARDIO),
+        strength: getComponentPct(e.scores.components, COMPONENTS.STRENGTH),
+        core: getComponentPct(e.scores.components, COMPONENTS.CORE),
+        bodyComp: getComponentPct(e.scores.components, COMPONENTS.BODY_COMP),
+      }))
+  }, [decodedEntries, outliers])
 
   const handlePaste = () => {
     setPasteError('')
     setPasteSuccess('')
+    // UX-09: strip whitespace/newlines
     const trimmed = pasteValue.trim().replace(/\s+/g, '')
 
     if (!trimmed) {
@@ -103,7 +180,7 @@ export default function HistoryTab() {
       return
     }
 
-    // CS-08: D-code in S-code field
+    // CS-08: D-code pasted into S-code field
     if (trimmed.startsWith('D')) {
       setPasteError('This is a D-code. Paste it in the Profile tab instead.')
       return
@@ -119,6 +196,7 @@ export default function HistoryTab() {
       return
     }
 
+    // CS-02/CS-03: validate CRC
     if (!isValidSCode(trimmed)) {
       setPasteError('Invalid S-code. Check for typos or truncation.')
       return
@@ -135,6 +213,16 @@ export default function HistoryTab() {
     setConfirmDelete(null)
   }
 
+  const handleOutlierToggle = (code) => {
+    const nowOutlier = toggleOutlier(code)
+    setOutliers(prev => {
+      const next = new Set(prev)
+      if (nowOutlier) next.add(code)
+      else next.delete(code)
+      return next
+    })
+  }
+
   const copyCode = async (code) => {
     try {
       await navigator.clipboard.writeText(code)
@@ -142,6 +230,8 @@ export default function HistoryTab() {
       // Silently fail on clipboard errors
     }
   }
+
+  const hasScored = decodedEntries.some(e => !e.error && e.scores?.composite?.composite != null)
 
   return (
     <div className="space-y-6">
@@ -182,11 +272,30 @@ export default function HistoryTab() {
         </div>
       </div>
 
+      {/* Trend Chart - only show when demographics available and there are scored entries */}
+      {demographics && hasScored && (
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">Composite Score Trend</h3>
+
+          {/* EC-12: Need 3+ S-codes for meaningful trend */}
+          {chartData.length < 3 && (
+            <p className="text-xs text-amber-600 mb-3">
+              Need 3+ self-checks for a meaningful trend. Showing available data.
+            </p>
+          )}
+
+          <CompositeChart data={chartData} />
+
+          {/* Per-component sparklines */}
+          <SparklineGrid data={chartData} />
+        </div>
+      )}
+
       {/* No demographics warning */}
       {!demographics && scodes.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-900">
-            Set up your profile (DOB + gender) in the Profile tab to see scored results.
+            Set up your profile (DOB + gender) in the Profile tab to see scored results and trend charts.
           </p>
         </div>
       )}
@@ -195,6 +304,7 @@ export default function HistoryTab() {
       {scodes.length > 0 && (
         <p className="text-sm text-gray-600">
           {scodes.length} assessment{scodes.length !== 1 ? 's' : ''} recorded
+          {outliers.size > 0 && ` (${outliers.size} flagged as outlier${outliers.size !== 1 ? 's' : ''})`}
         </p>
       )}
 
@@ -211,7 +321,10 @@ export default function HistoryTab() {
             <AssessmentCard
               key={entry.code}
               entry={entry}
+              isOutlier={outliers.has(entry.code)}
+              hasSameDate={sameDateCodes.has(entry.code)}
               isConfirmingDelete={confirmDelete === entry.code}
+              onOutlierToggle={() => handleOutlierToggle(entry.code)}
               onRequestDelete={() => setConfirmDelete(entry.code)}
               onConfirmDelete={() => handleDelete(entry.code)}
               onCancelDelete={() => setConfirmDelete(null)}
@@ -224,7 +337,115 @@ export default function HistoryTab() {
   )
 }
 
-function AssessmentCard({ entry, isConfirmingDelete, onRequestDelete, onConfirmDelete, onCancelDelete, onCopy }) {
+// Main composite trend chart
+function CompositeChart({ data }) {
+  if (data.length === 0) {
+    return (
+      <p className="text-sm text-gray-400 py-8 text-center">
+        No scored assessments to chart. Add profile info and scored S-codes.
+      </p>
+    )
+  }
+
+  return (
+    <div className="h-48 w-full mb-4">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 11, fill: '#6b7280' }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            domain={[0, 100]}
+            ticks={[0, 25, 50, 75, 100]}
+            tick={{ fontSize: 11, fill: '#6b7280' }}
+            tickLine={false}
+            axisLine={false}
+            width={28}
+          />
+          <Tooltip
+            formatter={(value) => [`${value.toFixed(1)}`, 'Composite']}
+            contentStyle={{ fontSize: 12, borderRadius: 6 }}
+          />
+          <ReferenceLine
+            y={75}
+            stroke="#ef4444"
+            strokeDasharray="4 3"
+            label={{ value: '75 (Pass)', position: 'insideTopRight', fontSize: 10, fill: '#ef4444' }}
+          />
+          <Line
+            type="monotone"
+            dataKey="composite"
+            stroke="#6366f1"
+            strokeWidth={2}
+            dot={<CompositeDot />}
+            activeDot={{ r: 5 }}
+            connectNulls={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// Per-component sparklines grid
+function SparklineGrid({ data }) {
+  const components = [
+    { key: COMPONENTS.CARDIO, label: COMPONENT_LABELS[COMPONENTS.CARDIO], color: COMPONENT_COLORS[COMPONENTS.CARDIO] },
+    { key: COMPONENTS.STRENGTH, label: COMPONENT_LABELS[COMPONENTS.STRENGTH], color: COMPONENT_COLORS[COMPONENTS.STRENGTH] },
+    { key: COMPONENTS.CORE, label: COMPONENT_LABELS[COMPONENTS.CORE], color: COMPONENT_COLORS[COMPONENTS.CORE] },
+    { key: COMPONENTS.BODY_COMP, label: COMPONENT_LABELS[COMPONENTS.BODY_COMP], color: COMPONENT_COLORS[COMPONENTS.BODY_COMP] },
+  ]
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-100">
+      {components.map(({ key, label, color }) => {
+        const hasData = data.some(d => d[key] != null)
+        return (
+          <div key={key} className="text-center">
+            <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+            {hasData ? (
+              <div className="h-14 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+                    <Line
+                      type="monotone"
+                      dataKey={key}
+                      stroke={color}
+                      strokeWidth={1.5}
+                      dot={false}
+                      connectNulls={false}
+                    />
+                    <ReferenceLine y={60} stroke="#ef4444" strokeDasharray="2 2" strokeWidth={0.8} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-14 flex items-center justify-center">
+                <p className="text-xs text-gray-300">No data</p>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function AssessmentCard({
+  entry,
+  isOutlier,
+  hasSameDate,
+  isConfirmingDelete,
+  onOutlierToggle,
+  onRequestDelete,
+  onConfirmDelete,
+  onCancelDelete,
+  onCopy,
+}) {
   const { code, decoded, scores, error } = entry
   const [expanded, setExpanded] = useState(false)
 
@@ -251,24 +472,44 @@ function AssessmentCard({ entry, isConfirmingDelete, onRequestDelete, onConfirmD
 
   return (
     <div className={`bg-white rounded-lg shadow-md overflow-hidden border-l-4 ${
-      hasComposite
-        ? (composite.pass ? 'border-green-500' : 'border-red-500')
-        : 'border-gray-300'
+      isOutlier
+        ? 'border-amber-400 opacity-70'
+        : hasComposite
+          ? (composite.pass ? 'border-green-500' : 'border-red-500')
+          : 'border-gray-300'
     }`}>
       {/* Header row - always visible */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-gray-900">{dateStr}</p>
-            {isDiag && (
-              <span className="text-xs text-blue-600">Diagnostic Period</span>
-            )}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center flex-wrap gap-1.5 mb-0.5">
+              <p className="font-medium text-gray-900">{dateStr}</p>
+              {/* EC-14: Diagnostic period badge */}
+              {isDiag && (
+                <span className="inline-block px-1.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded">
+                  DIAGNOSTIC PERIOD
+                </span>
+              )}
+              {/* EC-20: Same-date warning */}
+              {hasSameDate && (
+                <span className="inline-block px-1.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded">
+                  SAME DATE
+                </span>
+              )}
+              {/* PG-06: Outlier badge */}
+              {isOutlier && (
+                <span className="inline-block px-1.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded">
+                  OUTLIER
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {hasComposite && (
+
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {hasComposite && !isOutlier && (
               <div className="text-right">
                 <p className={`text-lg font-bold ${composite.pass ? 'text-green-600' : 'text-red-600'}`}>
                   {composite.composite.toFixed(1)}
@@ -277,6 +518,9 @@ function AssessmentCard({ entry, isConfirmingDelete, onRequestDelete, onConfirmD
                   {composite.pass ? 'PASS' : 'FAIL'}
                 </p>
               </div>
+            )}
+            {hasComposite && isOutlier && (
+              <p className="text-sm text-gray-400 line-through">{composite.composite.toFixed(1)}</p>
             )}
             {!hasComposite && scores && (
               <p className="text-xs text-gray-500">Partial</p>
@@ -338,11 +582,24 @@ function AssessmentCard({ entry, isConfirmingDelete, onRequestDelete, onConfirmD
             </button>
           </div>
 
-          {/* Delete */}
-          <div className="pt-2">
+          {/* Actions: outlier toggle + delete */}
+          <div className="pt-2 flex items-center justify-between gap-2">
+            {/* PG-06: Outlier flag toggle */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onOutlierToggle() }}
+              className={`text-xs px-3 py-1 rounded transition-colors ${
+                isOutlier
+                  ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {isOutlier ? 'Unflag outlier' : 'Flag as outlier'}
+            </button>
+
+            {/* Delete */}
             {isConfirmingDelete ? (
               <div className="flex items-center gap-2">
-                <p className="text-xs text-red-600 flex-1">Remove this assessment?</p>
+                <p className="text-xs text-red-600">Remove this assessment?</p>
                 <button
                   onClick={(e) => { e.stopPropagation(); onConfirmDelete() }}
                   className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors"

@@ -137,7 +137,40 @@ export function clearAllData() {
     Object.values(STORAGE_KEYS).forEach(key => {
       localStorage.removeItem(key)
     })
+    localStorage.removeItem('pfa_outliers')
   } catch (error) {
     console.error('Error clearing localStorage:', error)
+  }
+}
+
+/**
+ * Get all outlier-flagged S-codes from localStorage
+ * @returns {string[]} Array of S-code strings flagged as outliers
+ */
+export function getOutliers() {
+  try {
+    const val = localStorage.getItem('pfa_outliers')
+    return val ? JSON.parse(val) : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Toggle outlier flag for an S-code
+ * @param {string} scode - S-code string to toggle
+ * @returns {boolean} True if the code is NOW an outlier, false if unflagged
+ */
+export function toggleOutlier(scode) {
+  try {
+    const outliers = getOutliers()
+    const isOutlier = outliers.includes(scode)
+    const updated = isOutlier
+      ? outliers.filter(s => s !== scode)
+      : [...outliers, scode]
+    localStorage.setItem('pfa_outliers', JSON.stringify(updated))
+    return !isOutlier
+  } catch {
+    return false
   }
 }
