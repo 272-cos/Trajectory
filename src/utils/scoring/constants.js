@@ -107,6 +107,42 @@ export function getWalkTimeLimit(gender, ageBracket) {
   return WALK_TIME_LIMITS[gender]?.[ageBracket] ?? null
 }
 
+// Improvement units per exercise for marginal return analysis (Task 8.1)
+// These are the standard increments used to compute "points gained per unit of improvement"
+// Run: 10 seconds faster; HAMR: 2 additional shuttles; reps: 5; Plank: 15s; WHtR: 0.01 ratio
+export const IMPROVEMENT_UNITS = {
+  [EXERCISES.RUN_2MILE]: 10,
+  [EXERCISES.HAMR]: 2,
+  [EXERCISES.PUSHUPS]: 5,
+  [EXERCISES.HRPU]: 5,
+  [EXERCISES.SITUPS]: 5,
+  [EXERCISES.CLRC]: 5,
+  [EXERCISES.PLANK]: 15,
+  [EXERCISES.WHTR]: 0.01,
+}
+
+// Effort weeks per unit improvement (baseline, at low-to-mid performance level)
+// Source: docs/RESEARCH-FITNESS-PROGRAMS.md
+// Run 10s: ~1.5 weeks of interval/tempo training
+// HAMR 2 shuttles: ~1 week (similar agility/cardio demands to run)
+// Push-ups 5 reps: ~1 week with daily push-up practice
+// HRPU 5 reps: ~1.5 weeks (hand-release technique adds overhead)
+// Sit-ups 5 reps: ~1 week with daily core work
+// CLRC 5 reps: ~1.5 weeks (cross-leg technique learning curve)
+// Plank 15s: ~2 weeks ("add 5-10 seconds per week" per HPRC guidance)
+// WHtR 0.01: ~4 weeks (body composition changes require sustained dietary changes)
+// All factors scale up near performance ceiling via effortScaleFactor() in strategyEngine.js
+export const EFFORT_WEEKS_PER_UNIT = {
+  [EXERCISES.RUN_2MILE]: 1.5,
+  [EXERCISES.HAMR]: 1.0,
+  [EXERCISES.PUSHUPS]: 1.0,
+  [EXERCISES.HRPU]: 1.5,
+  [EXERCISES.SITUPS]: 1.0,
+  [EXERCISES.CLRC]: 1.5,
+  [EXERCISES.PLANK]: 2.0,
+  [EXERCISES.WHTR]: 4.0,
+}
+
 // Diagnostic period (non-scored) per DAFMAN 36-2905
 export const DIAGNOSTIC_PERIOD_START = '2026-03-01'
 export const DIAGNOSTIC_PERIOD_END = '2026-06-30'

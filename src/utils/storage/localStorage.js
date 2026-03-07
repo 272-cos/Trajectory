@@ -157,6 +157,32 @@ export function getOutliers() {
 }
 
 /**
+ * Get saved exercise preferences (pfa_exercise_prefs)
+ * Used by strategy engine to respect locked exercise choices per component.
+ * @returns {object} Preferences map e.g. { cardio: 'hamr', strength: 'hrpu' }
+ */
+export function getExercisePrefs() {
+  try {
+    const val = localStorage.getItem('pfa_exercise_prefs')
+    return val ? JSON.parse(val) : {}
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Save exercise preferences to localStorage
+ * @param {object} prefs - Preferences map e.g. { cardio: 'hamr', strength: 'hrpu' }
+ */
+export function saveExercisePrefs(prefs) {
+  try {
+    localStorage.setItem('pfa_exercise_prefs', JSON.stringify(prefs))
+  } catch (error) {
+    console.error('Error saving exercise preferences:', error)
+  }
+}
+
+/**
  * Toggle outlier flag for an S-code
  * @param {string} scode - S-code string to toggle
  * @returns {boolean} True if the code is NOW an outlier, false if unflagged
