@@ -279,11 +279,11 @@ Expand S-code bit layout from 87 bits (V2) to full design-spec ~104 bits (V3):
 
 **Design references:** §12 Phase P7
 
-- [ ] Vite PWA plugin (`vite-plugin-pwa`)
-- [ ] `manifest.json`: name, short_name, icons, theme_color, display=standalone
-- [ ] Service worker: cache-first for static assets; network-first for none (no API calls)
-- [ ] Offline banner: "You're offline. All features still work."
-- [ ] Install prompt on supported browsers
+- [x] Vite PWA plugin (`vite-plugin-pwa`) installed and configured
+- [x] `manifest.webmanifest`: name, short_name, icons (SVG any/maskable), theme_color, display=standalone, start_url/scope set to /Trajectory/
+- [x] Service worker: cache-first via Workbox generateSW; precaches all static assets (JS, CSS, HTML, SVG); navigateFallback for SPA routing
+- [x] Offline banner: `OfflineBanner.jsx` - shows "You're offline. All features still work." on window offline event; hides on online event
+- [x] Install prompt: `InstallPrompt.jsx` - listens for beforeinstallprompt, shows "Install Trajectory" card bottom-right; calls event.prompt() on accept; dismissible
 
 ---
 

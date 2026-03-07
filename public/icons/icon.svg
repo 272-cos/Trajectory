@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background: dark blue rounded square -->
+  <rect width="512" height="512" rx="80" fill="#1d4ed8"/>
+  <!-- Upward trajectory line (fitness trend going up) -->
+  <polyline
+    points="64,400 160,320 256,200 352,260 448,120"
+    fill="none"
+    stroke="rgba(255,255,255,0.25)"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <polyline
+    points="64,400 192,300 320,200 448,120"
+    fill="none"
+    stroke="white"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Arrow head pointing up-right -->
+  <polyline
+    points="390,96 448,120 424,178"
+    fill="none"
+    stroke="white"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- "PFA" label at bottom -->
+  <text
+    x="256"
+    y="472"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="56"
+    font-weight="700"
+    text-anchor="middle"
+    fill="rgba(255,255,255,0.75)"
+    letter-spacing="8"
+  >PFA</text>
+</svg>
