@@ -9,7 +9,24 @@ import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS } from '../../utils/scoring/strategyEngine.js'
-import { getExercisePrefs, saveExercisePrefs } from '../../utils/storage/localStorage.js'
+import { getExercisePrefs, saveExercisePrefs, saveDraft, loadDraft, clearDraft } from '../../utils/storage/localStorage.js'
+
+/**
+ * Auto-format time input: inserts colon as user types digits.
+ * "1630" -> "16:30", "230" -> "2:30", "16" -> "16"
+ * If the value already contains a colon, only clean up around it.
+ */
+function formatTimeInput(rawValue) {
+  if (rawValue.includes(':')) {
+    const parts = rawValue.split(':')
+    const mins = parts[0].replace(/\D/g, '')
+    const secs = parts.slice(1).join('').replace(/\D/g, '').slice(0, 2)
+    return mins + ':' + secs
+  }
+  const digits = rawValue.replace(/\D/g, '').slice(0, 4)
+  if (digits.length <= 2) return digits
+  return digits.slice(0, digits.length - 2) + ':' + digits.slice(-2)
+}
 
 export default function SelfCheckTab() {
   const { demographics, addSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator } = useApp()
@@ -53,6 +70,53 @@ export default function SelfCheckTab() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [scores, setScores] = useState(null)
+  const [draftRestored, setDraftRestored] = useState(false)
+
+  // ── Draft restore on mount ─────────────────────────────────────────────────
+  useEffect(() => {
+    const draft = loadDraft()
+    if (!draft) return
+    if (draft.assessmentDate) setAssessmentDate(draft.assessmentDate)
+    if (draft.cardioExercise) setCardioExercise(draft.cardioExercise)
+    if (draft.cardioValue) setCardioValue(draft.cardioValue)
+    if (draft.cardioExempt !== undefined) setCardioExempt(draft.cardioExempt)
+    if (draft.walkSelected !== undefined) setWalkSelected(draft.walkSelected)
+    if (draft.walkTime) setWalkTime(draft.walkTime)
+    if (draft.strengthExercise) setStrengthExercise(draft.strengthExercise)
+    if (draft.strengthValue) setStrengthValue(draft.strengthValue)
+    if (draft.strengthExempt !== undefined) setStrengthExempt(draft.strengthExempt)
+    if (draft.coreExercise) setCoreExercise(draft.coreExercise)
+    if (draft.coreValue) setCoreValue(draft.coreValue)
+    if (draft.coreExempt !== undefined) setCoreExempt(draft.coreExempt)
+    if (draft.bodyCompExempt !== undefined) setBodyCompExempt(draft.bodyCompExempt)
+    if (draft.heightInches) setHeightInches(draft.heightInches)
+    if (draft.waistInches) setWaistInches(draft.waistInches)
+    setDraftRestored(true)
+    setTimeout(() => setDraftRestored(false), 3000)
+  }, [])
+
+  // ── Draft autosave (debounced 500ms) ───────────────────────────────────────
+  const draftTimerRef = useRef(null)
+  const mountedRef = useRef(false)
+  useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return }
+    const hasAnyData = !!(cardioValue || strengthValue || coreValue || heightInches || waistInches || walkTime ||
+                          cardioExempt || strengthExempt || coreExempt || bodyCompExempt)
+    if (!hasAnyData) return
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+    draftTimerRef.current = setTimeout(() => {
+      saveDraft({
+        assessmentDate, cardioExercise, cardioValue, cardioExempt,
+        walkSelected, walkTime,
+        strengthExercise, strengthValue, strengthExempt,
+        coreExercise, coreValue, coreExempt,
+        bodyCompExempt, heightInches, waistInches,
+      })
+    }, 500)
+    return () => { if (draftTimerRef.current) clearTimeout(draftTimerRef.current) }
+  }, [assessmentDate, cardioExercise, cardioValue, cardioExempt, walkSelected, walkTime,
+      strengthExercise, strengthValue, strengthExempt,
+      coreExercise, coreValue, coreExempt, bodyCompExempt, heightInches, waistInches])
 
   // Track whether inputs have unsaved data
   useEffect(() => {
@@ -396,6 +460,7 @@ export default function SelfCheckTab() {
       const code = encodeSCode(assessment)
       setSCode(code)
       addSCode(code)
+      clearDraft()
       setSelfCheckDirty(false)
       setSuccess('S-Code generated successfully!')
       return true
@@ -465,6 +530,17 @@ export default function SelfCheckTab() {
 
   const isDiagnostic = isDiagnosticPeriod(assessmentDate)
 
+  // Compute cardio segmented control value (combines exercise + exempt into 3 states)
+  const cardioSegmentValue = cardioExempt ? 'exempt' : cardioExercise
+  const handleCardioSegmentChange = (value) => {
+    if (value === 'exempt') {
+      setCardioExempt(true)
+    } else {
+      setCardioExempt(false)
+      setCardioExercise(value)
+    }
+  }
+
   // IV-10: Warn when all components are exempt
   const allExempt = cardioExempt && strengthExempt && coreExempt && bodyCompExempt
 
@@ -482,6 +558,13 @@ export default function SelfCheckTab() {
 
   return (
     <div className="space-y-6">
+      {/* Draft restored notification */}
+      {draftRestored && (
+        <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-xs text-center">
+          Draft restored from previous session
+        </div>
+      )}
+
       {/* UX-01: Live Score Banner - updates on every input change */}
       {scores && scores.composite && scores.composite.composite !== null && (
         <div className={`rounded-lg p-4 ${scores.composite.pass ? 'bg-green-50 border-2 border-green-500' : 'bg-red-50 border-2 border-red-500'}`}>
@@ -557,7 +640,62 @@ export default function SelfCheckTab() {
           exempt={cardioExempt}
           onExemptChange={setCardioExempt}
           score={scores?.components.find(c => c.type === COMPONENTS.CARDIO)}
-          exemptContent={
+          hideExemptToggle
+        >
+          {/* UX-03: 3-option segmented control - Run / HAMR / Exempt */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Exercise</label>
+            <SegmentedControl
+              options={[
+                { value: EXERCISES.RUN_2MILE, label: '2-Mile Run' },
+                { value: EXERCISES.HAMR, label: 'HAMR Shuttle' },
+                { value: 'exempt', label: 'Exempt' },
+              ]}
+              value={cardioSegmentValue}
+              onChange={handleCardioSegmentChange}
+            />
+          </div>
+
+          {/* Non-exempt: show exercise input */}
+          {!cardioExempt && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {cardioExercise === EXERCISES.RUN_2MILE ? 'Time (mm:ss)' : 'Shuttles'}
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={cardioValue}
+                onChange={(e) => setCardioValue(
+                  cardioExercise === EXERCISES.RUN_2MILE ? formatTimeInput(e.target.value) : e.target.value
+                )}
+                placeholder={cardioExercise === EXERCISES.RUN_2MILE ? '13:30' : '94'}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+              {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !isTimeIncomplete(cardioValue) && (
+                <p className="text-xs mt-1" style={{ color: parseTime(cardioValue) != null && parseTime(cardioValue) > 0 && parseTime(cardioValue) <= 7200 ? '#6b7280' : '#ef4444' }}>
+                  {parseTime(cardioValue) != null
+                    ? (() => {
+                        const t = parseTime(cardioValue)
+                        if (t === 0) return 'Enter a valid time between 0:01 and 2:00:00.'
+                        if (t > 7200) return 'Maximum run time is 2:00:00.'
+                        return formatTime(t)
+                      })()
+                    : 'Invalid format - use MM:SS or total seconds'}
+                </p>
+              )}
+              {cardioExercise === EXERCISES.HAMR && cardioValue && cardioValue.includes(':') && !isTimeIncomplete(cardioValue) && (
+                <p className="text-xs mt-1" style={{ color: hamrTimeToShuttles(cardioValue) != null ? '#6b7280' : '#ef4444' }}>
+                  {hamrTimeToShuttles(cardioValue) != null
+                    ? `Converted: ${hamrTimeToShuttles(cardioValue)} shuttles`
+                    : 'Invalid time format'}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Exempt: sub-options */}
+          {cardioExempt && (
             <WalkSection
               walkSelected={walkSelected}
               setWalkSelected={setWalkSelected}
@@ -568,53 +706,7 @@ export default function SelfCheckTab() {
               demographics={demographics}
               assessmentDate={assessmentDate}
             />
-          }
-        >
-          {/* UX-03: Segmented control for exercise type */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Exercise</label>
-            <SegmentedControl
-              options={[
-                { value: EXERCISES.RUN_2MILE, label: '2-Mile Run' },
-                { value: EXERCISES.HAMR, label: 'HAMR Shuttle' },
-              ]}
-              value={cardioExercise}
-              onChange={setCardioExercise}
-              disabled={cardioExempt}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {cardioExercise === EXERCISES.RUN_2MILE ? 'Time (mm:ss)' : 'Shuttles'}
-            </label>
-            <input
-              type="text"
-              value={cardioValue}
-              onChange={(e) => setCardioValue(e.target.value)}
-              disabled={cardioExempt}
-              placeholder={cardioExercise === EXERCISES.RUN_2MILE ? '13:30' : '94'}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
-            />
-            {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !cardioExempt && !isTimeIncomplete(cardioValue) && (
-              <p className="text-xs mt-1" style={{ color: parseTime(cardioValue) != null && parseTime(cardioValue) > 0 && parseTime(cardioValue) <= 7200 ? '#6b7280' : '#ef4444' }}>
-                {parseTime(cardioValue) != null
-                  ? (() => {
-                      const t = parseTime(cardioValue)
-                      if (t === 0) return 'Enter a valid time between 0:01 and 2:00:00.'
-                      if (t > 7200) return 'Maximum run time is 2:00:00.'
-                      return formatTime(t)
-                    })()
-                  : 'Invalid format - use MM:SS or total seconds'}
-              </p>
-            )}
-            {cardioExercise === EXERCISES.HAMR && cardioValue && cardioValue.includes(':') && !cardioExempt && !isTimeIncomplete(cardioValue) && (
-              <p className="text-xs mt-1" style={{ color: hamrTimeToShuttles(cardioValue) != null ? '#6b7280' : '#ef4444' }}>
-                {hamrTimeToShuttles(cardioValue) != null
-                  ? `Converted: ${hamrTimeToShuttles(cardioValue)} shuttles`
-                  : 'Invalid time format'}
-              </p>
-            )}
-          </div>
+          )}
         </ComponentSection>
 
         {/* Strength Component */}
@@ -678,8 +770,11 @@ export default function SelfCheckTab() {
             </label>
             <input
               type="text"
+              inputMode={coreExercise === EXERCISES.PLANK ? 'numeric' : 'numeric'}
               value={coreValue}
-              onChange={(e) => setCoreValue(e.target.value)}
+              onChange={(e) => setCoreValue(
+                coreExercise === EXERCISES.PLANK ? formatTimeInput(e.target.value) : e.target.value
+              )}
               disabled={coreExempt}
               placeholder={coreExercise === EXERCISES.PLANK ? '2:30' : '42'}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
@@ -868,7 +963,7 @@ export default function SelfCheckTab() {
   )
 }
 
-// Walk section with time limits and auto pass/fail
+// Walk section - radio selection (not participating vs 2km walk) with auto pass/fail
 function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, walkPass, setWalkPass, demographics, assessmentDate }) {
   // Compute walk time limit for this user's bracket
   let walkTimeLimit = null
@@ -883,77 +978,90 @@ function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, wal
   }
 
   // Auto-determine pass/fail when time is entered and we have a limit
-  const handleWalkTimeChange = (e) => {
-    const newTime = e.target.value
-    setWalkTime(newTime)
-    if (walkTimeLimit && newTime && !isTimeIncomplete(newTime)) {
-      const seconds = parseTime(newTime)
+  const handleWalkTimeChange = (val) => {
+    const formatted = formatTimeInput(val)
+    setWalkTime(formatted)
+    if (walkTimeLimit && formatted && !isTimeIncomplete(formatted)) {
+      const seconds = parseTime(formatted)
       if (seconds != null) {
         setWalkPass(seconds <= walkTimeLimit)
       }
     }
   }
 
+  // Determine pass/fail display state
+  const walkSeconds = walkTime && !isTimeIncomplete(walkTime) ? parseTime(walkTime) : null
+  const hasResult = walkSeconds != null && walkTimeLimit
+
   return (
-    <div className="mt-2">
-      <label className="flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          checked={walkSelected}
-          onChange={(e) => setWalkSelected(e.target.checked)}
-          className="mr-2"
-        />
-        <span className="text-sm font-semibold text-gray-900">2km Walk</span>
-      </label>
+    <div className="mt-2 space-y-3">
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center cursor-pointer">
+          <input
+            type="radio"
+            name="cardio-exempt-mode"
+            checked={!walkSelected}
+            onChange={() => { setWalkSelected(false); setWalkTime('') }}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700">Not participating</span>
+        </label>
+        <label className="flex items-center cursor-pointer">
+          <input
+            type="radio"
+            name="cardio-exempt-mode"
+            checked={walkSelected}
+            onChange={() => setWalkSelected(true)}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700">2km Walk (profile alternate)</span>
+        </label>
+      </div>
       {walkSelected && (
-        <div className="mt-3">
+        <div className="ml-6">
           {walkTimeLimit && (
             <p className="text-xs text-blue-600 mb-3">
               Time limit: {walkTimeLimitStr} (pass/fail - no points scored)
             </p>
           )}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Walk Time (mm:ss)</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Walk Time (mm:ss)</label>
+            <div className="flex items-center gap-3">
               <input
                 type="text"
+                inputMode="numeric"
                 value={walkTime}
-                onChange={handleWalkTimeChange}
+                onChange={(e) => handleWalkTimeChange(e.target.value)}
                 placeholder={walkTimeLimitStr || '16:30'}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
               />
-              {walkTime && !isTimeIncomplete(walkTime) && (
-                <p className="text-xs mt-1" style={{ color: parseTime(walkTime) != null ? '#6b7280' : '#ef4444' }}>
-                  {parseTime(walkTime) != null
-                    ? (() => {
-                        const t = parseTime(walkTime)
-                        if (walkTimeLimit && t > walkTimeLimit) {
-                          return `${formatTime(t)} - exceeds ${walkTimeLimitStr} limit`
-                        }
-                        return formatTime(t)
-                      })()
-                    : 'Invalid format - use MM:SS'}
-                </p>
+              {hasResult && (
+                <span className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-bold ${
+                  walkPass ? 'bg-green-100 text-green-800 border border-green-300'
+                           : 'bg-red-100 text-red-800 border border-red-300'
+                }`}>
+                  {walkPass ? 'PASS' : 'FAIL'}
+                </span>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Result</label>
-              <select
-                value={walkPass ? 'pass' : 'fail'}
-                onChange={(e) => setWalkPass(e.target.value === 'pass')}
-                className={`w-full px-4 py-2 border rounded-lg ${
-                  walkPass ? 'border-gray-300' : 'border-red-400 bg-red-50'
-                }`}
-              >
-                <option value="pass">Pass</option>
-                <option value="fail">Fail</option>
-              </select>
-              {!walkPass && (
-                <p className="text-xs text-red-600 mt-1">
-                  Walk failure results in overall PFA failure
-                </p>
-              )}
-            </div>
+            {walkTime && !isTimeIncomplete(walkTime) && (
+              <p className="text-xs mt-1" style={{ color: parseTime(walkTime) != null ? '#6b7280' : '#ef4444' }}>
+                {parseTime(walkTime) != null
+                  ? (() => {
+                      const t = parseTime(walkTime)
+                      if (walkTimeLimit && t > walkTimeLimit) {
+                        return `${formatTime(t)} - exceeds ${walkTimeLimitStr} limit`
+                      }
+                      return formatTime(t)
+                    })()
+                  : 'Invalid format - use MM:SS'}
+              </p>
+            )}
+            {!walkPass && hasResult && (
+              <p className="text-xs text-red-600 mt-1">
+                Walk failure results in overall PFA failure
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -1176,7 +1284,7 @@ function ToggleSwitch({ checked, onChange, ariaLabel }) {
 }
 
 // Component Section with score display
-function ComponentSection({ title, exempt, onExemptChange, score, children, exemptContent }) {
+function ComponentSection({ title, exempt, onExemptChange, score, children, hideExemptToggle = false }) {
   // Derive short component name for ARIA label (e.g. "Cardio" from "Cardio (50 pts)")
   const componentName = title.split(' (')[0]
 
@@ -1199,19 +1307,20 @@ function ComponentSection({ title, exempt, onExemptChange, score, children, exem
               </div>
             </div>
           )}
-          {/* UX-04: Toggle switch for exemption */}
-          <div className="flex items-center gap-1.5">
-            <span className={`text-xs ${exempt ? 'text-gray-700 font-bold' : 'text-gray-500'}`} aria-hidden="true">Exempt</span>
-            <ToggleSwitch
-              checked={exempt}
-              onChange={onExemptChange}
-              ariaLabel={`${componentName} exemption`}
-            />
-          </div>
+          {/* UX-04: Toggle switch for exemption (hidden for cardio - integrated into segmented control) */}
+          {!hideExemptToggle && (
+            <div className="flex items-center gap-1.5">
+              <span className={`text-xs ${exempt ? 'text-gray-700 font-bold' : 'text-gray-500'}`} aria-hidden="true">Exempt</span>
+              <ToggleSwitch
+                checked={exempt}
+                onChange={onExemptChange}
+                ariaLabel={`${componentName} exemption`}
+              />
+            </div>
+          )}
         </div>
       </div>
-      {!exempt && children}
-      {exempt && exemptContent}
+      {children}
     </div>
   )
 }

@@ -129,6 +129,46 @@ export function setOnboarded() {
   }
 }
 
+// ── Draft autosave ───────────────────────────────────────────────────────────
+
+const DRAFT_KEY = 'pfa_draft'
+
+/**
+ * Save self-check draft to localStorage (debounced by caller)
+ * @param {object} draft - Form state snapshot
+ */
+export function saveDraft(draft) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...draft, _ts: Date.now() }))
+  } catch (error) {
+    console.error('Error saving draft:', error)
+  }
+}
+
+/**
+ * Load self-check draft from localStorage
+ * @returns {object|null} Draft state or null
+ */
+export function loadDraft() {
+  try {
+    const val = localStorage.getItem(DRAFT_KEY)
+    return val ? JSON.parse(val) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Clear self-check draft from localStorage
+ */
+export function clearDraft() {
+  try {
+    localStorage.removeItem(DRAFT_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Clear all app data from localStorage
  */
@@ -138,6 +178,7 @@ export function clearAllData() {
       localStorage.removeItem(key)
     })
     localStorage.removeItem('pfa_outliers')
+    localStorage.removeItem(DRAFT_KEY)
   } catch (error) {
     console.error('Error clearing localStorage:', error)
   }

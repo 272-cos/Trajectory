@@ -9,7 +9,11 @@ import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { generateProjection, AMBER_MARGIN } from '../../utils/projection/projectionEngine.js'
 import { COMPONENT_WEIGHTS, COMPONENT_MINIMUMS, EXERCISES, PASSING_COMPOSITE } from '../../utils/scoring/constants.js'
-import { isDiagnosticPeriod } from '../../utils/scoring/constants.js'
+import { isDiagnosticPeriod, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
+import { calculateWHtR } from '../../utils/scoring/scoringEngine.js'
+import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS } from '../../utils/scoring/strategyEngine.js'
+import { getRecommendations } from '../../utils/recommendations/recommendationEngine.js'
+import { getExercisePrefs } from '../../utils/storage/localStorage.js'
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -161,7 +165,7 @@ function GapBar({ currentPct, projectedPct, minPct, pass }) {
 
 // ─── Component Projection Card ─────────────────────────────────────────────────
 
-function ComponentCard({ compType, proj, currentPct, daysToTarget }) {
+function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem, isTopPriority }) {
   if (!proj) return null
 
   const weight = COMPONENT_WEIGHTS[compType]
@@ -248,6 +252,83 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget }) {
       <div className="mt-1 text-xs text-gray-400">
         Model: {proj.model.replace('_', ' ')}
       </div>
+
+      {/* Training Focus - inline strategy advice */}
+      {strategyItem && strategyItem.status === 'improvable' && (
+        <TrainingFocus item={strategyItem} isTopPriority={isTopPriority} compType={compType} proj={proj} />
+      )}
+    </div>
+  )
+}
+
+// ─── Training Focus (inline in ComponentCard) ────────────────────────────────
+
+function TrainingFocus({ item, isTopPriority, compType, proj }) {
+  const [expanded, setExpanded] = useState(false)
+
+  // Get recommendations for this component
+  const tips = proj && !proj.exempt
+    ? getRecommendations(compType, proj.exercise, proj.projected_percentage)
+    : null
+
+  return (
+    <div className="mt-3 border-t border-gray-200 pt-2">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors w-full text-left"
+      >
+        <span className={`transition-transform ${expanded ? 'rotate-90' : ''}`}>&#9656;</span>
+        Training Focus
+        {isTopPriority && (
+          <span className="ml-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-bold">
+            TOP ROI
+          </span>
+        )}
+        <span className="ml-auto text-gray-400 font-normal">
+          {item.roi.toFixed(2)} pts/wk
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="mt-2 space-y-2 text-xs">
+          {/* ROI and next gain */}
+          <div className="flex items-center gap-2 flex-wrap text-gray-600">
+            <span>
+              Next gain: {IMPROVEMENT_UNIT_LABELS[item.exercise]} = +{item.ptsGain.toFixed(1)} pts
+              in ~{item.effortWeeks.toFixed(1)} wk
+            </span>
+          </div>
+
+          {/* Training tips */}
+          {tips && tips.length > 0 && (
+            <div className="space-y-1">
+              {tips.slice(0, 2).map((tip, i) => (
+                <p key={i} className="text-gray-600 pl-2 border-l-2 border-blue-200">
+                  {tip}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {/* Alternative exercise suggestion */}
+          {item.alternatives && item.alternatives.length > 0 && (
+            <div className="text-gray-500">
+              {item.alternatives.filter(a => a.status === 'improvable' && a.roi > item.roi + 0.1).map(alt => (
+                <p key={alt.exercise} className="text-amber-700">
+                  Consider: {EXERCISE_NAMES[alt.exercise]} ({alt.roi.toFixed(2)} pts/wk ROI)
+                </p>
+              ))}
+            </div>
+          )}
+
+          {item.preferenceNote && (
+            <p className="text-amber-700 italic">
+              {item.preferenceNote.message}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -296,12 +377,54 @@ export default function ProjectTab() {
 
   // Current component percentages from most recent S-code (for gap bar "current" marker)
   const currentPcts = useMemo(() => {
-    // We pull percentages from the projection's component history indirectly;
-    // the simplest approach is to look them up from the latest decoded S-code using the scoring engine.
-    // Since the engine is not called here, we leave currentPcts as null;
-    // the gap bar shows the projected marker only when current is unavailable.
     return {}
   }, [])
+
+  // Strategy engine analysis from most recent S-code
+  const strategyData = useMemo(() => {
+    if (!demographics || decodedScodes.length === 0) return null
+    const latest = decodedScodes[decodedScodes.length - 1]
+    const refDate = targetPfaDate || new Date().toISOString().split('T')[0]
+    const age = calculateAge(demographics.dob, refDate)
+    const ageBracket = getAgeBracket(age)
+    const prefs = getExercisePrefs()
+
+    // Map decoded S-code to strategy engine input format
+    const inputs = {}
+    if (latest.cardio) {
+      if (latest.cardio.exempt) {
+        inputs.cardio = { exempt: true }
+      } else if (latest.cardio.exercise === '2km_walk') {
+        inputs.cardio = { isWalk: true }
+      } else {
+        inputs.cardio = { exercise: latest.cardio.exercise, value: latest.cardio.value, exempt: false }
+      }
+    }
+    if (latest.strength) {
+      inputs.strength = latest.strength.exempt
+        ? { exempt: true }
+        : { exercise: latest.strength.exercise, value: latest.strength.value, exempt: false }
+    }
+    if (latest.core) {
+      inputs.core = latest.core.exempt
+        ? { exempt: true }
+        : { exercise: latest.core.exercise, value: latest.core.value, exempt: false }
+    }
+    if (latest.bodyComp) {
+      if (latest.bodyComp.exempt) {
+        inputs.bodyComp = { exempt: true }
+      } else if (latest.bodyComp.heightInches && latest.bodyComp.waistInches) {
+        const whtr = calculateWHtR(latest.bodyComp.waistInches, latest.bodyComp.heightInches)
+        inputs.bodyComp = { exercise: EXERCISES.WHTR, value: whtr, exempt: false }
+      }
+    }
+
+    try {
+      return strategyEngine({ gender: demographics.gender, ageBracket }, inputs, prefs)
+    } catch {
+      return null
+    }
+  }, [demographics, decodedScodes, targetPfaDate])
 
   // Days to target from today
   const today = new Date().toISOString().split('T')[0]
@@ -480,6 +603,15 @@ export default function ProjectTab() {
                   )}
                 </div>
               </div>
+              {strategyData?.topPriority && (
+                <div className="mt-3 pt-3 border-t border-gray-200/50">
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">Best focus:</span>{' '}
+                    {COMP_LABELS[strategyData.topPriority.component]} ({EXERCISE_NAMES[strategyData.topPriority.exercise]})
+                    - +{strategyData.topPriority.ptsGain.toFixed(1)} pts in ~{strategyData.topPriority.effortWeeks.toFixed(1)} wk
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-500 text-center">
@@ -493,15 +625,21 @@ export default function ProjectTab() {
           {projection && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 px-1">Component Projections</h3>
-              {COMP_ORDER.map(compType => (
-                <ComponentCard
-                  key={compType}
-                  compType={compType}
-                  proj={projection.components[compType] ?? null}
-                  currentPct={currentPcts[compType] ?? null}
-                  daysToTarget={daysToTarget}
-                />
-              ))}
+              {COMP_ORDER.map(compType => {
+                const strategyItem = strategyData?.ranked?.find(r => r.component === compType) ?? null
+                const isTopPriority = strategyData?.topPriority?.component === compType
+                return (
+                  <ComponentCard
+                    key={compType}
+                    compType={compType}
+                    proj={projection.components[compType] ?? null}
+                    currentPct={currentPcts[compType] ?? null}
+                    daysToTarget={daysToTarget}
+                    strategyItem={strategyItem}
+                    isTopPriority={isTopPriority}
+                  />
+                )
+              })}
             </div>
           )}
 
