@@ -8,7 +8,7 @@ import { encodeSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
-import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS } from '../../utils/scoring/strategyEngine.js'
+import { EXERCISE_NAMES } from '../../utils/scoring/strategyEngine.js'
 import { getExercisePrefs, saveExercisePrefs, saveDraft, loadDraft, clearDraft } from '../../utils/storage/localStorage.js'
 
 /**
@@ -292,50 +292,6 @@ export default function SelfCheckTab() {
     saveExercisePrefs(updated)
   }
 
-  // Build strategyEngine inputs from current state
-  const buildStrategyInputs = () => {
-    const age = hasDemographics ? calculateAge(demographics.dob, assessmentDate) : null
-    const ageBracket = age ? getAgeBracket(age) : null
-    if (!ageBracket) return null
-
-    let cardioVal = null
-    if (!cardioExempt && cardioValue) {
-      if (cardioExercise === EXERCISES.RUN_2MILE) {
-        cardioVal = parseTime(cardioValue)
-      } else if (cardioExercise === EXERCISES.HAMR) {
-        cardioVal = cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10)
-      }
-    }
-
-    const whtr = !bodyCompExempt && heightInches && waistInches
-      ? calculateWHtR(parseFloat(waistInches), parseFloat(heightInches))
-      : null
-
-    return {
-      ageBracket,
-      inputs: {
-        [COMPONENTS.CARDIO]: cardioExempt
-          ? { exempt: true }
-          : (cardioExercise === EXERCISES.WALK_2KM || (cardioExempt && walkSelected))
-            ? { isWalk: true }
-            : cardioVal ? { exercise: cardioExercise, value: cardioVal, exempt: false } : null,
-        [COMPONENTS.STRENGTH]: strengthExempt
-          ? { exempt: true }
-          : strengthValue ? { exercise: strengthExercise, value: parseInt(strengthValue, 10), exempt: false } : null,
-        [COMPONENTS.CORE]: coreExempt
-          ? { exempt: true }
-          : coreValue ? {
-            exercise: coreExercise,
-            value: coreExercise === EXERCISES.PLANK ? parseTime(coreValue) : parseInt(coreValue, 10),
-            exempt: false,
-          } : null,
-        [COMPONENTS.BODY_COMP]: bodyCompExempt
-          ? { exempt: true }
-          : whtr ? { exercise: EXERCISES.WHTR, value: whtr, exempt: false } : null,
-      },
-    }
-  }
-
   const handleGenerateSCode = () => {
     setError('')
     setSuccess('')
@@ -530,17 +486,6 @@ export default function SelfCheckTab() {
 
   const isDiagnostic = isDiagnosticPeriod(assessmentDate)
 
-  // Compute cardio segmented control value (combines exercise + exempt into 3 states)
-  const cardioSegmentValue = cardioExempt ? 'exempt' : cardioExercise
-  const handleCardioSegmentChange = (value) => {
-    if (value === 'exempt') {
-      setCardioExempt(true)
-    } else {
-      setCardioExempt(false)
-      setCardioExercise(value)
-    }
-  }
-
   // IV-10: Warn when all components are exempt
   const allExempt = cardioExempt && strengthExempt && coreExempt && bodyCompExempt
 
@@ -640,21 +585,21 @@ export default function SelfCheckTab() {
           exempt={cardioExempt}
           onExemptChange={setCardioExempt}
           score={scores?.components.find(c => c.type === COMPONENTS.CARDIO)}
-          hideExemptToggle
         >
-          {/* UX-03: 3-option segmented control - Run / HAMR / Exempt */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Exercise</label>
-            <SegmentedControl
-              options={[
-                { value: EXERCISES.RUN_2MILE, label: '2-Mile Run' },
-                { value: EXERCISES.HAMR, label: 'HAMR Shuttle' },
-                { value: 'exempt', label: 'Exempt' },
-              ]}
-              value={cardioSegmentValue}
-              onChange={handleCardioSegmentChange}
-            />
-          </div>
+          {/* UX-03: Segmented control for exercise type */}
+          {!cardioExempt && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Exercise</label>
+              <SegmentedControl
+                options={[
+                  { value: EXERCISES.RUN_2MILE, label: '2-Mile Run' },
+                  { value: EXERCISES.HAMR, label: 'HAMR Shuttle' },
+                ]}
+                value={cardioExercise}
+                onChange={setCardioExercise}
+              />
+            </div>
+          )}
 
           {/* Non-exempt: show exercise input */}
           {!cardioExempt && (
@@ -895,22 +840,6 @@ export default function SelfCheckTab() {
         )}
       </div>
 
-      {/* Strategy Panel - effort-weighted score optimization */}
-      {hasDemographics && scores && !allExempt && (() => {
-        const strategyData = buildStrategyInputs()
-        if (!strategyData) return null
-        const { ageBracket, inputs } = strategyData
-        const strategy = strategyEngine(
-          { gender: demographics.gender, ageBracket },
-          inputs,
-          exercisePrefs
-        )
-        if (strategy.ranked.length === 0) return null
-        return (
-          <StrategyPanel strategy={strategy} />
-        )
-      })()}
-
       {/* Generate S-Code - sticky action bar on mobile */}
       <div className="bg-white rounded-lg shadow-md p-6 sticky bottom-0 z-10 sm:static sm:shadow-md shadow-lg">
         <button
@@ -1099,132 +1028,6 @@ function LockButton({ component, exercise, label, locked, onToggle }) {
   )
 }
 
-// Strategy Panel - effort-weighted score optimization recommendations
-function StrategyPanel({ strategy }) {
-  const { ranked, topPriority } = strategy
-  if (ranked.length === 0) return null
-
-  const statusLabel = (status) => {
-    if (status === 'maxed') return { text: 'MAXED', cls: 'bg-green-100 text-green-800' }
-    if (status === 'ceiling') return { text: 'NEAR MAX', cls: 'bg-green-50 text-green-700' }
-    return null
-  }
-
-  const getComponentBadge = (comp) => {
-    const map = { cardio: 'Cardio', strength: 'Strength', core: 'Core', bodyComp: 'Body Comp' }
-    return map[comp] || comp
-  }
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-xl font-bold text-gray-900">Training Strategy</h2>
-        <span className="text-xs text-gray-500 font-normal">(effort-adjusted ROI)</span>
-      </div>
-
-      {topPriority && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm font-semibold text-blue-900">
-            Best focus: {getComponentBadge(topPriority.component)} - {EXERCISE_NAMES[topPriority.exercise]}
-          </p>
-          <p className="text-sm text-blue-700 mt-0.5">
-            +{topPriority.ptsGain.toFixed(1)} pts available in ~{topPriority.effortWeeks.toFixed(1)} weeks of training
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {ranked.map((item, idx) => {
-          const badge = statusLabel(item.status)
-          return (
-            <div
-              key={`${item.component}-${item.exercise}`}
-              className={`flex items-start gap-3 p-3 rounded-lg border ${
-                idx === 0 && item.status === 'improvable' ? 'border-blue-200 bg-blue-50/30' : 'border-gray-100 bg-gray-50/50'
-              }`}
-            >
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-200 text-gray-600 text-xs font-bold flex items-center justify-center mt-0.5">
-                {idx + 1}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold text-gray-900">
-                    {getComponentBadge(item.component)}
-                  </span>
-                  <span className="text-xs text-gray-500">{EXERCISE_NAMES[item.exercise]}</span>
-                  {badge && (
-                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${badge.cls}`}>
-                      {badge.text}
-                    </span>
-                  )}
-                  {item.isPreferenceLocked && (
-                    <span className="text-xs font-medium text-blue-600 flex items-center gap-0.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3" aria-hidden="true">
-                        <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
-                      </svg>
-                      preferred
-                    </span>
-                  )}
-                </div>
-
-                {item.status === 'improvable' && (
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    {IMPROVEMENT_UNIT_LABELS[item.exercise]} - +{item.ptsGain.toFixed(1)} pts
-                    in ~{item.effortWeeks.toFixed(1)} wk ({item.roi.toFixed(2)} pts/wk ROI)
-                  </p>
-                )}
-
-                {item.status === 'maxed' && (
-                  <p className="text-xs text-green-700 mt-0.5">
-                    At maximum score - no further gains possible.
-                  </p>
-                )}
-
-                {item.status === 'ceiling' && (
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Near ceiling - very low additional gains available.
-                  </p>
-                )}
-
-                {item.preferenceNote && (
-                  <p className="text-xs text-amber-700 mt-1 italic">
-                    Note: {item.preferenceNote.message}
-                  </p>
-                )}
-
-                {/* Alternative exercises comparison */}
-                {item.alternatives && item.alternatives.length > 0 && item.status === 'improvable' && (
-                  <div className="mt-1.5 space-y-0.5">
-                    {item.alternatives.map(alt => (
-                      <p key={alt.exercise} className="text-xs text-gray-500">
-                        Alt: {EXERCISE_NAMES[alt.exercise]} - {IMPROVEMENT_UNIT_LABELS[alt.exercise]}
-                        = +{alt.ptsGain.toFixed(1)} pts in ~{alt.effortWeeks.toFixed(1)} wk
-                        ({alt.status === 'maxed' ? 'maxed' : `${alt.roi.toFixed(2)} pts/wk ROI`})
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-shrink-0 text-right">
-                <p className="text-xs font-medium text-gray-700">
-                  {item.currentPts.toFixed(1)}/{item.maxPts.toFixed(0)} pts
-                </p>
-                <p className="text-xs text-gray-400">
-                  {Math.round(item.scorePct * 100)}%
-                </p>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      <p className="text-xs text-gray-400 mt-3">
-        Effort estimates from evidence-based training research. Individual results vary.
-      </p>
-    </div>
-  )
-}
 
 // UX-03: Segmented control - replaces dropdowns for exercise selection
 function SegmentedControl({ options, value, onChange, disabled = false, groupLabel }) {
