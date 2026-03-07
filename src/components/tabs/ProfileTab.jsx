@@ -187,17 +187,20 @@ export default function ProfileTab() {
         <div className="space-y-6">
           {/* Date of Birth */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="dob" className="block text-sm font-medium text-gray-700 mb-2">
               Date of Birth
             </label>
             <input
+              id="dob"
               type="date"
               value={dob}
               onChange={handleDobChange}
+              aria-invalid={!!dobError}
+              aria-describedby={dobError ? 'dob-error' : undefined}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${dobError ? 'border-red-400' : 'border-gray-300'}`}
             />
             {dobError && (
-              <p className="text-xs text-red-600 mt-1">{dobError}</p>
+              <p id="dob-error" role="alert" className="text-xs text-red-600 mt-1">{dobError}</p>
             )}
           </div>
 
@@ -232,20 +235,23 @@ export default function ProfileTab() {
 
           {/* Target PFA Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="target-date" className="block text-sm font-medium text-gray-700 mb-2">
               Target PFA Date
             </label>
             <input
+              id="target-date"
               type="date"
               value={targetDate}
               onChange={handleTargetDateChange}
               min={new Date().toISOString().split('T')[0]}
+              aria-invalid={!!targetDateError}
+              aria-describedby={targetDateError ? 'target-date-error' : 'target-date-hint'}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${targetDateError ? 'border-red-400' : 'border-gray-300'}`}
             />
             {targetDateError ? (
-              <p className="text-xs text-red-600 mt-1">{targetDateError}</p>
+              <p id="target-date-error" role="alert" className="text-xs text-red-600 mt-1">{targetDateError}</p>
             ) : (
-              <p className="text-xs text-gray-600 mt-1">
+              <p id="target-date-hint" className="text-xs text-gray-600 mt-1">
                 Set your upcoming official PFA date to see your trajectory
               </p>
             )}
@@ -282,7 +288,8 @@ export default function ProfileTab() {
                 <p className="font-mono text-lg text-blue-900 flex-1">{dcode}</p>
                 <button
                   onClick={copyToClipboard}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                  aria-label="Copy D-Code to clipboard"
+                  className="px-3 py-2 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   Copy
                 </button>
@@ -301,14 +308,16 @@ export default function ProfileTab() {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="paste-dcode" className="block text-sm font-medium text-gray-700 mb-2">
               Paste D-Code
             </label>
             <input
+              id="paste-dcode"
               type="text"
               value={pasteCode}
               onChange={(e) => setPasteCode(e.target.value)}
               placeholder="D1-abc123..."
+              aria-label="Paste your existing D-Code here"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
             />
           </div>

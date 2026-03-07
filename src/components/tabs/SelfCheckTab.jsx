@@ -470,18 +470,20 @@ export default function SelfCheckTab() {
 
         {/* IV-01: Self-check date picker - max = today */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Assessment Date</label>
+          <label htmlFor="assessment-date" className="block text-sm font-medium text-gray-700 mb-2">Assessment Date</label>
           <div className="flex items-center gap-3 flex-wrap">
             <input
+              id="assessment-date"
               type="date"
               value={assessmentDate}
               onChange={(e) => setAssessmentDate(e.target.value)}
               max={today}
+              aria-describedby={isDiagnosticPeriod(assessmentDate) ? 'diag-badge' : undefined}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             {/* UX-10: Diagnostic period badge inline with date */}
             {isDiagnostic && (
-              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
+              <span id="diag-badge" className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
                 DIAGNOSTIC PERIOD - non-scored
               </span>
             )}
@@ -701,11 +703,11 @@ export default function SelfCheckTab() {
         )}
       </div>
 
-      {/* Generate S-Code */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      {/* Generate S-Code - sticky action bar on mobile */}
+      <div className="bg-white rounded-lg shadow-md p-6 sticky bottom-0 z-10 sm:static sm:shadow-md shadow-lg">
         <button
           onClick={handleGenerateSCode}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           Generate S-Code
         </button>
@@ -730,13 +732,15 @@ export default function SelfCheckTab() {
               <p className="font-mono text-sm text-blue-900 flex-1 break-all">{scode}</p>
               <button
                 onClick={copyToClipboard}
-                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors whitespace-nowrap"
+                aria-label="Copy S-Code to clipboard"
+                className="px-3 py-2 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 Copy
               </button>
               <button
                 onClick={shareCode}
-                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors whitespace-nowrap"
+                aria-label="Share S-Code link"
+                className="px-3 py-2 min-h-[44px] bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
               >
                 Share
               </button>
@@ -845,9 +849,13 @@ function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, wal
 }
 
 // UX-03: Segmented control - replaces dropdowns for exercise selection
-function SegmentedControl({ options, value, onChange, disabled = false }) {
+function SegmentedControl({ options, value, onChange, disabled = false, groupLabel }) {
   return (
-    <div className={`flex rounded-lg border overflow-hidden ${disabled ? 'border-gray-200' : 'border-gray-300'}`}>
+    <div
+      role="group"
+      aria-label={groupLabel}
+      className={`flex rounded-lg border overflow-hidden ${disabled ? 'border-gray-200' : 'border-gray-300'}`}
+    >
       {options.map((opt, i) => {
         const isSelected = value === opt.value
         return (
@@ -855,9 +863,11 @@ function SegmentedControl({ options, value, onChange, disabled = false }) {
             key={opt.value}
             type="button"
             disabled={disabled}
+            aria-pressed={isSelected}
             onClick={() => !disabled && onChange(opt.value)}
             className={[
-              'flex-1 py-2 px-2 text-sm font-medium transition-colors',
+              'flex-1 py-2.5 px-2 text-sm font-medium transition-colors min-h-[44px]',
+              'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500',
               i < options.length - 1 ? (disabled ? 'border-r border-gray-200' : 'border-r border-gray-300') : '',
               isSelected
                 ? (disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white')
@@ -872,21 +882,34 @@ function SegmentedControl({ options, value, onChange, disabled = false }) {
   )
 }
 
-// UX-04: Toggle switch for exemption and injury
-function ToggleSwitch({ checked, onChange, label }) {
+// UX-04: Toggle switch for exemption - keyboard accessible button[role=switch]
+function ToggleSwitch({ checked, onChange, ariaLabel }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer select-none">
-      <div className="relative" onClick={() => onChange(!checked)}>
-        <div className={`w-10 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-blue-600' : 'bg-gray-300'}`} />
-        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
-      </div>
-      {label && <span className="text-sm text-gray-700">{label}</span>}
-    </label>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+        checked ? 'bg-blue-600' : 'bg-gray-300'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+          checked ? 'translate-x-4' : 'translate-x-0'
+        }`}
+      />
+    </button>
   )
 }
 
 // Component Section with score display
 function ComponentSection({ title, exempt, onExemptChange, score, children, exemptContent }) {
+  // Derive short component name for ARIA label (e.g. "Cardio" from "Cardio (50 pts)")
+  const componentName = title.split(' (')[0]
+
   return (
     <div className="mb-6 pb-6 border-b border-gray-200">
       <div className="flex items-start justify-between mb-4 gap-2">
@@ -894,11 +917,11 @@ function ComponentSection({ title, exempt, onExemptChange, score, children, exem
         <div className="flex items-center gap-3 flex-shrink-0">
           {/* UX-02: Component pass/fail badges alongside points */}
           {score && score.tested && (
-            <div className="text-right">
-              <p className={`text-base font-bold ${score.pass ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="text-right" aria-label={`${componentName}: ${score.points.toFixed(1)} of ${score.maxPoints} points, ${score.pass ? 'pass' : 'fail'}`}>
+              <p className={`text-base font-bold ${score.pass ? 'text-green-600' : 'text-red-600'}`} aria-hidden="true">
                 {score.points.toFixed(1)} / {score.maxPoints}
               </p>
-              <div className="flex justify-end items-center gap-1 mt-0.5">
+              <div className="flex justify-end items-center gap-1 mt-0.5" aria-hidden="true">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold ${score.pass ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                   {score.pass ? 'PASS' : 'FAIL'}
                 </span>
@@ -908,10 +931,11 @@ function ComponentSection({ title, exempt, onExemptChange, score, children, exem
           )}
           {/* UX-04: Toggle switch for exemption */}
           <div className="flex items-center gap-1.5">
-            <span className={`text-xs ${exempt ? 'text-gray-700 font-bold' : 'text-gray-500'}`}>Exempt</span>
+            <span className={`text-xs ${exempt ? 'text-gray-700 font-bold' : 'text-gray-500'}`} aria-hidden="true">Exempt</span>
             <ToggleSwitch
               checked={exempt}
               onChange={onExemptChange}
+              ariaLabel={`${componentName} exemption`}
             />
           </div>
         </div>

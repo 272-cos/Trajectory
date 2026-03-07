@@ -2,10 +2,12 @@
  * Onboarding Modal - First-time user experience
  */
 
+import { useEffect, useRef } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 
 export default function OnboardingModal() {
   const { completeOnboarding, setActiveTab } = useApp()
+  const modalRef = useRef(null)
 
   const handleStartFresh = () => {
     completeOnboarding()
@@ -17,10 +19,27 @@ export default function OnboardingModal() {
     setActiveTab('profile') // They can paste codes in profile
   }
 
+  // Focus the modal on mount and handle Escape key
+  useEffect(() => {
+    modalRef.current?.focus()
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') handleStartFresh()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="presentation">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+        tabIndex={-1}
+        className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 focus:outline-none"
+      >
+        <h2 id="onboarding-title" className="text-2xl font-bold text-gray-900 mb-2">
           Welcome to Trajectory
         </h2>
 

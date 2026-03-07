@@ -481,7 +481,9 @@ function AssessmentCard({
       {/* Header row - always visible */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+        aria-expanded={expanded}
+        aria-label={`${dateStr} assessment details`}
+        className="w-full p-4 text-left hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -576,7 +578,8 @@ function AssessmentCard({
             <p className="font-mono text-xs text-gray-500 flex-1 break-all">{code}</p>
             <button
               onClick={(e) => { e.stopPropagation(); onCopy() }}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
+              aria-label="Copy S-Code to clipboard"
+              className="px-2 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
             >
               Copy
             </button>
@@ -587,7 +590,8 @@ function AssessmentCard({
             {/* PG-06: Outlier flag toggle */}
             <button
               onClick={(e) => { e.stopPropagation(); onOutlierToggle() }}
-              className={`text-xs px-3 py-1 rounded transition-colors ${
+              aria-pressed={isOutlier}
+              className={`text-xs px-3 py-2 min-h-[44px] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 ${
                 isOutlier
                   ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -602,13 +606,13 @@ function AssessmentCard({
                 <p className="text-xs text-red-600">Remove this assessment?</p>
                 <button
                   onClick={(e) => { e.stopPropagation(); onConfirmDelete() }}
-                  className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                  className="px-3 py-2 min-h-[44px] text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
                 >
                   Remove
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onCancelDelete() }}
-                  className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 rounded transition-colors"
+                  className="px-3 py-2 min-h-[44px] text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
                 >
                   Cancel
                 </button>
@@ -616,7 +620,7 @@ function AssessmentCard({
             ) : (
               <button
                 onClick={(e) => { e.stopPropagation(); onRequestDelete() }}
-                className="text-xs text-red-500 hover:text-red-700 transition-colors"
+                className="text-xs text-red-500 hover:text-red-700 transition-colors py-2 min-h-[44px] px-1 focus:outline-none focus:ring-2 focus:ring-red-400 rounded"
               >
                 Remove from history
               </button>
