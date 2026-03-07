@@ -29,11 +29,6 @@ const COMP_LABELS = {
 
 const COMP_ORDER = ['cardio', 'strength', 'core', 'bodyComp']
 
-const CONFIDENCE_COLORS = {
-  HIGH:   'text-green-700 bg-green-50',
-  MEDIUM: 'text-yellow-700 bg-yellow-50',
-  LOW:    'text-gray-500  bg-gray-50',
-}
 
 const CONFIDENCE_LABELS = {
   HIGH:   'Mature Prediction',
@@ -205,10 +200,9 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget }) {
       {/* Header row */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="font-semibold text-gray-900">{label}</span>
-          <span className={`text-xs px-2 py-0.5 rounded font-medium ${badgeColor}`}>
-            {proj.pass ? 'PASS' : 'FAIL'}
-          </span>
-        </div>
+        <span className={`text-xs px-2 py-0.5 rounded font-medium ${badgeColor}`}>
+          {proj.pass ? 'PASS' : 'FAIL'}
+        </span>
       </div>
 
       {/* Projected score */}
@@ -312,7 +306,7 @@ export default function ProjectTab() {
   // Days to target from today
   const today = new Date().toISOString().split('T')[0]
   const daysToTarget = targetPfaDate
-    ? Math.max(0, Math.round((new Date(targetPfaDate) - new Date(today)) / 86_400_000))
+    ? Math.max(0, Math.round((new Date(targetPfaDate) - new Date(today)) / 86400000))
     : null
 
   // ── IV-02 / IV-03: target date validation ────────────────────────────────────
@@ -479,9 +473,9 @@ export default function ProjectTab() {
                 </div>
                 <div className="text-right text-sm text-gray-600">
                   <p>Threshold: {PASSING_COMPOSITE}</p>
-                  <span className={`font-medium ${CONFIDENCE_COLORS[composite.confidence] || ''} px-2 py-0.5 rounded inline-block`}>
+                  <p className="text-sm text-gray-600">
                     {CONFIDENCE_LABELS[composite.confidence] || composite.confidence}
-                  </span>
+                  </p>
                   {CONFIDENCE_HINTS[composite.confidence] && (
                     <p className="text-xs text-gray-500 mt-1">{CONFIDENCE_HINTS[composite.confidence]}</p>
                   )}
