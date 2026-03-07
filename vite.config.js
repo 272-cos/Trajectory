@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon.svg'],
+      includeAssets: ['icons/icon.svg', 'icons/t.png', 'icons/logo.jpg'],
       manifest: {
         name: 'Trajectory - USAF PFA Tracker',
         short_name: 'Trajectory',
@@ -19,9 +19,9 @@ export default defineConfig({
         start_url: '/Trajectory/',
         icons: [
           {
-            src: 'icons/icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: 'icons/t.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'any maskable',
           },
         ],
