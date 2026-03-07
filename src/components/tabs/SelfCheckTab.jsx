@@ -1264,7 +1264,7 @@ function ProgressBar({ cardioExempt, cardioValue, walkSelected, walkTime,
   const completed = components.filter(c => c.done).length
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-3 border border-gray-100">
+    <div className="bg-white rounded-lg shadow-sm p-3 border border-gray-100 sticky top-0 z-20">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-gray-600">{completed} of 4 components completed</span>
         <span className="text-xs text-gray-400">{Math.round(completed / 4 * 100)}%</span>
