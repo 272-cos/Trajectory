@@ -507,7 +507,7 @@ export default function ProjectTab() {
 
           {/* ── Legend ────────────────────────────────────────────────────── */}
           <div className="bg-white rounded-lg border border-gray-100 p-3 text-xs text-gray-400 space-y-1">
-            <p className="font-medium text-gray-500">Gap bar legend</p>
+            <p className="font-medium text-gray-500">Legend</p>
             <div className="flex flex-wrap gap-3">
               <span className="flex items-center gap-1">
                 <span className="inline-block w-2 h-4 bg-blue-500 rounded-sm" />
@@ -522,7 +522,11 @@ export default function ProjectTab() {
                 Minimum threshold
               </span>
             </div>
-            <p className="italic">UNOFFICIAL ESTIMATE - for self-assessment only.</p>
+            <p className="mt-1">
+              <span className="font-medium text-gray-500">Projection accuracy: </span>
+              1 entry = flat estimate (current score held forward) - log more check-ins to enable trend forecasting.
+            </p>
+            <p className="italic">Log more check-ins to refine your projected score.</p>
           </div>
         </>
       )}
