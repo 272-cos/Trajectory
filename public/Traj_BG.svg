@@ -75,8 +75,8 @@
     NOT at the same x-offset from each end. Using symmetric offsets keeps the arch
     perfectly round and avoids the flat-top M-shape caused by uneven handles.
 
-    Wave 1 (phase 0):  rises left, falls right  -- peaks at ~(384, 188), troughs at ~(1152, 836)
-    Wave 2 (phase pi): falls left, rises right  -- troughs at ~(384, 836), peaks at ~(1152, 188)
+    Wave 1 (phase 0):  rises left, falls right  - peaks at approx (384, 188), troughs at approx (1152, 836)
+    Wave 2 (phase pi): falls left, rises right  - troughs at approx (384, 836), peaks at approx (1152, 188)
     Wave 3/4: same phases, tighter amplitude (~150px vs ~324px) for a layered look
   -->
 
