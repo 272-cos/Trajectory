@@ -70,52 +70,53 @@
   </g>
 
   <!--
-    Wave design: two sweeping lines that cross to the RIGHT of the text (SVG x~900),
-    giving the text clear space on the left and a clean X composition on the right.
+    Wave design: peaks and troughs positioned INSIDE the desktop visible band
+    (SVG y~410-524 at 1200px wide) so curvature is pronounced at all viewport sizes.
 
-    Visible banner crop: SVG y~410-525 at desktop 1200px; y~305-650 at mobile.
+    At desktop 1200px: visible y=410-524 (115 SVG units tall).
+    At mobile 400px:   visible y=305-651 (346 SVG units tall).
 
-    Wave A: enters upper-left (y=400), arches with peak ~(440,326) visible at mobile,
-            descends through crossing ~(900,485), sweeps gently low to y=630 at right.
-    Wave B: enters lower-left (y=610), dips below the crop, rises through crossing
-            ~(900,490), then curves smoothly upward to y=300 at right edge.
-    Waves A2/B2: offset secondary lines for visual depth.
-    No sparkle nodes on the wave paths - clean lines only.
+    Both waves meet at crossing point (900, 467) - the center of the desktop band.
+    Wave A arches UP to peak ~(442, 421) - visible at desktop, upper portion at mobile.
+    Wave B dips DOWN to trough ~(442, 513) - visible at desktop, lower portion at mobile.
+    After crossing: Wave A sweeps low-right, Wave B sweeps high-right.
+    Waves A2/B2: tight parallel offsets for visual depth.
+    No sparkle nodes - clean lines only.
   -->
 
   <!-- Outer dim halo -->
   <g opacity="0.18">
-    <path d="M 0 400 C 300 295 580 280 900 480 C 1100 610 1300 640 1536 630"
+    <path d="M 0 450 C 300 408 580 408 900 467 C 1100 510 1300 520 1536 515"
           stroke="#1060c0" stroke-width="22" fill="none"/>
-    <path d="M 0 610 C 300 720 580 720 900 490 C 1100 310 1300 295 1536 300"
+    <path d="M 0 485 C 300 525 580 525 900 467 C 1100 420 1300 412 1536 415"
           stroke="#1060c0" stroke-width="22" fill="none"/>
   </g>
 
   <!-- Mid glow layer -->
   <g filter="url(#glow)" opacity="0.55">
-    <!-- Wave A: sweeping arch from upper-left, crosses and descends to lower-right -->
-    <path d="M 0 400 C 300 295 580 280 900 480 C 1100 610 1300 640 1536 630"
+    <!-- Wave A: arches up to peak ~(442,421), crosses at (900,467), sweeps low-right -->
+    <path d="M 0 450 C 300 408 580 408 900 467 C 1100 510 1300 520 1536 515"
           stroke="#2090ff" stroke-width="4" fill="none"/>
-    <!-- Wave B: rises from lower-left, crosses and curves up to upper-right -->
-    <path d="M 0 610 C 300 720 580 720 900 490 C 1100 310 1300 295 1536 300"
+    <!-- Wave B: dips to trough ~(442,513), crosses at (900,467), sweeps high-right -->
+    <path d="M 0 485 C 300 525 580 525 900 467 C 1100 420 1300 412 1536 415"
           stroke="#2090ff" stroke-width="4" fill="none"/>
-    <!-- Wave A2: secondary depth line -->
-    <path d="M 0 415 C 300 312 580 298 900 494 C 1100 622 1300 652 1536 642"
+    <!-- Wave A2: tight parallel offset -->
+    <path d="M 0 455 C 300 414 580 414 900 472 C 1100 514 1300 524 1536 519"
           stroke="#40b0ff" stroke-width="2" fill="none"/>
-    <!-- Wave B2: secondary depth line -->
-    <path d="M 0 595 C 300 705 580 705 900 505 C 1100 326 1300 311 1536 316"
+    <!-- Wave B2: tight parallel offset -->
+    <path d="M 0 480 C 300 519 580 519 900 473 C 1100 426 1300 418 1536 421"
           stroke="#40b0ff" stroke-width="2" fill="none"/>
   </g>
 
   <!-- Crisp bright wave lines on top -->
   <g>
-    <path d="M 0 400 C 300 295 580 280 900 480 C 1100 610 1300 640 1536 630"
+    <path d="M 0 450 C 300 408 580 408 900 467 C 1100 510 1300 520 1536 515"
           stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
-    <path d="M 0 610 C 300 720 580 720 900 490 C 1100 310 1300 295 1536 300"
+    <path d="M 0 485 C 300 525 580 525 900 467 C 1100 420 1300 412 1536 415"
           stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
-    <path d="M 0 415 C 300 312 580 298 900 494 C 1100 622 1300 652 1536 642"
+    <path d="M 0 455 C 300 414 580 414 900 472 C 1100 514 1300 524 1536 519"
           stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
-    <path d="M 0 595 C 300 705 580 705 900 505 C 1100 326 1300 311 1536 316"
+    <path d="M 0 480 C 300 519 580 519 900 473 C 1100 426 1300 418 1536 421"
           stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
   </g>
 
