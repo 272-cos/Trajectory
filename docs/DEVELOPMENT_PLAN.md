@@ -333,26 +333,26 @@ Each scoring table defines a curve: performance input (reps, time, shuttles) map
 
 **Preference override system:**
 
-- [ ] User can "lock" any exercise choice (e.g., "I prefer HRPU regardless")
-- [ ] Locked exercises excluded from optimization - engine works around them
-- [ ] UI: lock icon toggle per component exercise selector
-- [ ] Locked preference saved to localStorage (`pfa_exercise_prefs`)
-- [ ] Strategy recalculates with locked choices as constraints
-- [ ] Display explains trade-off: "You chose HRPU (preferred). Push-ups would score +2.1 pts higher, but HRPU has better effort ROI at your level."
+- [x] User can "lock" any exercise choice (e.g., "I prefer HRPU regardless")
+- [x] Locked exercises excluded from optimization - engine works around them
+- [x] UI: lock icon toggle per component exercise selector
+- [x] Locked preference saved to localStorage (`pfa_exercise_prefs`)
+- [x] Strategy recalculates with locked choices as constraints
+- [x] Display explains trade-off: "You chose HRPU (preferred). Push-ups would score +2.1 pts higher, but HRPU has better effort ROI at your level."
 
 **Implementation:**
 
-- [ ] `strategyEngine(demographics, rawInputs, preferences)` - core analysis function
-- [ ] `marginalReturn(exerciseType, currentValue, bracket)` - slope at current point on scoring curve
-- [ ] `effortEstimate(exerciseType, currentValue, targetValue)` - weeks of training to bridge gap
-- [ ] Effort constants: `EFFORT_FACTORS` in `constants.js` (calibrated from fitness research)
-- [ ] Output per component: { exercise, currentPts, marginalROI, effortWeeks, recommendation }
-- [ ] Output overall: ranked list of "best bang for your training time" actions
-- [ ] Handle exemptions: skip exempt components
-- [ ] Handle "already maxed" components: flag as "no further gains possible"
-- [ ] UI: "Strategy" section in Self-Check results - prioritized action list
-- [ ] Display: "Focus Area: Core (+4.8 pts available, ~2 weeks). Your cardio is near ceiling (+0.3 pts available)."
-- [ ] Unit tests: verify marginal return calculation, preference locking, cross-component ranking
+- [x] `strategyEngine(demographics, rawInputs, preferences)` - core analysis function
+- [x] `marginalReturn(exerciseType, currentValue, bracket)` - slope at current point on scoring curve
+- [x] `effortEstimate(exerciseType, currentValue, targetValue)` - weeks of training to bridge gap
+- [x] Effort constants: `EFFORT_FACTORS` in `constants.js` (calibrated from fitness research)
+- [x] Output per component: { exercise, currentPts, marginalROI, effortWeeks, recommendation }
+- [x] Output overall: ranked list of "best bang for your training time" actions
+- [x] Handle exemptions: skip exempt components
+- [x] Handle "already maxed" components: flag as "no further gains possible"
+- [x] UI: "Strategy" section in Self-Check results - prioritized action list
+- [x] Display: "Focus Area: Core (+4.8 pts available, ~2 weeks). Your cardio is near ceiling (+0.3 pts available)."
+- [x] Unit tests: verify marginal return calculation, preference locking, cross-component ranking
 
 **File:** `src/utils/scoring/strategyEngine.js`
 
@@ -564,5 +564,5 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 | 5 | 5.1 | ✅ Complete | History tab with trend chart |
 | 6 | 6.1 | ✅ Complete | Report generation |
 | 7 | 7.1, 7.2, 7.3 | ✅ Complete | PWA + accessibility + chart update banner |
-| 8 | 8.1, 8.2, 8.3, 8.4 | ❌ Pending | Practice tools (stopwatch, HAMR metronome) + effort-weighted strategy engine + exercise comparison |
+| 8 | 8.1, 8.2, 8.3, 8.4 | 🔄 In Progress | 8.1 complete (effort-weighted strategy engine); 8.2-8.4 pending (stopwatch, HAMR metronome, exercise comparison) |
 | 9 | 9.1, 9.2 | ❌ Pending | Curated training resources + personalized training plans |
