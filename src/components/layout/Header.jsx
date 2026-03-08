@@ -10,7 +10,7 @@ export default function Header() {
       className="w-full overflow-hidden"
       style={{
         backgroundImage: `url(${BASE}Traj_BG.png)`,
-        backgroundSize: 'auto 100%',
+        backgroundSize: '100% auto',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center 30%',
       }}
