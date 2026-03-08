@@ -9,7 +9,7 @@ export default function Header() {
     <header
       className="w-full"
       style={{
-        backgroundImage: `url(${BASE}BG_Traj.png)`,
+        backgroundImage: `url(${BASE}Traj_BG.png)`,
         backgroundSize: 'cover',
         backgroundPosition: 'center 30%',
       }}
