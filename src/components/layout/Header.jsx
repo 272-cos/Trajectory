@@ -15,11 +15,13 @@ export default function Header() {
         backgroundPosition: 'center 45%',
       }}
     >
-      <div className="container mx-auto max-w-4xl px-4 py-6 flex flex-col items-center">
-        <h1 className="text-2xl font-bold tracking-widest text-white drop-shadow-lg uppercase">
-          Trajectory
-        </h1>
-        <p className="text-xs font-bold text-amber-400 tracking-wide mt-0.5">
+      <div className="container mx-auto max-w-4xl px-4 py-6 flex flex-col items-start">
+        <img
+          src={`${BASE}icons/logo-header.png`}
+          alt="Trajectory"
+          className="h-12 drop-shadow-lg"
+        />
+        <p className="text-xs font-bold text-amber-400 tracking-wide mt-1">
           USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
         </p>
       </div>
