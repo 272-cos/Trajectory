@@ -19,7 +19,7 @@ export default function Header() {
         <h1 className="text-2xl font-bold tracking-widest text-white drop-shadow-lg uppercase">
           Trajectory
         </h1>
-        <p className="text-xs text-blue-200 tracking-wide mt-0.5">
+        <p className="text-xs font-bold text-amber-400 tracking-wide mt-0.5">
           USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
         </p>
       </div>
