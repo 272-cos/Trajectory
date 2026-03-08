@@ -174,6 +174,24 @@
             stroke="url(#fadeFaint)" stroke-width="1" fill="none" opacity="0.7"/>
     </g>
 
+  <!-- Edge vignettes: fade the wave content into the background color at left/right edges.
+       Placed on top of all wave layers to definitively cover the glow-blur artifact zone.
+       Color matches the approximate background at the banner strip edges (~#000c20 base). -->
+  <defs>
+    <linearGradient id="vigL" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="320" y2="0">
+      <stop offset="0%"   stop-color="#000c20" stop-opacity="1"/>
+      <stop offset="60%"  stop-color="#000c20" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#000c20" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="vigR" gradientUnits="userSpaceOnUse" x1="1216" y1="0" x2="1536" y2="0">
+      <stop offset="0%"   stop-color="#000c20" stop-opacity="0"/>
+      <stop offset="40%"  stop-color="#000c20" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#000c20" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+  <rect x="0"    width="320" height="1024" fill="url(#vigL)"/>
+  <rect x="1216" width="320" height="1024" fill="url(#vigR)"/>
+
   <!-- Scattered star dots -->
   <g fill="#80c8ff">
     <circle cx="120"  cy="180" r="1.2" opacity="0.6"/>
