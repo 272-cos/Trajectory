@@ -10,7 +10,7 @@ export default function Header() {
       className="w-full"
       style={{
         backgroundImage: `url(${BASE}Traj_BG.png)`,
-        backgroundSize: 'cover',
+        backgroundSize: '100% auto',
         backgroundPosition: 'center 30%',
       }}
     >
