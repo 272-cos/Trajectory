@@ -19,7 +19,7 @@ export default function Header() {
         <img
           src={`${BASE}icons/logo-header.png`}
           alt="Trajectory"
-          className="h-20 drop-shadow-lg"
+          className="h-12 drop-shadow-lg"
         />
         <p className="text-xs font-bold text-amber-400 tracking-wide mt-1">
           USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
