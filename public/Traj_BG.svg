@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Background radial gradient: dark corners, slightly lighter navy center -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+      <stop offset="0%"   stop-color="#002060"/>
+      <stop offset="55%"  stop-color="#001040"/>
+      <stop offset="100%" stop-color="#000818"/>
+    </radialGradient>
+
+    <!-- Glow filter for wave lines -->
+    <filter id="glow" x="-30%" y="-300%" width="160%" height="700%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur5"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur12"/>
+      <feMerge>
+        <feMergeNode in="blur12"/>
+        <feMergeNode in="blur5"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for sparkle points -->
+    <filter id="sparkle" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Globe meridian clip -->
+    <clipPath id="globeClip">
+      <circle cx="768" cy="512" r="300"/>
+    </clipPath>
+
+    <!-- Grid pattern (circuit board style) -->
+    <pattern id="grid" x="0" y="0" width="64" height="64" patternUnits="userSpaceOnUse">
+      <rect width="64" height="64" fill="none"/>
+      <path d="M 64 0 L 0 0 L 0 64" fill="none" stroke="rgba(40,140,220,0.13)" stroke-width="0.6"/>
+    </pattern>
+    <pattern id="gridSmall" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect width="16" height="16" fill="none"/>
+      <path d="M 16 0 L 0 0 L 0 16" fill="none" stroke="rgba(40,140,220,0.06)" stroke-width="0.3"/>
+    </pattern>
+  </defs>
+
+  <!-- Base background -->
+  <rect width="1536" height="1024" fill="#000c20"/>
+  <!-- Radial gradient overlay -->
+  <rect width="1536" height="1024" fill="url(#bgGrad)"/>
+
+  <!-- Fine grid -->
+  <rect width="1536" height="1024" fill="url(#gridSmall)"/>
+  <!-- Coarse grid -->
+  <rect width="1536" height="1024" fill="url(#grid)"/>
+
+  <!-- Globe wireframe (faint) -->
+  <g opacity="0.07" stroke="#4090e0" stroke-width="0.8" fill="none" clip-path="url(#globeClip)">
+    <!-- Latitude lines -->
+    <ellipse cx="768" cy="512" rx="300" ry="300"/>
+    <ellipse cx="768" cy="512" rx="300" ry="255"/>
+    <ellipse cx="768" cy="512" rx="300" ry="180"/>
+    <ellipse cx="768" cy="512" rx="300" ry="100"/>
+    <ellipse cx="768" cy="512" rx="300" ry="35"/>
+    <!-- Longitude lines (as vertical ellipses) -->
+    <ellipse cx="768" cy="512" rx="30"  ry="300"/>
+    <ellipse cx="768" cy="512" rx="100" ry="300"/>
+    <ellipse cx="768" cy="512" rx="180" ry="300"/>
+    <ellipse cx="768" cy="512" rx="250" ry="300"/>
+  </g>
+
+  <!--
+    Main wave group: two crossing sinusoidal paths (figure-8 / lemniscate feel).
+    Upper arc: starts left-middle, curves up to center, curves down on right.
+    Lower arc: starts left-middle, curves down to center, curves up on right.
+    Both arcs share endpoints at left-center (0,512) and right-center (1536,512).
+  -->
+
+  <!-- Outer dim halo (wide spread glow) -->
+  <g opacity="0.20">
+    <path d="M -60 512 C 220 50,  600 50,  768 512 C 940 974, 1316 974, 1596 512"
+          stroke="#1060c0" stroke-width="20" fill="none"/>
+    <path d="M -60 512 C 220 974, 600 974, 768 512 C 940 50,  1316 50,  1596 512"
+          stroke="#1060c0" stroke-width="20" fill="none"/>
+  </g>
+
+  <!-- Mid glow layer -->
+  <g filter="url(#glow)" opacity="0.55">
+    <path d="M -60 512 C 220 80,  600 80,  768 512 C 940 944, 1316 944, 1596 512"
+          stroke="#2090ff" stroke-width="4" fill="none"/>
+    <path d="M -60 512 C 220 944, 600 944, 768 512 C 940 80,  1316 80,  1596 512"
+          stroke="#2090ff" stroke-width="4" fill="none"/>
+    <!-- Inner tighter curves -->
+    <path d="M -60 512 C 260 160, 570 160, 768 512 C 966 864, 1276 864, 1596 512"
+          stroke="#40b0ff" stroke-width="2" fill="none"/>
+    <path d="M -60 512 C 260 864, 570 864, 768 512 C 966 160, 1276 160, 1596 512"
+          stroke="#40b0ff" stroke-width="2" fill="none"/>
+  </g>
+
+  <!-- Crisp bright wave lines on top -->
+  <g>
+    <path d="M -60 512 C 220 80,  600 80,  768 512 C 940 944, 1316 944, 1596 512"
+          stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
+    <path d="M -60 512 C 220 944, 600 944, 768 512 C 940 80,  1316 80,  1596 512"
+          stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
+    <path d="M -60 512 C 260 160, 570 160, 768 512 C 966 864, 1276 864, 1596 512"
+          stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
+    <path d="M -60 512 C 260 864, 570 864, 768 512 C 966 160, 1276 160, 1596 512"
+          stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
+  </g>
+
+  <!-- Sparkle nodes at wave intersections and endpoints -->
+  <!-- Left endpoint -->
+  <g filter="url(#sparkle)">
+    <circle cx="10"  cy="512" r="4" fill="#a0e0ff" opacity="0.8"/>
+  </g>
+  <!-- Center crossing -->
+  <g filter="url(#sparkle)">
+    <circle cx="768" cy="512" r="7" fill="#ffffff" opacity="0.95"/>
+    <circle cx="768" cy="512" r="3" fill="#e0f4ff" opacity="1"/>
+  </g>
+  <!-- Right endpoint -->
+  <g filter="url(#sparkle)">
+    <circle cx="1526" cy="512" r="4" fill="#a0e0ff" opacity="0.8"/>
+  </g>
+  <!-- Upper-left arc apex -->
+  <g filter="url(#sparkle)">
+    <circle cx="384" cy="155" r="5" fill="#80ccff" opacity="0.85"/>
+    <circle cx="384" cy="155" r="2" fill="#ffffff" opacity="0.9"/>
+  </g>
+  <!-- Upper-right arc apex -->
+  <g filter="url(#sparkle)">
+    <circle cx="1152" cy="869" r="5" fill="#80ccff" opacity="0.85"/>
+    <circle cx="1152" cy="869" r="2" fill="#ffffff" opacity="0.9"/>
+  </g>
+  <!-- Lower-left arc apex -->
+  <g filter="url(#sparkle)">
+    <circle cx="384"  cy="869" r="4" fill="#60b8ff" opacity="0.7"/>
+  </g>
+  <!-- Lower-right arc apex -->
+  <g filter="url(#sparkle)">
+    <circle cx="1152" cy="155" r="4" fill="#60b8ff" opacity="0.7"/>
+  </g>
+
+  <!-- Scattered star dots -->
+  <g fill="#80c8ff">
+    <circle cx="120"  cy="180" r="1.2" opacity="0.6"/>
+    <circle cx="300"  cy="90"  r="0.9" opacity="0.5"/>
+    <circle cx="500"  cy="320" r="1.0" opacity="0.4"/>
+    <circle cx="680"  cy="70"  r="1.3" opacity="0.65"/>
+    <circle cx="900"  cy="200" r="1.1" opacity="0.5"/>
+    <circle cx="1100" cy="80"  r="0.8" opacity="0.45"/>
+    <circle cx="1300" cy="250" r="1.2" opacity="0.55"/>
+    <circle cx="1450" cy="130" r="1.0" opacity="0.5"/>
+    <circle cx="200"  cy="800" r="1.1" opacity="0.4"/>
+    <circle cx="450"  cy="920" r="0.9" opacity="0.45"/>
+    <circle cx="700"  cy="850" r="1.2" opacity="0.5"/>
+    <circle cx="1000" cy="950" r="1.0" opacity="0.4"/>
+    <circle cx="1250" cy="780" r="1.3" opacity="0.55"/>
+    <circle cx="1480" cy="900" r="0.9" opacity="0.45"/>
+    <circle cx="60"   cy="420" r="1.0" opacity="0.5"/>
+    <circle cx="1520" cy="350" r="1.1" opacity="0.5"/>
+    <circle cx="820"  cy="120" r="0.8" opacity="0.4"/>
+    <circle cx="640"  cy="940" r="0.9" opacity="0.4"/>
+  </g>
+</svg>
