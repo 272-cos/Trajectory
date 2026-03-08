@@ -11,7 +11,7 @@ export default function Header() {
       style={{
         backgroundImage: `url(${BASE}Traj_BG.png)`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center 30%',
+        backgroundPosition: 'center 50%',
       }}
     >
       <div className="container mx-auto max-w-4xl px-4 py-3 flex flex-col items-center" style={{ backdropFilter: 'brightness(0.85)' }}>
