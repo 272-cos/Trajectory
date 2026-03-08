@@ -18,7 +18,7 @@ export default function Header() {
           <img
             src={`${BASE}icons/logo.jpg`}
             alt="Trajectory - USAF PFA Readiness Tracker - UNOFFICIAL, Not affiliated with USAF/DoD"
-            className="w-4/5 h-auto mix-blend-luminosity"
+            className="w-4/5 h-auto mix-blend-multiply"
           />
         </div>
       </div>
