@@ -70,79 +70,68 @@
   </g>
 
   <!--
-    Asymmetric sine waves. The symmetric design caused an M-shape at narrow
-    viewports because both waves started at y=512 and both arched upward into
-    the visible crop area simultaneously.
+    Wave design: both waves cross WITHIN the banner crop zone (SVG y~305-650 at mobile
+    with background-position center 45%).
 
-    Fix: offset the waves vertically so they have different starting y positions,
-    different crossing x positions, and different half-period widths. At narrow
-    viewport the top crop shows one dominant arch (wave A) while wave B's first
-    arch dips below the visible area entirely, then re-emerges from the bottom.
-
-    Wave A: starts y=420, peaks ~(368,159), crosses x=720 at y=490, troughs ~(1092,821), ends y=560
-    Wave B: starts y=620, troughs ~(428,865), crosses x=840 at y=540, peaks ~(1186,213), ends y=440
-    Waves A2/B2: smaller amplitude versions of A/B for visual depth
+    Wave A: enters upper-left y=390, arches to visible peak ~(275,337), descends through
+            crossing ~(585,485), then sweeps low to y=660 at right edge.
+    Wave B: enters lower-left y=620, dips briefly below visible (trough ~y=668), rises
+            through crossing ~(585,485), then rises steeply to y=200 at right - the steep
+            diagonal visible on the right side of the banner.
+    Waves A2/B2: offset secondary lines for visual depth.
   -->
 
   <!-- Outer dim halo -->
   <g opacity="0.18">
-    <path d="M 0 420 C 260 50  480 50  720 490 C 960 930 1200 930 1536 560"
+    <path d="M 0 390 C 180 310 360 300 580 480 C 780 660 1100 690 1536 660"
           stroke="#1060c0" stroke-width="22" fill="none"/>
-    <path d="M 0 620 C 310 970 550 970 840 540 C 1080 110 1290 110 1536 440"
+    <path d="M 0 620 C 200 700 400 710 580 490 C 650 270 800 240 1536 200"
           stroke="#1060c0" stroke-width="22" fill="none"/>
   </g>
 
   <!-- Mid glow layer -->
   <g filter="url(#glow)" opacity="0.55">
-    <!-- Wave A: rises from upper-left, falls to lower-right -->
-    <path d="M 0 420 C 260 60  480 60  720 490 C 960 920 1200 920 1536 560"
+    <!-- Wave A: arches to visible peak then sweeps low to right -->
+    <path d="M 0 390 C 180 310 360 300 580 480 C 780 660 1100 690 1536 660"
           stroke="#2090ff" stroke-width="4" fill="none"/>
-    <!-- Wave B: falls from lower-left (below visible crop), rises to upper-right -->
-    <path d="M 0 620 C 310 960 550 960 840 540 C 1080 120 1290 120 1536 440"
+    <!-- Wave B: dips low on left, rises steeply through crossing, steep ascent right -->
+    <path d="M 0 620 C 200 700 400 710 580 490 C 650 270 800 240 1536 200"
           stroke="#2090ff" stroke-width="4" fill="none"/>
-    <!-- Wave A2: smaller amplitude, same direction -->
-    <path d="M 0 440 C 260 240 480 240 720 500 C 960 760 1200 760 1536 550"
+    <!-- Wave A2: secondary depth line, same arch-then-dive -->
+    <path d="M 0 408 C 180 338 360 328 580 498 C 780 668 1100 698 1536 672"
           stroke="#40b0ff" stroke-width="2" fill="none"/>
-    <!-- Wave B2: smaller amplitude, same direction as B -->
-    <path d="M 0 600 C 310 780 550 780 840 530 C 1080 280 1290 280 1536 460"
+    <!-- Wave B2: secondary depth line, same low-dip-then-steep-rise -->
+    <path d="M 0 602 C 200 682 400 692 580 508 C 650 290 800 260 1536 218"
           stroke="#40b0ff" stroke-width="2" fill="none"/>
   </g>
 
   <!-- Crisp bright wave lines on top -->
   <g>
-    <path d="M 0 420 C 260 60  480 60  720 490 C 960 920 1200 920 1536 560"
+    <path d="M 0 390 C 180 310 360 300 580 480 C 780 660 1100 690 1536 660"
           stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
-    <path d="M 0 620 C 310 960 550 960 840 540 C 1080 120 1290 120 1536 440"
+    <path d="M 0 620 C 200 700 400 710 580 490 C 650 270 800 240 1536 200"
           stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
-    <path d="M 0 440 C 260 240 480 240 720 500 C 960 760 1200 760 1536 550"
+    <path d="M 0 408 C 180 338 360 328 580 498 C 780 668 1100 698 1536 672"
           stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
-    <path d="M 0 600 C 310 780 550 780 840 530 C 1080 280 1290 280 1536 460"
+    <path d="M 0 602 C 200 682 400 692 580 508 C 650 290 800 260 1536 218"
           stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
   </g>
 
-  <!-- Sparkle nodes at wave peaks/troughs and approximate crossing -->
-  <!-- Wave A peak (upper-left) at approx (368, 159) -->
+  <!-- Sparkle nodes at wave peak, crossing, and steep-rise inflection -->
+  <!-- Wave A arch peak at approx (275, 337) - visible in banner -->
   <g filter="url(#sparkle)">
-    <circle cx="368" cy="159" r="5" fill="#80ccff" opacity="0.85"/>
-    <circle cx="368" cy="159" r="2" fill="#ffffff" opacity="0.9"/>
+    <circle cx="275" cy="337" r="5" fill="#80ccff" opacity="0.85"/>
+    <circle cx="275" cy="337" r="2" fill="#ffffff" opacity="0.9"/>
   </g>
-  <!-- Wave A trough (lower-right) at approx (1092, 821) -->
+  <!-- Crossing of waves A and B near (585, 485) -->
   <g filter="url(#sparkle)">
-    <circle cx="1092" cy="821" r="4" fill="#60b8ff" opacity="0.7"/>
+    <circle cx="585" cy="485" r="6" fill="#ffffff" opacity="0.90"/>
+    <circle cx="585" cy="485" r="2.5" fill="#e0f4ff" opacity="1"/>
   </g>
-  <!-- Wave B trough (lower-left) at approx (428, 865) -->
+  <!-- Wave B steep-rise inflection approx (800, 240) - glow bleeds into top of banner -->
   <g filter="url(#sparkle)">
-    <circle cx="428" cy="865" r="4" fill="#60b8ff" opacity="0.7"/>
-  </g>
-  <!-- Wave B peak (upper-right) at approx (1186, 213) -->
-  <g filter="url(#sparkle)">
-    <circle cx="1186" cy="213" r="5" fill="#80ccff" opacity="0.85"/>
-    <circle cx="1186" cy="213" r="2" fill="#ffffff" opacity="0.9"/>
-  </g>
-  <!-- Approximate crossing of waves A and B near (845, 540) -->
-  <g filter="url(#sparkle)">
-    <circle cx="845" cy="540" r="6" fill="#ffffff" opacity="0.90"/>
-    <circle cx="845" cy="540" r="2.5" fill="#e0f4ff" opacity="1"/>
+    <circle cx="800" cy="240" r="5" fill="#80ccff" opacity="0.85"/>
+    <circle cx="800" cy="240" r="2" fill="#ffffff" opacity="0.9"/>
   </g>
 
   <!-- Scattered star dots -->
