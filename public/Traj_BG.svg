@@ -43,16 +43,6 @@
       <path d="M 16 0 L 0 0 L 0 16" fill="none" stroke="rgba(40,140,220,0.06)" stroke-width="0.3"/>
     </pattern>
 
-    <!-- Horizontal fade: transparent at edges, opaque in the middle -->
-    <linearGradient id="waveFade" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"   stop-color="white" stop-opacity="0"/>
-      <stop offset="12%"  stop-color="white" stop-opacity="1"/>
-      <stop offset="88%"  stop-color="white" stop-opacity="1"/>
-      <stop offset="100%" stop-color="white" stop-opacity="0"/>
-    </linearGradient>
-    <mask id="waveMask">
-      <rect width="1536" height="1024" fill="url(#waveFade)"/>
-    </mask>
   </defs>
 
   <!-- Base background -->
@@ -95,10 +85,7 @@
     No sparkle nodes - clean lines only.
   -->
 
-  <!-- All wave layers wrapped in horizontal fade mask so edges dissolve smoothly -->
-  <g mask="url(#waveMask)">
-
-    <!-- Outer dim halo -->
+  <!-- Outer dim halo -->
     <g opacity="0.18">
       <path d="M 0 450 C 300 408 580 408 900 467 C 1100 510 1300 520 1536 515"
             stroke="#1060c0" stroke-width="22" fill="none"/>
@@ -133,8 +120,6 @@
       <path d="M 0 480 C 300 519 580 519 900 473 C 1100 426 1300 418 1536 421"
             stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
     </g>
-
-  </g>
 
   <!-- Scattered star dots -->
   <g fill="#80c8ff">
