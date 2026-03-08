@@ -70,81 +70,79 @@
   </g>
 
   <!--
-    Sine wave paths. Half-period = 768px. For a true cubic-bezier sine approximation
-    both control points sit at 36.4% and 63.6% of the half-period (280 and 488 px),
-    NOT at the same x-offset from each end. Using symmetric offsets keeps the arch
-    perfectly round and avoids the flat-top M-shape caused by uneven handles.
+    Asymmetric sine waves. The symmetric design caused an M-shape at narrow
+    viewports because both waves started at y=512 and both arched upward into
+    the visible crop area simultaneously.
 
-    Wave 1 (phase 0):  rises left, falls right  - peaks at approx (384, 188), troughs at approx (1152, 836)
-    Wave 2 (phase pi): falls left, rises right  - troughs at approx (384, 836), peaks at approx (1152, 188)
-    Wave 3/4: same phases, tighter amplitude (~150px vs ~324px) for a layered look
+    Fix: offset the waves vertically so they have different starting y positions,
+    different crossing x positions, and different half-period widths. At narrow
+    viewport the top crop shows one dominant arch (wave A) while wave B's first
+    arch dips below the visible area entirely, then re-emerges from the bottom.
+
+    Wave A: starts y=420, peaks ~(368,159), crosses x=720 at y=490, troughs ~(1092,821), ends y=560
+    Wave B: starts y=620, troughs ~(428,865), crosses x=840 at y=540, peaks ~(1186,213), ends y=440
+    Waves A2/B2: smaller amplitude versions of A/B for visual depth
   -->
 
   <!-- Outer dim halo -->
   <g opacity="0.18">
-    <path d="M 0 512 C 280 60  488 60  768 512 C 1048 964 1256 964 1536 512"
+    <path d="M 0 420 C 260 50  480 50  720 490 C 960 930 1200 930 1536 560"
           stroke="#1060c0" stroke-width="22" fill="none"/>
-    <path d="M 0 512 C 280 964 488 964 768 512 C 1048 60  1256 60  1536 512"
+    <path d="M 0 620 C 310 970 550 970 840 540 C 1080 110 1290 110 1536 440"
           stroke="#1060c0" stroke-width="22" fill="none"/>
   </g>
 
   <!-- Mid glow layer -->
   <g filter="url(#glow)" opacity="0.55">
-    <!-- Primary waves -->
-    <path d="M 0 512 C 280 80  488 80  768 512 C 1048 944 1256 944 1536 512"
+    <!-- Wave A: rises from upper-left, falls to lower-right -->
+    <path d="M 0 420 C 260 60  480 60  720 490 C 960 920 1200 920 1536 560"
           stroke="#2090ff" stroke-width="4" fill="none"/>
-    <path d="M 0 512 C 280 944 488 944 768 512 C 1048 80  1256 80  1536 512"
+    <!-- Wave B: falls from lower-left (below visible crop), rises to upper-right -->
+    <path d="M 0 620 C 310 960 550 960 840 540 C 1080 120 1290 120 1536 440"
           stroke="#2090ff" stroke-width="4" fill="none"/>
-    <!-- Secondary waves (smaller amplitude, control points at y=270 / y=754) -->
-    <path d="M 0 512 C 280 270 488 270 768 512 C 1048 754 1256 754 1536 512"
+    <!-- Wave A2: smaller amplitude, same direction -->
+    <path d="M 0 440 C 260 240 480 240 720 500 C 960 760 1200 760 1536 550"
           stroke="#40b0ff" stroke-width="2" fill="none"/>
-    <path d="M 0 512 C 280 754 488 754 768 512 C 1048 270 1256 270 1536 512"
+    <!-- Wave B2: smaller amplitude, same direction as B -->
+    <path d="M 0 600 C 310 780 550 780 840 530 C 1080 280 1290 280 1536 460"
           stroke="#40b0ff" stroke-width="2" fill="none"/>
   </g>
 
   <!-- Crisp bright wave lines on top -->
   <g>
-    <path d="M 0 512 C 280 80  488 80  768 512 C 1048 944 1256 944 1536 512"
+    <path d="M 0 420 C 260 60  480 60  720 490 C 960 920 1200 920 1536 560"
           stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
-    <path d="M 0 512 C 280 944 488 944 768 512 C 1048 80  1256 80  1536 512"
+    <path d="M 0 620 C 310 960 550 960 840 540 C 1080 120 1290 120 1536 440"
           stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
-    <path d="M 0 512 C 280 270 488 270 768 512 C 1048 754 1256 754 1536 512"
+    <path d="M 0 440 C 260 240 480 240 720 500 C 960 760 1200 760 1536 550"
           stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
-    <path d="M 0 512 C 280 754 488 754 768 512 C 1048 270 1256 270 1536 512"
+    <path d="M 0 600 C 310 780 550 780 840 530 C 1080 280 1290 280 1536 460"
           stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
   </g>
 
-  <!-- Sparkle nodes at wave peaks and center crossing -->
-  <!-- Left midpoint (both waves start here) -->
+  <!-- Sparkle nodes at wave peaks/troughs and approximate crossing -->
+  <!-- Wave A peak (upper-left) at approx (368, 159) -->
   <g filter="url(#sparkle)">
-    <circle cx="0"   cy="512" r="4" fill="#a0e0ff" opacity="0.7"/>
+    <circle cx="368" cy="159" r="5" fill="#80ccff" opacity="0.85"/>
+    <circle cx="368" cy="159" r="2" fill="#ffffff" opacity="0.9"/>
   </g>
-  <!-- Center crossing (both waves meet at y=512) -->
+  <!-- Wave A trough (lower-right) at approx (1092, 821) -->
   <g filter="url(#sparkle)">
-    <circle cx="768" cy="512" r="7" fill="#ffffff" opacity="0.95"/>
-    <circle cx="768" cy="512" r="3" fill="#e0f4ff" opacity="1"/>
+    <circle cx="1092" cy="821" r="4" fill="#60b8ff" opacity="0.7"/>
   </g>
-  <!-- Right midpoint -->
+  <!-- Wave B trough (lower-left) at approx (428, 865) -->
   <g filter="url(#sparkle)">
-    <circle cx="1536" cy="512" r="4" fill="#a0e0ff" opacity="0.7"/>
+    <circle cx="428" cy="865" r="4" fill="#60b8ff" opacity="0.7"/>
   </g>
-  <!-- Wave 1 peak (upper-left) at ~(384, 188) -->
+  <!-- Wave B peak (upper-right) at approx (1186, 213) -->
   <g filter="url(#sparkle)">
-    <circle cx="384" cy="188" r="5" fill="#80ccff" opacity="0.85"/>
-    <circle cx="384" cy="188" r="2" fill="#ffffff" opacity="0.9"/>
+    <circle cx="1186" cy="213" r="5" fill="#80ccff" opacity="0.85"/>
+    <circle cx="1186" cy="213" r="2" fill="#ffffff" opacity="0.9"/>
   </g>
-  <!-- Wave 1 trough (lower-right) at ~(1152, 836) -->
+  <!-- Approximate crossing of waves A and B near (845, 540) -->
   <g filter="url(#sparkle)">
-    <circle cx="1152" cy="836" r="5" fill="#80ccff" opacity="0.85"/>
-    <circle cx="1152" cy="836" r="2" fill="#ffffff" opacity="0.9"/>
-  </g>
-  <!-- Wave 2 trough (lower-left) at ~(384, 836) -->
-  <g filter="url(#sparkle)">
-    <circle cx="384"  cy="836" r="4" fill="#60b8ff" opacity="0.7"/>
-  </g>
-  <!-- Wave 2 peak (upper-right) at ~(1152, 188) -->
-  <g filter="url(#sparkle)">
-    <circle cx="1152" cy="188" r="4" fill="#60b8ff" opacity="0.7"/>
+    <circle cx="845" cy="540" r="6" fill="#ffffff" opacity="0.90"/>
+    <circle cx="845" cy="540" r="2.5" fill="#e0f4ff" opacity="1"/>
   </g>
 
   <!-- Scattered star dots -->
