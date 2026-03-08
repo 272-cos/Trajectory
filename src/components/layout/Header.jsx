@@ -7,12 +7,12 @@ const BASE = import.meta.env.BASE_URL
 export default function Header() {
   return (
     <header
-      className="w-full"
+      className="w-full overflow-hidden"
       style={{
         backgroundImage: `url(${BASE}Traj_BG.png)`,
-        backgroundSize: 'auto 100%',
+        backgroundSize: 'auto',
         backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center center',
+        backgroundPosition: 'center top',
       }}
     >
       <div className="container mx-auto max-w-4xl px-4 py-6 flex flex-col items-center" style={{ backdropFilter: 'brightness(0.85)' }}>
