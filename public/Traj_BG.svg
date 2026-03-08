@@ -43,6 +43,37 @@
       <path d="M 16 0 L 0 0 L 0 16" fill="none" stroke="rgba(40,140,220,0.06)" stroke-width="0.3"/>
     </pattern>
 
+    <!-- Wave stroke gradients: fade each color to transparent at both left/right edges -->
+    <linearGradient id="fadeHalo"  gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1536" y2="0">
+      <stop offset="0%"   stop-color="#1060c0" stop-opacity="0"/>
+      <stop offset="10%"  stop-color="#1060c0" stop-opacity="1"/>
+      <stop offset="90%"  stop-color="#1060c0" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#1060c0" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fadeMain"  gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1536" y2="0">
+      <stop offset="0%"   stop-color="#2090ff" stop-opacity="0"/>
+      <stop offset="10%"  stop-color="#2090ff" stop-opacity="1"/>
+      <stop offset="90%"  stop-color="#2090ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#2090ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fadeOff"   gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1536" y2="0">
+      <stop offset="0%"   stop-color="#40b0ff" stop-opacity="0"/>
+      <stop offset="10%"  stop-color="#40b0ff" stop-opacity="1"/>
+      <stop offset="90%"  stop-color="#40b0ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#40b0ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fadeCrisp" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1536" y2="0">
+      <stop offset="0%"   stop-color="#60c8ff" stop-opacity="0"/>
+      <stop offset="10%"  stop-color="#60c8ff" stop-opacity="1"/>
+      <stop offset="90%"  stop-color="#60c8ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#60c8ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fadeFaint" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1536" y2="0">
+      <stop offset="0%"   stop-color="#90d8ff" stop-opacity="0"/>
+      <stop offset="10%"  stop-color="#90d8ff" stop-opacity="1"/>
+      <stop offset="90%"  stop-color="#90d8ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#90d8ff" stop-opacity="0"/>
+    </linearGradient>
   </defs>
 
   <!-- Base background -->
@@ -88,37 +119,37 @@
   <!-- Outer dim halo -->
     <g opacity="0.18">
       <path d="M 0 450 C 300 408 580 408 900 467 C 1100 510 1300 520 1536 515"
-            stroke="#1060c0" stroke-width="22" fill="none"/>
+            stroke="url(#fadeHalo)" stroke-width="22" fill="none"/>
       <path d="M 0 485 C 300 525 580 525 900 467 C 1100 420 1300 412 1536 415"
-            stroke="#1060c0" stroke-width="22" fill="none"/>
+            stroke="url(#fadeHalo)" stroke-width="22" fill="none"/>
     </g>
 
     <!-- Mid glow layer -->
     <g filter="url(#glow)" opacity="0.55">
       <!-- Wave A: arches up to peak ~(442,421), crosses at (900,467), sweeps low-right -->
       <path d="M 0 450 C 300 408 580 408 900 467 C 1100 510 1300 520 1536 515"
-            stroke="#2090ff" stroke-width="4" fill="none"/>
+            stroke="url(#fadeMain)" stroke-width="4" fill="none"/>
       <!-- Wave B: dips to trough ~(442,513), crosses at (900,467), sweeps high-right -->
       <path d="M 0 485 C 300 525 580 525 900 467 C 1100 420 1300 412 1536 415"
-            stroke="#2090ff" stroke-width="4" fill="none"/>
+            stroke="url(#fadeMain)" stroke-width="4" fill="none"/>
       <!-- Wave A2: tight parallel offset -->
       <path d="M 0 455 C 300 414 580 414 900 472 C 1100 514 1300 524 1536 519"
-            stroke="#40b0ff" stroke-width="2" fill="none"/>
+            stroke="url(#fadeOff)" stroke-width="2" fill="none"/>
       <!-- Wave B2: tight parallel offset -->
       <path d="M 0 480 C 300 519 580 519 900 473 C 1100 426 1300 418 1536 421"
-            stroke="#40b0ff" stroke-width="2" fill="none"/>
+            stroke="url(#fadeOff)" stroke-width="2" fill="none"/>
     </g>
 
     <!-- Crisp bright wave lines on top -->
     <g>
       <path d="M 0 450 C 300 408 580 408 900 467 C 1100 510 1300 520 1536 515"
-            stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
+            stroke="url(#fadeCrisp)" stroke-width="1.5" fill="none" opacity="0.9"/>
       <path d="M 0 485 C 300 525 580 525 900 467 C 1100 420 1300 412 1536 415"
-            stroke="#60c8ff" stroke-width="1.5" fill="none" opacity="0.9"/>
+            stroke="url(#fadeCrisp)" stroke-width="1.5" fill="none" opacity="0.9"/>
       <path d="M 0 455 C 300 414 580 414 900 472 C 1100 514 1300 524 1536 519"
-            stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
+            stroke="url(#fadeFaint)" stroke-width="1" fill="none" opacity="0.7"/>
       <path d="M 0 480 C 300 519 580 519 900 473 C 1100 426 1300 418 1536 421"
-            stroke="#90d8ff" stroke-width="1" fill="none" opacity="0.7"/>
+            stroke="url(#fadeFaint)" stroke-width="1" fill="none" opacity="0.7"/>
     </g>
 
   <!-- Scattered star dots -->

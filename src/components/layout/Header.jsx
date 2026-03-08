@@ -13,8 +13,6 @@ export default function Header() {
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center 45%',
-        maskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
       }}
     >
       <div className="container mx-auto max-w-4xl px-4 py-6 flex flex-col items-center" style={{ backdropFilter: 'brightness(0.85)' }}>
