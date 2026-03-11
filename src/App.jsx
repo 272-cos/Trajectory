@@ -12,6 +12,7 @@ const SelfCheckTab = lazy(() => import('./components/tabs/SelfCheckTab.jsx'))
 const ProjectTab = lazy(() => import('./components/tabs/ProjectTab.jsx'))
 const HistoryTab = lazy(() => import('./components/tabs/HistoryTab.jsx'))
 const ReportTab = lazy(() => import('./components/tabs/ReportTab.jsx'))
+const ToolsTab = lazy(() => import('./components/tabs/ToolsTab.jsx'))
 
 function TabSkeleton() {
   return (
@@ -51,6 +52,8 @@ function AppContent() {
         return <HistoryTab />
       case 'report':
         return <ReportTab />
+      case 'tools':
+        return <ToolsTab />
       default:
         return <ProfileTab />
     }

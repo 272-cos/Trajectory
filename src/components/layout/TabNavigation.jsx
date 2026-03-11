@@ -11,6 +11,7 @@ const TABS = [
   { id: 'project', label: 'Trajectory' },
   { id: 'history', label: 'History' },
   { id: 'report', label: 'Report' },
+  { id: 'tools', label: 'Tools' },
 ]
 
 export default function TabNavigation() {
