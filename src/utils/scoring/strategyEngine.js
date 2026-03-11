@@ -285,7 +285,7 @@ export function effortEstimate(exercise, currentValue, targetValue, gender, ageB
  * @param {string} ageBracket - Age bracket constant
  * @returns {number|null} Performance value (threshold) closest to target percentage
  */
-function findValueAtScorePct(exercise, targetScorePct, gender, ageBracket) {
+export function findValueAtScorePct(exercise, targetScorePct, gender, ageBracket) {
   const table = getScoringTable(gender, ageBracket, exercise)
   if (!table || table.length === 0) return null
 

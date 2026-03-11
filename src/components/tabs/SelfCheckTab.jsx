@@ -9,6 +9,7 @@ import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 import { EXERCISE_NAMES } from '../../utils/scoring/strategyEngine.js'
+import ExerciseComparison from './ExerciseComparison.jsx'
 import { getExercisePrefs, saveExercisePrefs, saveDraft, loadDraft, clearDraft } from '../../utils/storage/localStorage.js'
 
 /**
@@ -179,7 +180,7 @@ export default function SelfCheckTab() {
             gender,
             ageBracket
           )
-          components.push({ ...cardioScore, type: COMPONENTS.CARDIO, exercise: cardioExercise })
+          components.push({ ...cardioScore, type: COMPONENTS.CARDIO, exercise: cardioExercise, value })
         }
       } else if (cardioExempt && walkSelected && walkTime) {
         // IV-11: 2km walk for profiled members
@@ -190,7 +191,7 @@ export default function SelfCheckTab() {
             gender,
             ageBracket
           )
-          components.push({ ...walkScore, type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM })
+          components.push({ ...walkScore, type: COMPONENTS.CARDIO, exercise: EXERCISES.WALK_2KM, value })
         }
       } else if (cardioExempt) {
         components.push({ type: COMPONENTS.CARDIO, exempt: true, tested: false, pass: true })
@@ -205,7 +206,7 @@ export default function SelfCheckTab() {
             gender,
             ageBracket
           )
-          components.push({ ...strengthScore, type: COMPONENTS.STRENGTH, exercise: strengthExercise })
+          components.push({ ...strengthScore, type: COMPONENTS.STRENGTH, exercise: strengthExercise, value })
         }
       } else if (strengthExempt) {
         components.push({ type: COMPONENTS.STRENGTH, exempt: true, tested: false, pass: true })
@@ -221,7 +222,7 @@ export default function SelfCheckTab() {
             gender,
             ageBracket
           )
-          components.push({ ...coreScore, type: COMPONENTS.CORE, exercise: coreExercise })
+          components.push({ ...coreScore, type: COMPONENTS.CORE, exercise: coreExercise, value })
         }
       } else if (coreExempt) {
         components.push({ type: COMPONENTS.CORE, exempt: true, tested: false, pass: true })
@@ -245,7 +246,7 @@ export default function SelfCheckTab() {
       }
 
       const composite = calculateCompositeScore(components)
-      setScores({ components, composite })
+      setScores({ components, composite, ageBracket, gender })
     } catch (err) {
       console.error('Error calculating scores:', err)
       setScores(null)
@@ -639,6 +640,15 @@ export default function SelfCheckTab() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Exercise Comparison - visible whenever at least one component is scored */}
+      {scores && scores.components && scores.components.some(c => c.tested && !c.exempt && !c.walkOnly) && (
+        <ExerciseComparison
+          scores={scores}
+          gender={scores.gender}
+          ageBracket={scores.ageBracket}
+        />
       )}
 
       {/* Assessment Date + Exercise Components */}
