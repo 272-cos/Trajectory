@@ -381,16 +381,16 @@ Each scoring table defines a curve: performance input (reps, time, shuttles) map
 
 **Rationale:** HAMR failure is primarily a timing/rhythm problem, not a cardio problem (per r/AirForce community consensus). Official HAMR audio exists on SoundCloud and base websites, but no app integrates a metronome/beep generator. Users juggle separate audio files + timer apps. Building this with Web Audio API requires zero external dependencies.
 
-- [ ] HAMR beep generator using Web Audio API (no audio files needed)
-- [ ] Follows official Leger 20m shuttle protocol: Level 1 starts at ~8.5 km/h, increments per level
-- [ ] Beep cadence: one beep per shuttle, triple beep on level change
-- [ ] Visual display: current level, shuttle count within level, total shuttles, elapsed time
-- [ ] Auto-score: "You completed 54 shuttles = X pts for your bracket"
-- [ ] Pause/resume support
-- [ ] Level selector: start from any level (for experienced users warming up)
-- [ ] Audio works in background (for running with phone in pocket)
-- [ ] Screen wake lock during active session
-- [ ] Unit tests: verify beep intervals match official HAMR timing table per level
+- [x] HAMR beep generator using Web Audio API (no audio files needed)
+- [x] Follows official Leger 20m shuttle protocol: Level 1 starts at ~8.5 km/h, increments per level
+- [x] Beep cadence: one beep per shuttle, triple beep on level change
+- [x] Visual display: current level, shuttle count within level, total shuttles, elapsed time
+- [x] Auto-score: "You completed 54 shuttles = X pts for your bracket"
+- [x] Pause/resume support
+- [x] Level selector: start from any level (for experienced users warming up)
+- [x] Audio works in background (for running with phone in pocket)
+- [x] Screen wake lock during active session
+- [x] Unit tests: verify beep intervals match official HAMR timing table per level
 
 **File:** `src/utils/hamr/hamrMetronome.js` (pure timing logic), component in `src/components/tools/`
 
@@ -564,5 +564,5 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 | 5 | 5.1 | ✅ Complete | History tab with trend chart |
 | 6 | 6.1 | ✅ Complete | Report generation |
 | 7 | 7.1, 7.2, 7.3 | ✅ Complete | PWA + accessibility + chart update banner |
-| 8 | 8.1, 8.2, 8.3, 8.4 | 🔄 In Progress | 8.1 complete (effort-weighted strategy engine); 8.2-8.4 pending (stopwatch, HAMR metronome, exercise comparison) |
+| 8 | 8.1, 8.2, 8.3, 8.4 | 🔄 In Progress | 8.1 complete (effort-weighted strategy engine); 8.2 complete (stopwatch); 8.3 complete (HAMR metronome); 8.4 pending (exercise comparison) |
 | 9 | 9.1, 9.2 | ❌ Pending | Curated training resources + personalized training plans |

@@ -37,6 +37,7 @@ export default [
         atob: 'readonly',
         TextEncoder: 'readonly',
         TextDecoder: 'readonly',
+        AudioContext: 'readonly',
       },
     },
     plugins: {

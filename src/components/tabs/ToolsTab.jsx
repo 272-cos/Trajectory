@@ -1,9 +1,10 @@
 /**
  * Tools Tab - Practice utilities for USAF PFA preparation
- * Sprint 8: 8.2 Stopwatch + Lap Timer (HAMR metronome, exercise comparison planned)
+ * Sprint 8: 8.2 Stopwatch + Lap Timer, 8.3 HAMR Practice Metronome
  */
 
 import Stopwatch from '../tools/Stopwatch.jsx'
+import HamrMetronome from '../tools/HamrMetronome.jsx'
 
 export default function ToolsTab() {
   return (
@@ -13,6 +14,7 @@ export default function ToolsTab() {
       aria-labelledby="tools-tab"
       className="space-y-4"
     >
+      <HamrMetronome />
       <Stopwatch />
     </div>
   )

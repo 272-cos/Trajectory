@@ -1,0 +1,531 @@
+/**
+ * HAMR Practice Metronome
+ * Task 8.3 - HAMR Practice Metronome
+ *
+ * Generates HAMR beep audio via Web Audio API (no audio files required).
+ * Follows official Leger 20m shuttle run protocol timing.
+ *
+ * Features:
+ * - Accurate beep cadence per official HAMR timing table
+ * - Single beep per shuttle, triple beep on level change
+ * - Visual: current level, shuttle within level, total shuttles, elapsed time
+ * - Level selector: start from any level (1-21)
+ * - Pause/resume with drift-compensated scheduling
+ * - Auto-score: shuttle count -> points for user's bracket
+ * - Screen wake lock during active session
+ */
+
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useApp } from '../../context/AppContext.jsx'
+import { lookupScore } from '../../utils/scoring/scoringEngine.js'
+import { EXERCISES, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
+import {
+  getLevelForShuttle,
+  firstShuttleOfLevel,
+  formatElapsed,
+  HAMR_LEVELS,
+  MAX_LEVEL,
+} from '../../utils/hamr/hamrMetronome.js'
+
+const SESSION_KEY = 'pfa_practice_hamr'
+
+// Beep audio parameters
+const BEEP_FREQ = 1320    // Hz - high-pitched short beep
+const BEEP_DURATION = 0.07 // seconds per beep tone
+const TRIPLE_GAP = 0.15    // seconds between triple beep starts
+
+/**
+ * Schedule a single beep tone into the AudioContext.
+ * @param {AudioContext} ctx - Web Audio context
+ * @param {number} when - AudioContext time to start beep (seconds)
+ */
+function scheduleBeepTone(ctx, when) {
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.type = 'sine'
+  osc.frequency.value = BEEP_FREQ
+  gain.gain.setValueAtTime(0.6, when)
+  gain.gain.exponentialRampToValueAtTime(0.001, when + BEEP_DURATION)
+  osc.start(when)
+  osc.stop(when + BEEP_DURATION + 0.01)
+}
+
+/**
+ * Schedule audio beep(s) into the AudioContext.
+ * Single beep for normal shuttle, triple beep for level change.
+ * @param {AudioContext} ctx - Web Audio context
+ * @param {boolean} isLevelChange - Whether to play triple beep
+ */
+function scheduleAudioBeep(ctx, isLevelChange) {
+  if (!ctx || ctx.state === 'closed') return
+  const when = ctx.currentTime + 0.01 // tiny lookahead to avoid glitches
+  if (isLevelChange) {
+    scheduleBeepTone(ctx, when)
+    scheduleBeepTone(ctx, when + TRIPLE_GAP)
+    scheduleBeepTone(ctx, when + TRIPLE_GAP * 2)
+  } else {
+    scheduleBeepTone(ctx, when)
+  }
+}
+
+export default function HamrMetronome() {
+  const { demographics } = useApp()
+
+  // UI state
+  const [status, setStatus] = useState('idle') // 'idle' | 'running' | 'paused' | 'done'
+  const [startLevel, setStartLevel] = useState(1)
+  const [totalShuttles, setTotalShuttles] = useState(0)
+  const [elapsedMs, setElapsedMs] = useState(0)
+  const [audioError, setAudioError] = useState(false)
+
+  // Derived: level info for current shuttle count
+  const levelInfo = totalShuttles > 0 ? getLevelForShuttle(totalShuttles) : null
+
+  // Timing refs - avoid stale closures
+  const audioCtxRef = useRef(null)
+  const tickTimeoutRef = useRef(null)
+  const displayIntervalRef = useRef(null)
+  const wakeLockRef = useRef(null)
+
+  // Scheduler state refs
+  const nextShuttleRef = useRef(1)       // next shuttle number to complete (1-indexed total)
+  const nextBeepAtRef = useRef(0)        // absolute performance.now() when next beep fires
+  const sessionStartRef = useRef(null)   // performance.now() at session start (pause-adjusted)
+  const pauseStartRef = useRef(null)     // performance.now() when paused
+  const totalPausedMsRef = useRef(0)     // cumulative ms spent paused
+
+  // Wake lock helpers
+  const requestWakeLock = useCallback(async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen')
+      } catch {
+        // Non-critical, continue silently
+      }
+    }
+  }, [])
+
+  const releaseWakeLock = useCallback(() => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release().catch(() => {})
+      wakeLockRef.current = null
+    }
+  }, [])
+
+  // Re-acquire wake lock on visibility change
+  useEffect(() => {
+    const onVisChange = () => {
+      if (document.visibilityState === 'visible' && status === 'running') {
+        requestWakeLock()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisChange)
+    return () => document.removeEventListener('visibilitychange', onVisChange)
+  }, [status, requestWakeLock])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(tickTimeoutRef.current)
+      if (displayIntervalRef.current) clearInterval(displayIntervalRef.current)
+      releaseWakeLock()
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(() => {})
+        audioCtxRef.current = null
+      }
+    }
+  }, [releaseWakeLock])
+
+  // Display update interval (runs while active)
+  const startDisplayInterval = useCallback(() => {
+    if (displayIntervalRef.current) clearInterval(displayIntervalRef.current)
+    displayIntervalRef.current = setInterval(() => {
+      const elapsed = performance.now() - sessionStartRef.current - totalPausedMsRef.current
+      setElapsedMs(Math.max(0, elapsed))
+    }, 200)
+  }, [])
+
+  const stopDisplayInterval = useCallback(() => {
+    if (displayIntervalRef.current) {
+      clearInterval(displayIntervalRef.current)
+      displayIntervalRef.current = null
+    }
+  }, [])
+
+  // Core scheduler: schedule next beep
+  const scheduleTick = useCallback(() => {
+    const shuttleNum = nextShuttleRef.current
+    const info = getLevelForShuttle(shuttleNum)
+    if (!info) {
+      // All levels complete
+      setStatus('done')
+      stopDisplayInterval()
+      releaseWakeLock()
+      return
+    }
+
+    const delay = Math.max(0, nextBeepAtRef.current - performance.now())
+    tickTimeoutRef.current = setTimeout(() => {
+      // Determine if the shuttle AFTER this one is a level change
+      const nextInfo = getLevelForShuttle(shuttleNum + 1)
+      const isLevelChange = info.isLastInLevel && nextInfo !== null
+
+      // Play audio
+      if (audioCtxRef.current) {
+        scheduleAudioBeep(audioCtxRef.current, isLevelChange)
+      }
+
+      // Update display
+      setTotalShuttles(shuttleNum)
+
+      // Advance to next shuttle
+      const nextNum = shuttleNum + 1
+      nextShuttleRef.current = nextNum
+
+      const nextInfo2 = getLevelForShuttle(nextNum)
+      if (!nextInfo2) {
+        // Just completed final shuttle
+        setStatus('done')
+        stopDisplayInterval()
+        releaseWakeLock()
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+          totalShuttles: shuttleNum,
+          timestamp: Date.now(),
+        }))
+        return
+      }
+
+      // Advance next beep target by this shuttle's interval
+      // (nextInfo2.intervalMs is the time to run the NEXT shuttle)
+      nextBeepAtRef.current += nextInfo2.intervalMs
+      scheduleTick()
+    }, delay)
+  }, [stopDisplayInterval, releaseWakeLock])
+
+  const handleStart = useCallback(async () => {
+    // Initialize AudioContext on user gesture (required by browsers)
+    try {
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new AudioContext()
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        await audioCtxRef.current.resume()
+      }
+      setAudioError(false)
+    } catch {
+      setAudioError(true)
+      // Continue without audio - visual metronome still works
+    }
+
+    const firstShuttle = firstShuttleOfLevel(startLevel)
+    const firstInfo = getLevelForShuttle(firstShuttle)
+    if (!firstInfo) return
+
+    // Initialize scheduler state
+    nextShuttleRef.current = firstShuttle
+    sessionStartRef.current = performance.now()
+    totalPausedMsRef.current = 0
+    pauseStartRef.current = null
+
+    // First beep fires after one shuttle interval
+    nextBeepAtRef.current = performance.now() + firstInfo.intervalMs
+
+    setTotalShuttles(0)
+    setElapsedMs(0)
+    setStatus('running')
+    requestWakeLock()
+    startDisplayInterval()
+    scheduleTick()
+  }, [startLevel, requestWakeLock, startDisplayInterval, scheduleTick])
+
+  const handlePause = useCallback(() => {
+    clearTimeout(tickTimeoutRef.current)
+    tickTimeoutRef.current = null
+    pauseStartRef.current = performance.now()
+    setStatus('paused')
+    stopDisplayInterval()
+    releaseWakeLock()
+  }, [stopDisplayInterval, releaseWakeLock])
+
+  const handleResume = useCallback(async () => {
+    // Re-resume AudioContext if needed
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      try {
+        await audioCtxRef.current.resume()
+      } catch {
+        // Non-critical
+      }
+    }
+
+    // Shift the next beep target forward by pause duration
+    const pauseDuration = performance.now() - pauseStartRef.current
+    totalPausedMsRef.current += pauseDuration
+    nextBeepAtRef.current += pauseDuration
+    pauseStartRef.current = null
+
+    setStatus('running')
+    requestWakeLock()
+    startDisplayInterval()
+    scheduleTick()
+  }, [requestWakeLock, startDisplayInterval, scheduleTick])
+
+  const handleStop = useCallback(() => {
+    clearTimeout(tickTimeoutRef.current)
+    tickTimeoutRef.current = null
+    stopDisplayInterval()
+    releaseWakeLock()
+    // Persist final shuttle count
+    if (totalShuttles > 0) {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        totalShuttles,
+        timestamp: Date.now(),
+      }))
+    }
+    setStatus('idle')
+    setTotalShuttles(0)
+    setElapsedMs(0)
+  }, [totalShuttles, stopDisplayInterval, releaseWakeLock])
+
+  const handleReset = useCallback(() => {
+    clearTimeout(tickTimeoutRef.current)
+    tickTimeoutRef.current = null
+    stopDisplayInterval()
+    releaseWakeLock()
+    setStatus('idle')
+    setTotalShuttles(0)
+    setElapsedMs(0)
+  }, [stopDisplayInterval, releaseWakeLock])
+
+  // Auto-score: compute points for completed shuttle count
+  const autoScore = (() => {
+    if (!demographics || totalShuttles === 0) return null
+    const age = calculateAge(new Date(demographics.dob))
+    const ageBracket = getAgeBracket(age)
+    const result = lookupScore(EXERCISES.HAMR, totalShuttles, demographics.gender, ageBracket)
+    if (!result) return null
+    return { points: result.points, maxPoints: result.maxPoints, shuttles: totalShuttles }
+  })()
+
+  const isIdle = status === 'idle'
+  const isRunning = status === 'running'
+  const isPaused = status === 'paused'
+  const isDone = status === 'done'
+  const showScore = (isPaused || isDone) && autoScore
+  const showScorePrompt = (isPaused || isDone) && !autoScore && totalShuttles > 0
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-5">
+      <h2 className="text-lg font-bold text-gray-900 mb-1">HAMR Practice Metronome</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Leger 20m shuttle run - audio beeps guide your pace
+      </p>
+
+      {audioError && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-800">
+          Audio unavailable - check browser permissions. Visual metronome still works.
+        </div>
+      )}
+
+      {/* Level selector (idle only) */}
+      {isIdle && (
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="hamr-start-level">
+            Start level
+          </label>
+          <select
+            id="hamr-start-level"
+            value={startLevel}
+            onChange={e => setStartLevel(Number(e.target.value))}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Choose starting level for HAMR metronome"
+          >
+            {HAMR_LEVELS.map(({ level, speedKmh }) => (
+              <option key={level} value={level}>
+                Level {level} - {speedKmh} km/h
+                {level === 1 ? ' (start here for full test)' : ''}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Experienced runners can warm up by starting at a higher level.
+          </p>
+        </div>
+      )}
+
+      {/* Main status display */}
+      {(isRunning || isPaused || isDone) && (
+        <div className="mb-6 space-y-4">
+          {/* Level and shuttle info */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-blue-50 rounded-xl p-4 text-center">
+              <div
+                className="text-5xl font-bold text-blue-900 tabular-nums"
+                aria-live="polite"
+                aria-label={`Current level ${levelInfo?.level ?? '-'}`}
+              >
+                {levelInfo?.level ?? '-'}
+              </div>
+              <div className="text-xs text-blue-600 mt-1 font-medium uppercase tracking-wide">Level</div>
+              {levelInfo && (
+                <div className="text-sm text-blue-700 mt-0.5">{levelInfo.speedKmh} km/h</div>
+              )}
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-4 text-center">
+              <div
+                className="text-5xl font-bold text-gray-900 tabular-nums"
+                aria-live="polite"
+                aria-label={`Total shuttles ${totalShuttles}`}
+              >
+                {totalShuttles}
+              </div>
+              <div className="text-xs text-gray-500 mt-1 font-medium uppercase tracking-wide">Shuttles</div>
+              {levelInfo && (
+                <div className="text-sm text-gray-500 mt-0.5">
+                  {levelInfo.shuttleWithinLevel}/{levelInfo.shuttlesInLevel} in level
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Elapsed time */}
+          <div className="text-center">
+            <div
+              className="font-mono text-2xl font-semibold text-gray-700 tabular-nums"
+              aria-label={`Elapsed time ${formatElapsed(elapsedMs)}`}
+            >
+              {formatElapsed(elapsedMs)}
+            </div>
+            <div className="text-xs text-gray-400 mt-0.5">elapsed</div>
+          </div>
+
+          {/* Level progress bar */}
+          {levelInfo && (
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Level {levelInfo.level} progress</span>
+                <span>{levelInfo.shuttleWithinLevel} / {levelInfo.shuttlesInLevel}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(levelInfo.shuttleWithinLevel / levelInfo.shuttlesInLevel) * 100}%` }}
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={levelInfo.shuttlesInLevel}
+                  aria-valuenow={levelInfo.shuttleWithinLevel}
+                />
+              </div>
+            </div>
+          )}
+
+          {isDone && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+              <p className="text-sm font-semibold text-green-800">All levels complete!</p>
+              <p className="text-xs text-green-700 mt-0.5">
+                {totalShuttles} total shuttles - Level {MAX_LEVEL} finished
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Control buttons */}
+      <div className="flex gap-3 justify-center mb-5">
+        {isIdle && (
+          <button
+            onClick={handleStart}
+            className="flex-1 max-w-xs bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold py-4 px-6 rounded-xl text-lg transition-colors min-h-[56px] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            aria-label={`Start HAMR metronome from level ${startLevel}`}
+          >
+            Start
+          </button>
+        )}
+
+        {isRunning && (
+          <>
+            <button
+              onClick={handlePause}
+              className="flex-1 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-semibold py-4 px-6 rounded-xl text-lg transition-colors min-h-[56px] focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+              aria-label="Pause HAMR metronome"
+            >
+              Pause
+            </button>
+            <button
+              onClick={handleStop}
+              className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold py-4 px-6 rounded-xl text-lg transition-colors min-h-[56px] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              aria-label="Stop HAMR metronome and reset"
+            >
+              Stop
+            </button>
+          </>
+        )}
+
+        {isPaused && (
+          <>
+            <button
+              onClick={handleReset}
+              className="flex-1 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-semibold py-4 px-6 rounded-xl text-lg transition-colors min-h-[56px] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+              aria-label="Reset HAMR metronome"
+            >
+              Reset
+            </button>
+            <button
+              onClick={handleResume}
+              className="flex-1 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold py-4 px-6 rounded-xl text-lg transition-colors min-h-[56px] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+              aria-label="Resume HAMR metronome"
+            >
+              Resume
+            </button>
+          </>
+        )}
+
+        {isDone && (
+          <button
+            onClick={handleReset}
+            className="flex-1 max-w-xs bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-semibold py-4 px-6 rounded-xl text-lg transition-colors min-h-[56px] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+            aria-label="Reset HAMR metronome"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+
+      {/* Auto-score callout */}
+      {showScore && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+          <p className="text-sm text-blue-800">
+            <span className="font-semibold">HAMR Score:</span>{' '}
+            {autoScore.points}/{autoScore.maxPoints} pts for your bracket
+          </p>
+          <p className="text-xs text-blue-600 mt-0.5">
+            {autoScore.shuttles} shuttles - go to Self-Check to record this result
+          </p>
+        </div>
+      )}
+
+      {showScorePrompt && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+          <p className="text-sm text-gray-600">
+            {totalShuttles} shuttles completed. Set up your Profile to see your HAMR score.
+          </p>
+        </div>
+      )}
+
+      {/* Protocol reference */}
+      {isIdle && (
+        <div className="mt-4 bg-gray-50 rounded-lg p-3">
+          <p className="text-xs font-semibold text-gray-600 mb-1">How to use</p>
+          <ul className="text-xs text-gray-500 space-y-0.5">
+            <li>- One beep = reach the line (20m shuttle)</li>
+            <li>- Triple beep = new level, speed increases</li>
+            <li>- Stay with the beeps; stop when you can no longer reach the line in time</li>
+            <li>- Levels 1-21, speed 8.5-18.5 km/h</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
