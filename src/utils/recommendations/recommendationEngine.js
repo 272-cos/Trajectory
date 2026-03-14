@@ -275,6 +275,19 @@ export function getTierEmoji(percentage) {
 
 // ─── Weekly Training Plan Generator ────────────────────────────────────────────
 
+// Short display labels for exercises used in schedule output
+const EXERCISE_SHORT_LABELS = {
+  [EXERCISES.RUN_2MILE]: '2-Mile Run',
+  [EXERCISES.HAMR]:      'HAMR Shuttle',
+  [EXERCISES.WALK_2KM]:  '2km Walk',
+  [EXERCISES.PUSHUPS]:   'Push-ups',
+  [EXERCISES.HRPU]:      'HRPU',
+  [EXERCISES.SITUPS]:    'Sit-ups',
+  [EXERCISES.CLRC]:      'Reverse Crunches',
+  [EXERCISES.PLANK]:     'Forearm Plank',
+  [EXERCISES.WHTR]:      'WHtR',
+}
+
 /**
  * Urgency tiers for weekly plan - based on weeks remaining to target PFA date.
  * Urgent (<4 weeks): test-simulation focus, peak intensity.
@@ -588,11 +601,137 @@ export function generateWeeklyPlan(componentData, targetDate) {
     }
   })
 
+  const schedule = buildWeekSchedule(planItems)
+  const bodyCompPlanItem = planItems.find(p => p.component === COMPONENTS.BODY_COMP)
+  const bodyCompHabits = bodyCompPlanItem?.workouts ?? []
+
   return {
     weeksToTarget,
     urgency,
     urgencyLabel: URGENCY_LABELS[urgency],
     planItems,
+    schedule,
+    bodyCompHabits,
     restNote: 'Allow 1-2 complete rest days per week. Never train the same muscle group on consecutive days.',
   }
+}
+
+/**
+ * Build a 7-day weekly schedule from plan items.
+ * Cardio gets its own days (30-40 min each). Strength and core are paired into
+ * combined sessions (30-35 min total). Body comp is handled separately as daily habits.
+ *
+ * Session counts:
+ *   Cardio failing/marginal -> 3x/week; passing -> 2x/week (maintenance)
+ *   Strength + Core (combined) -> 2x/week whenever either component is tested
+ *
+ * @param {Array} planItems - Sorted plan items from generateWeeklyPlan
+ * @returns {Array} 7-element array, one object per day (Monday-Sunday)
+ */
+function buildWeekSchedule(planItems) {
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+  const cardioItem    = planItems.find(p => p.component === COMPONENTS.CARDIO)
+  const strengthItem  = planItems.find(p => p.component === COMPONENTS.STRENGTH)
+  const coreItem      = planItems.find(p => p.component === COMPONENTS.CORE)
+
+  // Cardio: 3x if failing/marginal, 2x if passing, 0 if not tested
+  const cardioSessions = !cardioItem ? 0
+    : (cardioItem.isFailing || cardioItem.tier === TIERS.MARGINAL) ? 3 : 2
+
+  // Strength + Core always paired, always 2x/week if any SC component is tested
+  const scSessions = (strengthItem || coreItem) ? 2 : 0
+
+  // Pick a weekly template. Each slot is a string: C0/C1/C2 = cardio session N,
+  // SC0/SC1 = combined strength+core session N, REC = active recovery, REST = rest.
+  let template
+  if (cardioSessions >= 3 && scSessions >= 2) {
+    // 5 active days: alternate cardio and SC, one recovery
+    template = ['C0', 'SC0', 'C1', 'SC1', 'C2', 'REC', 'REST']
+  } else if (cardioSessions >= 3 && scSessions === 0) {
+    // 3 active days: cardio only, rest between each
+    template = ['C0', 'REST', 'C1', 'REST', 'C2', 'REC', 'REST']
+  } else if (cardioSessions === 2 && scSessions >= 2) {
+    // 4 active days: balanced split with a mid-week rest
+    template = ['C0', 'SC0', 'REST', 'C1', 'SC1', 'REC', 'REST']
+  } else if (cardioSessions === 2 && scSessions === 0) {
+    // 2 active days: cardio only
+    template = ['C0', 'REST', 'REST', 'C1', 'REST', 'REC', 'REST']
+  } else if (cardioSessions === 0 && scSessions >= 2) {
+    // 2 active days: SC only (no cardio tested)
+    template = ['REST', 'SC0', 'REST', 'SC1', 'REST', 'REC', 'REST']
+  } else {
+    template = ['REST', 'REST', 'REST', 'REST', 'REST', 'REST', 'REST']
+  }
+
+  return template.map((slot, i) => {
+    const day = DAYS[i]
+
+    if (slot === 'REST') {
+      return { day, type: 'rest', label: 'Rest', duration: null, sessions: [] }
+    }
+
+    if (slot === 'REC') {
+      return {
+        day, type: 'recovery', label: 'Active Recovery', duration: '20-30 min',
+        sessions: [{
+          exerciseLabel: '',
+          workout: 'Light walk, gentle stretching, or mobility work. Keep effort easy - this helps muscles recover without adding fatigue.',
+          tier: TIERS.STRONG,
+        }],
+      }
+    }
+
+    if (slot.startsWith('C')) {
+      const idx = parseInt(slot[1])
+      const workouts = cardioItem.workouts
+      const workout = workouts[idx % workouts.length]
+      const isMaintain = !cardioItem.isFailing && cardioItem.tier === TIERS.STRONG
+      return {
+        day,
+        type: 'cardio',
+        label: isMaintain ? 'Cardio - Maintain' : 'Cardio',
+        duration: '30-40 min',
+        sessions: [{
+          exerciseLabel: EXERCISE_SHORT_LABELS[cardioItem.exercise] ?? 'Cardio',
+          workout,
+          tier: cardioItem.tier,
+          component: COMPONENTS.CARDIO,
+        }],
+      }
+    }
+
+    if (slot.startsWith('SC')) {
+      const idx = parseInt(slot[2])
+      const sessions = []
+      if (strengthItem) {
+        const workouts = strengthItem.workouts
+        sessions.push({
+          exerciseLabel: EXERCISE_SHORT_LABELS[strengthItem.exercise] ?? 'Strength',
+          workout: workouts[idx % workouts.length],
+          tier: strengthItem.tier,
+          component: COMPONENTS.STRENGTH,
+        })
+      }
+      if (coreItem) {
+        const workouts = coreItem.workouts
+        sessions.push({
+          exerciseLabel: EXERCISE_SHORT_LABELS[coreItem.exercise] ?? 'Core',
+          workout: workouts[idx % workouts.length],
+          tier: coreItem.tier,
+          component: COMPONENTS.CORE,
+        })
+      }
+      const allMaintain = sessions.length > 0 && sessions.every(s => !planItems.find(p => p.component === s.component)?.isFailing && s.tier === TIERS.STRONG)
+      return {
+        day,
+        type: 'sc',
+        label: allMaintain ? 'Strength & Core - Maintain' : 'Strength & Core',
+        duration: sessions.length === 2 ? '30-35 min' : '20-25 min',
+        sessions,
+      }
+    }
+
+    return { day, type: 'rest', label: 'Rest', duration: null, sessions: [] }
+  })
 }

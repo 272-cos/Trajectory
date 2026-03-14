@@ -447,11 +447,33 @@ const URGENCY_STYLES = {
   long_term: { card: 'border-green-300 bg-green-50', badge: 'bg-green-100 text-green-800' },
 }
 
+// Tier badge color for a session exercise label
+function TierBadge({ tier, isFailing }) {
+  if (isFailing || tier === 'failing') {
+    return <span className="text-xs px-1 py-0.5 rounded bg-red-100 text-red-700 font-medium ml-1">FOCUS</span>
+  }
+  if (tier === 'marginal') {
+    return <span className="text-xs px-1 py-0.5 rounded bg-amber-100 text-amber-700 font-medium ml-1">BUILD</span>
+  }
+  return <span className="text-xs px-1 py-0.5 rounded bg-green-100 text-green-700 font-medium ml-1">MAINTAIN</span>
+}
+
+// Day type styles
+const DAY_TYPE_STYLES = {
+  cardio:   { border: 'border-blue-400',  header: 'text-blue-700',  bg: 'bg-blue-50' },
+  sc:       { border: 'border-violet-400', header: 'text-violet-700', bg: 'bg-violet-50' },
+  recovery: { border: 'border-green-400', header: 'text-green-700', bg: 'bg-green-50' },
+  rest:     { border: 'border-gray-200',  header: 'text-gray-400',  bg: 'bg-gray-50' },
+}
+
 function WeeklyTrainingPlan({ plan }) {
   const [expanded, setExpanded] = useState(true)
   if (!plan) return null
 
   const { card: cardStyle, badge: badgeStyle } = URGENCY_STYLES[plan.urgency] ?? URGENCY_STYLES.standard
+  const hasFailingItems = plan.planItems.some(p => p.isFailing)
+  const schedule = plan.schedule ?? []
+  const bodyCompHabits = plan.bodyCompHabits ?? []
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -466,7 +488,7 @@ function WeeklyTrainingPlan({ plan }) {
       </button>
 
       {expanded && (
-        <div className="mt-3 space-y-4">
+        <div className="mt-3 space-y-3">
           {/* Urgency header */}
           <div className={`rounded-lg border p-3 flex items-center gap-3 ${cardStyle}`}>
             <div>
@@ -477,59 +499,76 @@ function WeeklyTrainingPlan({ plan }) {
                 {plan.weeksToTarget} week{plan.weeksToTarget !== 1 ? 's' : ''} to target PFA date
               </p>
             </div>
-            {plan.planItems.some(p => p.isFailing) && (
+            {hasFailingItems && (
               <p className="text-xs text-gray-600 ml-auto text-right max-w-[160px]">
-                Focus on failing components first - they have the largest score impact.
+                FOCUS sessions target your weakest areas - prioritize these above all else.
               </p>
             )}
           </div>
 
-          {/* Plan items - one per component, sorted by priority */}
-          {plan.planItems.map(item => {
-            const borderColor = item.isFailing ? 'border-red-400' : item.tier === 'marginal' ? 'border-amber-400' : 'border-green-400'
-            const isBodyComp = item.component === 'bodyComp'
+          {/* 7-day calendar */}
+          {schedule.length > 0 && (
+            <div className="space-y-2">
+              {schedule.map((dayEntry) => {
+                const styles = DAY_TYPE_STYLES[dayEntry.type] ?? DAY_TYPE_STYLES.rest
+                const isRest = dayEntry.type === 'rest'
 
-            return (
-              <div key={item.component} className={`border-l-4 pl-3 ${borderColor}`}>
-                {/* Component header row */}
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <span className="text-xs font-bold text-gray-400">#{item.priorityRank}</span>
-                  <span className="text-sm font-semibold text-gray-800">
-                    {COMP_LABELS[item.component]}
-                  </span>
-                  {item.isFailing && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-medium">
-                      FAILING - {item.gapBelowMin.toFixed(1)}% below min
-                    </span>
-                  )}
-                  {!item.isFailing && item.tier === 'marginal' && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
-                      MARGINAL
-                    </span>
-                  )}
-                  <span className="ml-auto text-xs text-gray-500 font-medium">
-                    {isBodyComp ? 'Daily habits' : `${item.sessionsPerWeek}x / week`}
-                  </span>
-                </div>
-
-                {/* Session workout list */}
-                <ul className="space-y-1.5">
-                  {item.workouts.map((workout, i) => (
-                    <li key={i} className="flex gap-2 text-xs text-gray-600">
-                      <span className="text-gray-400 shrink-0 font-medium">
-                        {isBodyComp ? 'Daily' : `Day ${i + 1}`}
+                return (
+                  <div key={dayEntry.day} className={`rounded-md border-l-4 ${styles.border} pl-3 pr-2 py-2 ${isRest ? 'opacity-50' : ''}`}>
+                    {/* Day header row */}
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className={`text-xs font-bold w-20 shrink-0 ${styles.header}`}>
+                        {dayEntry.day}
                       </span>
-                      <span>{workout}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )
-          })}
+                      <span className="text-xs font-semibold text-gray-700">
+                        {dayEntry.label}
+                      </span>
+                      {dayEntry.duration && (
+                        <span className="text-xs text-gray-400 ml-auto shrink-0">{dayEntry.duration}</span>
+                      )}
+                    </div>
 
-          {/* Rest day note */}
+                    {/* Session exercises */}
+                    {dayEntry.sessions.length > 0 && (
+                      <ul className="mt-1.5 space-y-1.5 ml-0">
+                        {dayEntry.sessions.map((s, si) => (
+                          <li key={si} className="text-xs text-gray-600">
+                            {s.exerciseLabel && (
+                              <span className="font-semibold text-gray-700">
+                                {s.exerciseLabel}
+                                <TierBadge tier={s.tier} />
+                                {': '}
+                              </span>
+                            )}
+                            {s.workout}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Daily habits (body comp) - shown separately since it is not a session */}
+          {bodyCompHabits.length > 0 && (
+            <div className="border-l-4 border-orange-300 pl-3 pr-2 py-2 rounded-md">
+              <p className="text-xs font-semibold text-orange-700 mb-1.5">Daily Habits - Body Composition</p>
+              <ul className="space-y-1">
+                {bodyCompHabits.map((habit, i) => (
+                  <li key={i} className="text-xs text-gray-600 flex gap-1.5">
+                    <span className="text-orange-400 shrink-0">-</span>
+                    <span>{habit}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Footer note */}
           <p className="text-xs text-gray-400 italic border-t border-gray-100 pt-2">
-            {plan.restNote}
+            Sessions are 30-45 min and fit a standard work week. Strength and core are always paired on the same day to keep total weekly sessions manageable.
           </p>
         </div>
       )}
