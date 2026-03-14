@@ -1,6 +1,6 @@
 /**
  * Onboarding Modal - Guided slideshow walkthrough for first-time users
- * Multi-step flow: Welcome -> Profile -> Self-Check -> History -> Ready
+ * Multi-step flow: Welcome -> Profile -> Self-Check -> Project -> History -> Tools -> Ready
  */
 
 import { useState, useEffect, useRef } from 'react'
@@ -10,8 +10,8 @@ const SLIDES = [
   {
     id: 'welcome',
     title: 'Welcome to Trajectory',
-    body: 'Track your fitness performance against 2026 PFA standards, project future readiness, and generate supervisor reports.',
-    detail: 'All data stays on your device. No login, no tracking, no cloud.',
+    body: 'Score your PFA performance against 2026 standards, see where you\'re headed, and walk into test day prepared - not guessing.',
+    detail: 'Everything runs in your browser. No login, no tracking, no cloud.',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -20,9 +20,9 @@ const SLIDES = [
   },
   {
     id: 'profile',
-    title: 'Step 1: Set Up Your Profile',
-    body: 'Enter your date of birth, gender, and target PFA date. This generates a short profile code you can reuse across devices.',
-    detail: 'Your profile code starts with "D" - save it to restore your profile anywhere.',
+    title: 'Step 1: Build Your Profile',
+    body: 'Enter your date of birth, gender, and target PFA date. Trajectory generates a compact profile code that carries your demographics - paste it on any device to pick up where you left off.',
+    detail: 'Your D-code encodes only DOB and gender. No name, no SSN, nothing that identifies you.',
     tab: 'profile',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -33,8 +33,8 @@ const SLIDES = [
   {
     id: 'selfcheck',
     title: 'Step 2: Record a Self-Check',
-    body: 'Enter your exercise results - run time, push-ups, sit-ups, and body measurements. Scores update live as you type.',
-    detail: 'When done, tap "Save Assessment" to create a shareable assessment code (starts with "S").',
+    body: 'Log results for any combination of components - run or HAMR, push-ups or hand-release, sit-ups or plank. Scores update live as you type. Partial entries still give you component-level feedback; the composite appears once all four are in.',
+    detail: 'Save to generate an S-code: a 22-character snapshot of the session you can share or archive.',
     tab: 'selfcheck',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -43,10 +43,10 @@ const SLIDES = [
     ),
   },
   {
-    id: 'trajectory',
-    title: 'Step 3: Track Your Trajectory',
-    body: 'The Trajectory tab shows your projected readiness and personalized training recommendations based on your results.',
-    detail: 'The History tab stores all your past assessments with trend charts.',
+    id: 'project',
+    title: 'Step 3: See Your Trajectory',
+    body: 'The Project tab turns your history into a forecast. Gap bars show exactly how far each component sits from passing, and the weekly training plan tells you what to work on first - ranked by how many points each session is worth.',
+    detail: 'Add a target PFA date to unlock point-per-week improvement targets and curated training resources for each exercise.',
     tab: 'project',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -55,9 +55,33 @@ const SLIDES = [
     ),
   },
   {
+    id: 'history',
+    title: 'Step 4: Track the Trend',
+    body: 'History keeps every S-code you save and renders them as a timeline - composite trend line, per-component sparklines, and raw values side by side. Import codes from other devices to build a complete picture, or export the full set to back it up.',
+    detail: 'The Report tab converts any selection of self-checks into a formatted supervisor summary, ready to print or copy as plain text.',
+    tab: 'history',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'tools',
+    title: 'Step 5: Practice with Confidence',
+    body: 'The Tools tab has a precision stopwatch - including lap splits and automatic score lookup for your age bracket - so a training run gives you an instant "what would that score?" answer. The HAMR Metronome lets you dial in shuttle cadence before you set foot on a court.',
+    detail: 'Not sure which exercise option suits you? The Self-Check tab includes an exercise comparison that shows equivalent performance across alternatives.',
+    tab: 'tools',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+      </svg>
+    ),
+  },
+  {
     id: 'ready',
-    title: 'You\'re All Set',
-    body: 'Start by setting up your profile, then record your first self-check. Your data never leaves your browser.',
+    title: 'Ready to Go',
+    body: 'Start on the Profile tab, enter your demographics, and set a target date. Everything else follows from there.',
     detail: null,
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -213,7 +237,7 @@ export default function OnboardingModal() {
         {/* Privacy note on last slide */}
         {isLast && (
           <p className="text-xs text-gray-500 mt-4 text-center">
-            Your data stays private. No login required.
+            Data stays private - no account, no server, no problem.
           </p>
         )}
       </div>
