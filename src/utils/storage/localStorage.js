@@ -8,6 +8,8 @@ const STORAGE_KEYS = {
   SCODES: 'pfa_scodes',
   TARGET_DATE: 'pfa_target_date',
   ONBOARDED: 'pfa_onboarded',
+  DARK_MODE: 'pfa_dark_mode',
+  PERSONAL_GOAL: 'pfa_personal_goal',
 }
 
 /**
@@ -129,6 +131,44 @@ export function setOnboarded() {
   }
 }
 
+// ── Dark mode ────────────────────────────────────────────────────────────────
+
+export function getDarkMode() {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function saveDarkMode(enabled) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(enabled))
+  } catch {
+    // ignore
+  }
+}
+
+// ── Personal score goal ──────────────────────────────────────────────────────
+
+export function getPersonalGoal() {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.PERSONAL_GOAL)
+    const num = val ? parseFloat(val) : null
+    return num != null && !isNaN(num) ? num : 75.0
+  } catch {
+    return 75.0
+  }
+}
+
+export function savePersonalGoal(goal) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PERSONAL_GOAL, String(goal))
+  } catch {
+    // ignore
+  }
+}
+
 // ── Draft autosave ───────────────────────────────────────────────────────────
 
 const DRAFT_KEY = 'pfa_draft'
@@ -178,6 +218,8 @@ export function clearAllData() {
       localStorage.removeItem(key)
     })
     localStorage.removeItem('pfa_outliers')
+    localStorage.removeItem('pfa_exercise_prefs')
+    localStorage.removeItem('pfa_personal_goal')
     localStorage.removeItem(DRAFT_KEY)
   } catch (error) {
     console.error('Error clearing localStorage:', error)

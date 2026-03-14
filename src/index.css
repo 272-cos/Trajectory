@@ -10,3 +10,63 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Dark mode global overrides ─────────────────────────────────────────────
+   Applied when .dark class is on the root <div> in App.jsx.
+   These override Tailwind's light-mode utility classes without requiring
+   dark: prefix on every element.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.dark {
+  color-scheme: dark;
+}
+
+.dark body,
+.dark .min-h-screen {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+/* Surface overrides */
+.dark .bg-white        { background-color: #1e293b !important; }
+.dark .bg-gray-50      { background-color: #0f172a !important; }
+.dark .bg-gray-100     { background-color: #1e293b !important; }
+
+/* Text overrides */
+.dark .text-gray-900   { color: #f1f5f9 !important; }
+.dark .text-gray-800   { color: #e2e8f0 !important; }
+.dark .text-gray-700   { color: #cbd5e1 !important; }
+.dark .text-gray-600   { color: #94a3b8 !important; }
+.dark .text-gray-500   { color: #64748b !important; }
+.dark .text-gray-400   { color: #475569 !important; }
+
+/* Border overrides */
+.dark .border-gray-100 { border-color: #334155 !important; }
+.dark .border-gray-200 { border-color: #334155 !important; }
+.dark .border-gray-300 { border-color: #475569 !important; }
+
+/* Input / form overrides */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+.dark input::placeholder { color: #64748b !important; }
+
+/* Nav bar */
+.dark nav.bg-white { background-color: #1e293b !important; }
+.dark .border-b    { border-color: #334155 !important; }
+
+/* Shadow cards */
+.dark .shadow-sm   { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.5) !important; }
+.dark .shadow-md   { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5) !important; }
+.dark .shadow-lg   { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.6) !important; }
+
+/* Specific card containers */
+.dark .rounded-lg.border { background-color: #1e293b; }
+
+/* Code / monospace */
+.dark code,
+.dark .font-mono   { background-color: #0f172a !important; color: #7dd3fc !important; }

@@ -19,6 +19,19 @@ import { decodeSCode, isValidSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, formatTime } from '../../utils/scoring/scoringEngine.js'
 import { getOutliers, toggleOutlier, saveDraft } from '../../utils/storage/localStorage.js'
+import ShareModal from '../shared/ShareModal.jsx'
+
+const BASE_URL = import.meta.env.BASE_URL
+
+/** Build a shareable URL for a given dcode + optional single scode. */
+function buildShareUrl(dcode, scode) {
+  const origin = window.location.origin
+  const base = BASE_URL.replace(/\/$/, '')
+  const params = new URLSearchParams()
+  if (dcode) params.set('d', dcode)
+  if (scode) params.append('s', scode)
+  return `${origin}${base}/?${params.toString()}`
+}
 
 const EXERCISE_LABELS = {
   [EXERCISES.RUN_2MILE]: '2-Mile Run',
@@ -65,6 +78,9 @@ function CompositeDot({ cx, cy, payload }) {
   return <circle cx={cx} cy={cy} r={4} fill={color} stroke="white" strokeWidth={1.5} />
 }
 
+// Significant composite drop threshold that triggers the outlier suggestion banner
+const OUTLIER_DROP_THRESHOLD = 5.0
+
 export default function HistoryTab() {
   const { scodes, addSCode, removeSCode, demographics, dcode, setActiveTab } = useApp()
   const [pasteValue, setPasteValue] = useState('')
@@ -77,6 +93,7 @@ export default function HistoryTab() {
   const [importResult, setImportResult] = useState(null)
   const [exportSuccess, setExportSuccess] = useState('')
   const [undoDelete, setUndoDelete] = useState(null) // { code, timer }
+  const [shareState, setShareState] = useState(null) // { url, title } for ShareModal
 
   // Edit: convert decoded S-code to draft and navigate to Self-Check
   const handleEditAssessment = (decoded) => {
@@ -344,6 +361,42 @@ export default function HistoryTab() {
     }
   }
 
+  // JSON backup download
+  const handleExportJSON = () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      dcode: localStorage.getItem('pfa_dcode'),
+      scodes: JSON.parse(localStorage.getItem('pfa_scodes') || '[]'),
+      targetDate: localStorage.getItem('pfa_target_date'),
+      outliers: JSON.parse(localStorage.getItem('pfa_outliers') || '[]'),
+      exercisePrefs: JSON.parse(localStorage.getItem('pfa_exercise_prefs') || '{}'),
+      personalGoal: localStorage.getItem('pfa_personal_goal'),
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pfa-backup-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // Detect significant score drops for trend annotation
+  const significantDrops = useMemo(() => {
+    const scored = [...decodedEntries]
+      .filter(e => !e.error && !outliers.has(e.code) && e.scores?.composite?.composite != null)
+      .sort((a, b) => new Date(a.decoded.date) - new Date(b.decoded.date))
+    const dropSet = new Set()
+    for (let i = 1; i < scored.length; i++) {
+      const prev = scored[i - 1].scores.composite.composite
+      const curr = scored[i].scores.composite.composite
+      if (prev - curr >= OUTLIER_DROP_THRESHOLD) {
+        dropSet.add(scored[i].code)
+      }
+    }
+    return dropSet
+  }, [decodedEntries, outliers])
+
   const hasScored = decodedEntries.some(e => !e.error && e.scores?.composite?.composite != null)
 
   return (
@@ -414,14 +467,29 @@ export default function HistoryTab() {
         </div>
 
         {/* Export / Import controls */}
-        <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-100">
           <button
             onClick={handleExport}
             disabled={scodes.length === 0}
             className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed text-gray-700 rounded-lg transition-colors font-medium"
           >
-            Export All
+            Export All (Text)
           </button>
+          <button
+            onClick={handleExportJSON}
+            disabled={scodes.length === 0}
+            className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            Backup JSON
+          </button>
+          {dcode && scodes.length > 0 && (
+            <button
+              onClick={() => setShareState({ url: buildShareUrl(dcode, null), title: 'Share All Assessments' })}
+              className="px-3 py-2 min-h-[44px] text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors font-medium"
+            >
+              Share All
+            </button>
+          )}
           <button
             onClick={() => { setShowImport(!showImport); setImportResult(null) }}
             className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
@@ -508,6 +576,15 @@ export default function HistoryTab() {
         </p>
       )}
 
+      {/* Share modal */}
+      {shareState && (
+        <ShareModal
+          url={shareState.url}
+          title={shareState.title}
+          onClose={() => setShareState(null)}
+        />
+      )}
+
       {/* Assessment timeline */}
       {decodedEntries.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -523,6 +600,7 @@ export default function HistoryTab() {
               entry={entry}
               isOutlier={outliers.has(entry.code)}
               hasSameDate={sameDateCodes.has(entry.code)}
+              hasSignificantDrop={significantDrops.has(entry.code)}
               isConfirmingDelete={confirmDelete === entry.code}
               onOutlierToggle={() => handleOutlierToggle(entry.code)}
               onRequestDelete={() => setConfirmDelete(entry.code)}
@@ -530,6 +608,7 @@ export default function HistoryTab() {
               onCancelDelete={() => setConfirmDelete(null)}
               onCopy={() => copyCode(entry.code)}
               onEdit={entry.decoded ? () => handleEditAssessment(entry.decoded) : null}
+              onShare={dcode ? () => setShareState({ url: buildShareUrl(dcode, entry.code), title: 'Share Assessment' }) : null}
             />
           ))}
         </div>
@@ -640,6 +719,7 @@ function AssessmentCard({
   entry,
   isOutlier,
   hasSameDate,
+  hasSignificantDrop,
   isConfirmingDelete,
   onOutlierToggle,
   onRequestDelete,
@@ -647,6 +727,7 @@ function AssessmentCard({
   onCancelDelete,
   onCopy,
   onEdit,
+  onShare,
 }) {
   const { code, decoded, scores, error } = entry
   const [expanded, setExpanded] = useState(false)
@@ -775,7 +856,15 @@ function AssessmentCard({
             )}
           </div>
 
-          {/* S-code display */}
+          {/* Trend annotation - significant drop from previous */}
+          {hasSignificantDrop && !isOutlier && (
+            <div className="bg-amber-50 border border-amber-200 rounded p-2 text-xs text-amber-800">
+              Score dropped significantly from the prior check-in. If this was an off day or test
+              condition issue, consider flagging it as an outlier to keep your trend accurate.
+            </div>
+          )}
+
+          {/* Assessment code display */}
           <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
             <p className="font-mono text-xs text-gray-500 flex-1 break-all">{code}</p>
             <button
@@ -785,6 +874,15 @@ function AssessmentCard({
             >
               Copy
             </button>
+            {onShare && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onShare() }}
+                aria-label="Share assessment via QR code or link"
+                className="px-2 py-2 min-h-[44px] text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                Share
+              </button>
+            )}
           </div>
 
           {/* Actions: edit, outlier toggle, delete */}

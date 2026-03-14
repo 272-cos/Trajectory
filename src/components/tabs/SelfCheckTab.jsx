@@ -12,6 +12,9 @@ import { EXERCISE_NAMES } from '../../utils/scoring/strategyEngine.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
 import { getExercisePrefs, saveExercisePrefs, saveDraft, loadDraft, clearDraft } from '../../utils/storage/localStorage.js'
 import { getTrainingResources } from '../../utils/training/resources.js'
+import ShareModal from '../shared/ShareModal.jsx'
+
+const BASE_URL = import.meta.env.BASE_URL
 
 /**
  * Auto-format time input: inserts colon as user types digits.
@@ -75,6 +78,7 @@ export default function SelfCheckTab() {
   const [draftRestored, setDraftRestored] = useState(false)
   const [draftSavedVisible, setDraftSavedVisible] = useState(false)
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState(null) // For undo
+  const [showShareModal, setShowShareModal] = useState(false)
 
   // ── Draft restore on mount ─────────────────────────────────────────────────
   useEffect(() => {
@@ -454,39 +458,6 @@ export default function SelfCheckTab() {
       setTimeout(() => setSuccess(''), 2000)
     } catch {
       setError('Failed to copy to clipboard')
-    }
-  }
-
-  // UX-08: Web Share API with clipboard fallback
-  const shareCode = async () => {
-    if (!scode) return
-    const shareUrl = `${window.location.origin}${window.location.pathname}?s=${encodeURIComponent(scode)}${dcode ? `&d=${encodeURIComponent(dcode)}` : ''}`
-    if (navigator.canShare?.({ text: shareUrl })) {
-      try {
-        await navigator.share({ title: 'PFA Self-Check', text: shareUrl })
-        setSuccess('Shared!')
-        setTimeout(() => setSuccess(''), 2000)
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          // Fallback to clipboard with correct "Copied!" message
-          try {
-            await navigator.clipboard.writeText(shareUrl)
-            setSuccess('Link copied to clipboard!')
-            setTimeout(() => setSuccess(''), 2000)
-          } catch {
-            setError('Failed to share or copy')
-          }
-        }
-      }
-    } else {
-      // No Web Share API - copy link to clipboard
-      try {
-        await navigator.clipboard.writeText(shareUrl)
-        setSuccess('Link copied to clipboard!')
-        setTimeout(() => setSuccess(''), 2000)
-      } catch {
-        setError('Failed to copy to clipboard')
-      }
     }
   }
 
@@ -982,6 +953,21 @@ export default function SelfCheckTab() {
         )}
 
         {/* Display assessment code with undo + add another */}
+        {scode && showShareModal && (
+          <ShareModal
+            url={(() => {
+              const origin = window.location.origin
+              const base = BASE_URL.replace(/\/$/, '')
+              const params = new URLSearchParams()
+              if (dcode) params.set('d', dcode)
+              params.set('s', scode)
+              return `${origin}${base}/?${params.toString()}`
+            })()}
+            title="Share Assessment"
+            onClose={() => setShowShareModal(false)}
+          />
+        )}
+
         {scode && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm font-medium text-gray-700 mb-1">Your Assessment Code:</p>
@@ -996,11 +982,11 @@ export default function SelfCheckTab() {
                 Copy
               </button>
               <button
-                onClick={shareCode}
-                aria-label="Share assessment code link"
+                onClick={() => setShowShareModal(true)}
+                aria-label="Share assessment via QR code or link"
                 className="px-3 py-2 min-h-[44px] bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
               >
-                Share
+                Share / QR
               </button>
             </div>
             <p className="text-xs text-gray-600 mt-2">

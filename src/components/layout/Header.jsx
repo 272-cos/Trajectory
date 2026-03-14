@@ -1,10 +1,14 @@
 /**
- * Header with persistent unofficial banner
+ * Header with persistent unofficial banner and dark mode toggle
  */
+
+import { useApp } from '../../context/AppContext.jsx'
 
 const BASE = import.meta.env.BASE_URL
 
 export default function Header() {
+  const { darkMode, toggleDarkMode } = useApp()
+
   return (
     <header
       className="w-full overflow-hidden"
@@ -15,15 +19,26 @@ export default function Header() {
         backgroundPosition: 'center 45%',
       }}
     >
-      <div className="container mx-auto max-w-4xl px-4 py-6 flex flex-col items-start">
-        <img
-          src={`${BASE}icons/logo-header.png`}
-          alt="Trajectory"
-          className="h-12 drop-shadow-lg"
-        />
-        <p className="text-xs font-bold text-amber-400 tracking-wide mt-1">
-          USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
-        </p>
+      <div className="container mx-auto max-w-4xl px-4 py-6 flex items-start justify-between">
+        <div className="flex flex-col items-start">
+          <img
+            src={`${BASE}icons/logo-header.png`}
+            alt="Trajectory"
+            className="h-12 drop-shadow-lg"
+          />
+          <p className="text-xs font-bold text-amber-400 tracking-wide mt-1">
+            USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleDarkMode}
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={darkMode ? 'Light mode' : 'Dark mode'}
+          className="mt-1 p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-colors text-lg leading-none"
+        >
+          {darkMode ? '☀' : '☽'}
+        </button>
       </div>
     </header>
   )

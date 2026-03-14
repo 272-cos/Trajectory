@@ -25,6 +25,7 @@ export default [
         console: 'readonly',
         URL: 'readonly',
         URLSearchParams: 'readonly',
+        Blob: 'readonly',
         localStorage: 'readonly',
         sessionStorage: 'readonly',
         alert: 'readonly',

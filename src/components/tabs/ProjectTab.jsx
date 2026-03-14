@@ -540,7 +540,7 @@ function WeeklyTrainingPlan({ plan }) {
 // ─── Main Tab ──────────────────────────────────────────────────────────────────
 
 export default function ProjectTab() {
-  const { scodes, demographics, targetPfaDate, updateTargetPfaDate } = useApp()
+  const { scodes, demographics, targetPfaDate, updateTargetPfaDate, personalGoal, updatePersonalGoal } = useApp()
   const [targetDateInput, setTargetDateInput] = useState('')
   const [targetDateError, setTargetDateError] = useState('')
 
@@ -847,8 +847,49 @@ export default function ProjectTab() {
           <p className="text-xs text-red-600 mt-1">{targetDateError}</p>
         )}
         {daysToTarget !== null && !targetDateError && (
-          <p className="text-xs text-gray-500 mt-1">{daysToTarget} days remaining</p>
+          <p className={`text-xs font-medium mt-1 ${
+            daysToTarget > 90 ? 'text-green-600' :
+            daysToTarget > 30 ? 'text-amber-600' :
+            'text-red-600'
+          }`}>
+            {daysToTarget} days remaining
+            {daysToTarget <= 30 && ' - urgent!'}
+            {daysToTarget > 30 && daysToTarget <= 90 && ' - moderate timeline'}
+            {daysToTarget > 90 && ' - plenty of time to prepare'}
+          </p>
         )}
+      </div>
+
+      {/* ── Personal goal setting ─────────────────────────────────────────── */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <label className="block text-sm font-semibold text-gray-700 mb-1">
+          Personal Score Goal
+          <span className="ml-2 text-xs font-normal text-gray-500">
+            (minimum is 75.0 to pass)
+          </span>
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min="75"
+            max="100"
+            step="0.5"
+            value={personalGoal}
+            onChange={e => updatePersonalGoal(parseFloat(e.target.value))}
+            className="flex-1 accent-blue-600"
+          />
+          <span className="text-xl font-bold text-blue-600 w-14 text-right tabular-nums">
+            {personalGoal.toFixed(1)}
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          {personalGoal <= 75.5
+            ? 'Targeting the minimum passing score.'
+            : personalGoal >= 90
+              ? 'Excellent - aiming for outstanding performance.'
+              : `Aiming ${(personalGoal - 75).toFixed(1)} points above the passing threshold.`
+          }
+        </p>
       </div>
 
       {/* ── No target date placeholder ────────────────────────────────────── */}
@@ -888,16 +929,34 @@ export default function ProjectTab() {
           {composite ? (
             <div className={`rounded-lg p-4 ${
               composite.pass
-                ? 'bg-green-50 border-2 border-green-500'
+                ? composite.projected >= personalGoal
+                  ? 'bg-green-50 border-2 border-green-500'
+                  : 'bg-blue-50 border-2 border-blue-400'
                 : 'bg-red-50 border-2 border-red-400'
             }`}>
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Projected Composite</p>
                   <p className="text-3xl font-bold text-gray-900">{composite.projected.toFixed(1)}</p>
-                  <p className={`text-sm font-semibold ${composite.pass ? 'text-green-700' : 'text-red-700'}`}>
-                    {composite.pass ? 'ON TRACK TO PASS' : 'ON TRACK TO FAIL'}
+                  <p className={`text-sm font-semibold ${
+                    !composite.pass
+                      ? 'text-red-700'
+                      : composite.projected >= personalGoal
+                        ? 'text-green-700'
+                        : 'text-blue-700'
+                  }`}>
+                    {!composite.pass
+                      ? 'ON TRACK TO FAIL'
+                      : composite.projected >= personalGoal
+                        ? `ON TRACK TO MEET GOAL (${personalGoal.toFixed(1)})`
+                        : `PASSES BUT BELOW GOAL (${personalGoal.toFixed(1)})`
+                    }
                   </p>
+                  {composite.pass && personalGoal > 75.0 && composite.projected < personalGoal && (
+                    <p className="text-xs text-blue-600 mt-0.5">
+                      Need +{(personalGoal - composite.projected).toFixed(1)} more points to reach your goal.
+                    </p>
+                  )}
                 </div>
                 <div className="text-right text-sm text-gray-600">
                   <p className="text-sm text-gray-600">

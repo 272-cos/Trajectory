@@ -14,6 +14,10 @@ import {
   saveTargetDate,
   isOnboarded,
   setOnboarded,
+  getDarkMode,
+  saveDarkMode,
+  getPersonalGoal,
+  savePersonalGoal,
 } from '../utils/storage/localStorage.js'
 import { decodeDCode } from '../utils/codec/dcode.js'
 import { decodeSCode } from '../utils/codec/scode.js'
@@ -36,6 +40,12 @@ export function AppProvider({ children }) {
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // Dark mode
+  const [darkMode, setDarkModeState] = useState(false)
+
+  // Personal score goal (default 75.0)
+  const [personalGoal, setPersonalGoalState] = useState(75.0)
 
   // Toast notifications (EC-28: surface URL hydration errors to user)
   const [toasts, setToasts] = useState([])
@@ -169,6 +179,14 @@ export function AppProvider({ children }) {
       }, 8000)
     }
 
+    // Load dark mode preference
+    const storedDark = getDarkMode()
+    setDarkModeState(storedDark)
+
+    // Load personal goal
+    const storedGoal = getPersonalGoal()
+    setPersonalGoalState(storedGoal)
+
     // Show onboarding if first visit
     if (!isOnboarded()) {
       setShowOnboarding(true)
@@ -214,6 +232,20 @@ export function AppProvider({ children }) {
     setOnboarded()
   }
 
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    const next = !darkMode
+    setDarkModeState(next)
+    saveDarkMode(next)
+  }
+
+  // Update personal goal
+  const updatePersonalGoal = (goal) => {
+    const clamped = Math.max(75.0, Math.min(100.0, goal))
+    setPersonalGoalState(clamped)
+    savePersonalGoal(clamped)
+  }
+
   const value = {
     // D-code
     dcode,
@@ -241,6 +273,14 @@ export function AppProvider({ children }) {
     toasts,
     addToast,
     dismissToast,
+
+    // Dark mode
+    darkMode,
+    toggleDarkMode,
+
+    // Personal score goal
+    personalGoal,
+    updatePersonalGoal,
 
     // Self-check unsaved data warning
     selfCheckDirty,

@@ -37,7 +37,7 @@ function TabSkeleton() {
 }
 
 function AppContent() {
-  const { activeTab, showOnboarding } = useApp()
+  const { activeTab, showOnboarding, darkMode } = useApp()
 
   // Render active tab content
   const renderTabContent = () => {
@@ -60,7 +60,7 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className={`min-h-screen bg-gray-100 flex flex-col${darkMode ? ' dark' : ''}`}>
       <OfflineBanner />
       <Header />
       <ChartUpdateBanner />
