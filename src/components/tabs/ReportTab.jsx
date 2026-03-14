@@ -581,7 +581,8 @@ function AssessmentSection({ entry, index, total }) {
 // ─── Projection section ───────────────────────────────────────────────────────
 
 function ProjectionSection({ projectionData, targetPfaDate }) {
-  const { components, composite, daysToTarget } = projectionData
+  const { components, composite } = projectionData
+  const daysToTarget = Math.max(0, Math.round((new Date(targetPfaDate) - new Date()) / 86400000))
   const targetDateStr = new Date(targetPfaDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
   return (
@@ -597,17 +598,17 @@ function ProjectionSection({ projectionData, targetPfaDate }) {
       </div>
       <div className="p-4 space-y-3">
         {/* Projected composite */}
-        {composite && composite.projectedComposite != null && (
+        {composite && composite.projected != null && (
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700 font-sans">Projected Composite</span>
             <div className="text-right font-sans">
-              <span className={`font-bold ${composite.projectedComposite >= 75 ? 'text-green-700' : 'text-red-700'}`}>
-                {composite.projectedComposite.toFixed(1)}
+              <span className={`font-bold ${composite.projected >= 75 ? 'text-green-700' : 'text-red-700'}`}>
+                {composite.projected.toFixed(1)}
               </span>
               <span className={`ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded ${
-                composite.projectedComposite >= 75 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                composite.projected >= 75 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
               }`}>
-                {composite.projectedComposite >= 75 ? 'ON TRACK' : 'AT RISK'}
+                {composite.projected >= 75 ? 'ON TRACK' : 'AT RISK'}
               </span>
             </div>
           </div>
@@ -620,21 +621,21 @@ function ProjectionSection({ projectionData, targetPfaDate }) {
             <div key={compType} className="flex items-start justify-between gap-2 pl-2 border-l-2 border-blue-100">
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-700 font-sans">{COMPONENT_LABELS[compType]}</p>
-                {proj.projectedValue != null && proj.exercise && (
+                {proj.projected_value != null && proj.exercise && (
                   <p className="text-xs text-gray-500 font-sans">
-                    Projected: {formatProjectedValue(proj.projectedValue, proj.exercise)}
+                    Projected: {formatProjectedValue(proj.projected_value, proj.exercise)}
                   </p>
                 )}
-                {proj.requiredWeeklyImprovement != null && proj.requiredWeeklyImprovement !== 0 && (
+                {proj.required_weekly_improvement != null && proj.required_weekly_improvement !== 0 && (
                   <p className="text-xs text-amber-700 font-sans">
-                    Needs {Math.abs(proj.requiredWeeklyImprovement).toFixed(1)} units/wk improvement to pass
+                    Needs {Math.abs(proj.required_weekly_improvement).toFixed(1)} units/wk improvement to pass
                   </p>
                 )}
               </div>
-              {proj.projectedPoints != null && (
+              {proj.projected_points != null && (
                 <div className="text-right flex-shrink-0 font-sans">
-                  <span className={`text-sm font-bold ${proj.projectedPass ? 'text-green-700' : 'text-red-700'}`}>
-                    {proj.projectedPoints.toFixed(1)}
+                  <span className={`text-sm font-bold ${proj.pass ? 'text-green-700' : 'text-red-700'}`}>
+                    {proj.projected_points.toFixed(1)}
                   </span>
                 </div>
               )}
@@ -716,20 +717,21 @@ function buildPlainText({ rank, name, unit, dcode, reportEntries, allExempt, inc
 
   if (includeProjection && projectionData && targetPfaDate) {
     const targetStr = new Date(targetPfaDate).toLocaleDateString()
-    const { components, composite, daysToTarget } = projectionData
+    const { components, composite } = projectionData
+    const daysToTarget = Math.max(0, Math.round((new Date(targetPfaDate) - new Date()) / 86400000))
     lines.push('READINESS PROJECTION')
     lines.push(`  Target PFA Date: ${targetStr} (${daysToTarget} days remaining)`)
-    lines.push(`  Model: ${projectionData.model || 'Auto'} - Estimates only.`)
-    if (composite?.projectedComposite != null) {
-      lines.push(`  Projected Composite: ${composite.projectedComposite.toFixed(1)} - ${composite.projectedComposite >= 75 ? 'ON TRACK' : 'AT RISK'}`)
+    lines.push('  Model: Auto - Estimates only.')
+    if (composite?.projected != null) {
+      lines.push(`  Projected Composite: ${composite.projected.toFixed(1)} - ${composite.projected >= 75 ? 'ON TRACK' : 'AT RISK'}`)
     }
     if (components) {
       Object.entries(components).forEach(([compType, proj]) => {
         if (!proj || proj.exempt) return
         const label = COMPONENT_LABELS[compType]
-        const pts = proj.projectedPoints != null ? `${proj.projectedPoints.toFixed(1)} pts` : ''
-        const val = proj.projectedValue != null && proj.exercise ? `| ${formatProjectedValue(proj.projectedValue, proj.exercise)}` : ''
-        lines.push(`  ${label}: ${pts} ${val} - ${proj.projectedPass ? 'PASS' : 'FAIL'}`)
+        const pts = proj.projected_points != null ? `${proj.projected_points.toFixed(1)} pts` : ''
+        const val = proj.projected_value != null && proj.exercise ? `| ${formatProjectedValue(proj.projected_value, proj.exercise)}` : ''
+        lines.push(`  ${label}: ${pts} ${val} - ${proj.pass ? 'PASS' : 'FAIL'}`)
       })
     }
     lines.push('')
@@ -831,26 +833,27 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
   const projHtml = (includeProjection && projectionData && targetPfaDate)
     ? (() => {
         const targetStr = new Date(targetPfaDate).toLocaleDateString()
-        const { components, composite, daysToTarget } = projectionData
+        const { components, composite } = projectionData
+        const daysToTarget = Math.max(0, Math.round((new Date(targetPfaDate) - new Date()) / 86400000))
         const compRows = components ? Object.entries(components).map(([compType, proj]) => {
           if (!proj || proj.exempt) return ''
           const label = COMPONENT_LABELS[compType] ?? compType
-          const pts = proj.projectedPoints != null ? `${proj.projectedPoints.toFixed(1)} pts` : '-'
-          const val = proj.projectedValue != null && proj.exercise ? formatProjectedValue(proj.projectedValue, proj.exercise) : '-'
+          const pts = proj.projected_points != null ? `${proj.projected_points.toFixed(1)} pts` : '-'
+          const val = proj.projected_value != null && proj.exercise ? formatProjectedValue(proj.projected_value, proj.exercise) : '-'
           return `<tr>
             <td>${esc(label)}</td>
             <td>${esc(pts)}</td>
             <td>${esc(val)}</td>
-            <td class="${proj.projectedPass ? 'pass' : 'fail'}">${proj.projectedPass ? 'PASS' : 'FAIL'}</td>
+            <td class="${proj.pass ? 'pass' : 'fail'}">${proj.pass ? 'PASS' : 'FAIL'}</td>
           </tr>`
         }).join('') : ''
 
         return `<div class="section projection-section">
           <div class="section-title">Readiness Projection - Target: ${esc(targetStr)}</div>
-          <p class="proj-note">Days remaining: ${esc(String(daysToTarget))} | Model: ${esc(projectionData.model || 'Auto')} | Estimates only - not a guarantee.</p>
-          ${composite?.projectedComposite != null ? `
-            <p class="proj-composite ${composite.projectedComposite >= 75 ? 'pass' : 'fail'}">
-              Projected Composite: ${esc(composite.projectedComposite.toFixed(1))} - ${composite.projectedComposite >= 75 ? 'ON TRACK' : 'AT RISK'}
+          <p class="proj-note">Days remaining: ${esc(String(daysToTarget))} | Model: Auto | Estimates only - not a guarantee.</p>
+          ${composite?.projected != null ? `
+            <p class="proj-composite ${composite.projected >= 75 ? 'pass' : 'fail'}">
+              Projected Composite: ${esc(composite.projected.toFixed(1))} - ${composite.projected >= 75 ? 'ON TRACK' : 'AT RISK'}
             </p>` : ''}
           ${compRows ? `<table class="comp-table"><thead><tr><th>Component</th><th>Proj. Points</th><th>Proj. Value</th><th>Status</th></tr></thead><tbody>${compRows}</tbody></table>` : ''}
         </div>`
