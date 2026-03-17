@@ -19,14 +19,16 @@ export default function Header() {
         backgroundPosition: 'center 45%',
       }}
     >
-      <div className="container mx-auto max-w-4xl px-4 py-6 flex items-start justify-between">
+      <div className="container mx-auto max-w-4xl px-4 py-5 flex items-center justify-between">
         <div className="flex flex-col items-start">
-          <img
-            src={`${BASE}icons/logo-header.png`}
-            alt="Trajectory"
-            className="h-12 drop-shadow-lg"
-          />
-          <p className="text-xs font-bold text-amber-400 tracking-wide mt-1">
+          <div className="rounded-2xl overflow-hidden shadow-[0_0_28px_rgba(32,144,255,0.55)]">
+            <img
+              src={`${BASE}icons/logo.jpg`}
+              alt="Trajectory"
+              className="h-20 md:h-24 block"
+            />
+          </div>
+          <p className="text-xs font-bold text-amber-400 tracking-wide mt-2">
             USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
           </p>
         </div>
