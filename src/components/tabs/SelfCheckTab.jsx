@@ -42,9 +42,10 @@ function formatTimeInput(rawValue) {
 export default function SelfCheckTab() {
   const { demographics, addSCode, removeSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator, targetPfaDate, scodes } = useApp()
 
-  // IV-01: Assessment date - picker with max = today
-  const today = new Date().toISOString().split('T')[0]
-  const [assessmentDate, setAssessmentDate] = useState(today)
+  // IV-01: Assessment date - picker with max = today (local date, not UTC)
+  const _now = new Date()
+  const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`
+  const [assessmentDate, setAssessmentDate] = useState('')
 
   // Cardio
   const [cardioExercise, setCardioExercise] = useState(EXERCISES.RUN_2MILE)
@@ -166,7 +167,7 @@ export default function SelfCheckTab() {
 
   // Calculate scores whenever inputs change
   useEffect(() => {
-    if (!hasDemographics) {
+    if (!hasDemographics || !assessmentDate) {
       setScores(null)
       return
     }
@@ -319,6 +320,11 @@ export default function SelfCheckTab() {
 
     if (!hasDemographics) {
       setError('Please create your profile first (Profile tab)')
+      return false
+    }
+
+    if (!assessmentDate) {
+      setError('Please select an assessment date.')
       return false
     }
 

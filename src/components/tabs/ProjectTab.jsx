@@ -917,7 +917,8 @@ export default function ProjectTab() {
   }, [decodedScodes, currentPcts, targetPfaDate])
 
   // Days to target from today
-  const today = new Date().toISOString().split('T')[0]
+  const _now = new Date()
+  const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`
   const daysToTarget = targetPfaDate
     ? Math.max(0, Math.round((new Date(targetPfaDate) - new Date(today)) / 86400000))
     : null
