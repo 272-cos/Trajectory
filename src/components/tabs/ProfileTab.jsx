@@ -19,6 +19,7 @@ export default function ProfileTab() {
   const [success, setSuccess] = useState('')
   const [dobError, setDobError] = useState('')
   const [targetDateError, setTargetDateError] = useState('')
+  const [highlightTargetDate, setHighlightTargetDate] = useState(false)
 
   // Load demographics and target date if available
   useEffect(() => {
@@ -162,7 +163,8 @@ export default function ProfileTab() {
       setGender(decoded.gender)
       setPasteCode('')
       if (!targetPfaDate) {
-        setSuccess('Profile loaded! Set your Target PFA Date above.')
+        setSuccess("Profile loaded! Don't forget to set your Target PFA Date.")
+        setHighlightTargetDate(true)
         setTimeout(() => document.getElementById('target-date')?.focus(), 50)
       } else {
         setSuccess('Profile code loaded successfully!')
@@ -249,11 +251,18 @@ export default function ProfileTab() {
               id="target-date"
               type="date"
               value={targetDate}
-              onChange={handleTargetDateChange}
+              onChange={(e) => { setHighlightTargetDate(false); handleTargetDateChange(e) }}
+              onFocus={() => setHighlightTargetDate(false)}
               min={new Date().toISOString().split('T')[0]}
               aria-invalid={!!targetDateError}
               aria-describedby={targetDateError ? 'target-date-error' : 'target-date-hint'}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${targetDateError ? 'border-red-400' : 'border-gray-300'}`}
+              className={`w-full px-4 py-2 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                targetDateError
+                  ? 'border-red-400'
+                  : highlightTargetDate
+                  ? 'border-amber-400 animate-pulse'
+                  : 'border-gray-300'
+              }`}
             />
             {targetDateError ? (
               <p id="target-date-error" role="alert" className="text-xs text-red-600 mt-1">{targetDateError}</p>
@@ -275,7 +284,7 @@ export default function ProfileTab() {
 
           {/* Success Message */}
           {success && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+            <div className={`p-3 border rounded-lg text-sm ${highlightTargetDate ? 'bg-amber-50 border-amber-400 text-amber-900' : 'bg-green-50 border-green-200 text-green-800'}`}>
               {success}
             </div>
           )}
