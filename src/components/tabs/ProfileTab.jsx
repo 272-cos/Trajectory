@@ -165,6 +165,7 @@ export default function ProfileTab() {
       if (!targetPfaDate) {
         setSuccess("Profile loaded! Don't forget to set your Target PFA Date.")
         setHighlightTargetDate(true)
+        setTimeout(() => document.getElementById('target-date')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
       } else {
         setSuccess('Profile code loaded successfully!')
       }
