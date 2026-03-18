@@ -963,7 +963,7 @@ export default function ProjectTab() {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
         <h3 className="text-lg font-bold text-yellow-900 mb-2">Profile Required</h3>
-        <p className="text-yellow-800">Create your profile in the Profile tab first.</p>
+        <p className="text-yellow-800">Create your profile in the <strong>Profile tab</strong> first.</p>
       </div>
     )
   }

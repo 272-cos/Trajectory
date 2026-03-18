@@ -538,7 +538,7 @@ export default function SelfCheckTab() {
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
         <h3 className="text-lg font-bold text-yellow-900 mb-2">Profile Required</h3>
         <p className="text-yellow-800 mb-4">
-          Please create your profile first (DOB + gender) in the Profile tab before recording assessments.
+          Please create your profile first (DOB + gender) in the <strong>Profile tab</strong> before recording assessments.
         </p>
       </div>
     )
@@ -1079,7 +1079,7 @@ export default function SelfCheckTab() {
               </button>
             </div>
             <p className="text-xs text-gray-600 mt-2">
-              Assessment saved! Check the Trajectory tab for personalized improvement tips.
+              Assessment saved! Check the <strong>Trajectory tab</strong> for personalized improvement tips.
             </p>
             <div className="flex gap-2 mt-3 pt-3 border-t border-blue-200">
               {lastSavedSnapshot && (

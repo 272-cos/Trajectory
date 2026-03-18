@@ -261,13 +261,13 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete }) {
                   )}
                   {event.type === EVENT_TYPES.PI_WORKOUT && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700">
-                      Record in Self-Check tab under Practice Mode - Quick Benchmark. Your predicted
-                      score updates the Trajectory tab automatically.
+                      Record in <strong>Self-Check tab</strong> under <strong>Practice Mode - Quick Benchmark</strong>. Your predicted
+                      score updates the <strong>Trajectory tab</strong> automatically.
                     </div>
                   )}
                   {event.type === EVENT_TYPES.FRACTIONAL_TEST && (
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 text-xs text-purple-700">
-                      Record in Self-Check tab under Practice Mode - Partial Test
+                      Record in <strong>Self-Check tab</strong> under <strong>Practice Mode - Partial Test</strong>
                       ({Math.round(event.fraction * 100)}%). Predicted full-test scores calculated automatically.
                     </div>
                   )}
@@ -462,7 +462,7 @@ export default function PlanTab() {
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-          <strong>Profile required.</strong> Set up your D-code in the Profile tab. Your age
+          <strong>Profile required.</strong> Set up your D-code in the <strong>Profile tab</strong>. Your age
           bracket is needed to generate a personalized training plan.
         </div>
       </div>
@@ -474,7 +474,7 @@ export default function PlanTab() {
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-          <strong>Target PFA date required.</strong> Set your target date in the Profile tab.
+          <strong>Target PFA date required.</strong> Set your target date in the <strong>Profile tab</strong>.
         </div>
       </div>
     )

@@ -151,7 +151,7 @@ export default function ProfileTab() {
 
     // CS-08 reverse: S-code in D-code field
     if (trimmed.startsWith('S')) {
-      setError('This is an assessment code. Paste it in the History tab instead.')
+      setError(<>This is an assessment code. Paste it in the <strong>History tab</strong> instead.</>)
       return
     }
 

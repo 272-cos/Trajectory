@@ -253,7 +253,7 @@ export default function HistoryTab() {
 
     // CS-08: D-code pasted into S-code field
     if (trimmed.startsWith('D')) {
-      setPasteError('This is a profile code. Paste it in the Profile tab instead.')
+      setPasteError(<>This is a profile code. Paste it in the <strong>Profile tab</strong> instead.</>)
       return
     }
 
@@ -565,7 +565,7 @@ export default function HistoryTab() {
       {!demographics && scodes.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-900">
-            Set up your profile (DOB + gender) in the Profile tab to see scored results and trend charts.
+            Set up your profile (DOB + gender) in the <strong>Profile tab</strong> to see scored results and trend charts.
           </p>
         </div>
       )}
