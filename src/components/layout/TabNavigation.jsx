@@ -9,6 +9,7 @@ const TABS = [
   { id: 'profile', label: 'Profile' },
   { id: 'selfcheck', label: 'Self-Check' },
   { id: 'project', label: 'Trajectory' },
+  { id: 'plan', label: 'Plan' },
   { id: 'history', label: 'History' },
   { id: 'report', label: 'Report' },
   { id: 'tools', label: 'Tools' },

@@ -761,25 +761,25 @@ The toggle default-OFF approach is the safest path. It respects existing users, 
 
 **Implementation approach:**
 
-- [ ] New "Plan" tab between Trajectory and History
-- [ ] Blocked until: D-code present (needs DOB for bracket) + target PFA date set
-- [ ] On first load: app generates the personalized program calendar based on:
+- [x] New "Plan" tab between Trajectory and History
+- [x] Blocked until: D-code present (needs DOB for bracket) + target PFA date set
+- [x] On first load: app generates the personalized program calendar based on:
   - Weeks until target PFA date
   - Current fitness tier per component (from most recent S-code or baseline PI)
   - Detected phase (e.g., if 4 weeks out, jump to Phase 4 structure)
-- [ ] Calendar view: week-by-week grid
+- [x] Calendar view: week-by-week grid
   - Training session days (3-4x/week markers, links to existing recommendation engine output)
   - PI Workout dates (highlighted, with specific prescribed benchmark targets)
   - Fractional Test dates (highlighted, with prescribed rep targets for user's bracket)
   - Mock Test date (highlighted in red: "Full Mock Test - do this once")
   - Taper period (shaded, "Reduce volume 50%")
   - Actual Test date (goal flag)
-- [ ] Each calendar event is tappable: expands to show the prescription for that session
-- [ ] As user logs practice sessions (from Task 10.1), the calendar marks items complete
-- [ ] Phase 0 detection: if user has no S-codes or composite < 50, calendar starts with Phase 0 pre-progression exercises
-- [ ] Regenerate button: if target PFA date changes, calendar rebuilds
-- [ ] Deconditioned user path: if push-up PI Workout returns < 5 reps, Phase 1 auto-extends to 6-8 weeks and prescribes pre-progression exercises (wall/incline/knee push-ups) instead of standard training
-- [ ] No free-text input; all prescriptions are from the existing recommendation engine + effort constants (GR-06)
+- [x] Each calendar event is tappable: expands to show the prescription for that session
+- [x] As user logs practice sessions (from Task 10.1), the calendar marks items complete
+- [x] Phase 0 detection: if user has no S-codes or composite < 50, calendar starts with Phase 0 pre-progression exercises
+- [x] Regenerate button: if target PFA date changes, calendar rebuilds
+- [x] Deconditioned user path: if push-up PI Workout returns < 5 reps, Phase 1 auto-extends to 6-8 weeks and prescribes pre-progression exercises (wall/incline/knee push-ups) instead of standard training
+- [x] No free-text input; all prescriptions are from the existing recommendation engine + effort constants (GR-06)
 
 **New utility file:** `src/utils/training/trainingCalendar.js`
 - `generateCalendar(demographics, targetDate, currentScores, today)` - builds the full phase/week/session schedule
@@ -822,7 +822,7 @@ The following rules must be encoded into the implementation. They are not edge c
 |---|---|---|---|
 | 10.1 - Practice Mode (Option C) | COMPLETE | None | Practice check entry, PI scaling, fractional test, mock test prompts, 48 unit tests |
 | 10.3 - Trajectory Overlays (Option B) | OPTIONAL - not scheduled | 10.1 verified; visual evaluation pass | Milestone overlays on projection chart; default-OFF toggle |
-| 10.2 - Training Plan Calendar Tab (Option A) | Not started | 10.1 verified | Full periodized calendar tab |
+| 10.2 - Training Plan Calendar Tab (Option A) | COMPLETE | 10.1 verified | Full periodized calendar tab |
 
 ---
 

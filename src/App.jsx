@@ -10,6 +10,7 @@ import ChartUpdateBanner from './components/layout/ChartUpdateBanner.jsx'
 const ProfileTab = lazy(() => import('./components/tabs/ProfileTab.jsx'))
 const SelfCheckTab = lazy(() => import('./components/tabs/SelfCheckTab.jsx'))
 const ProjectTab = lazy(() => import('./components/tabs/ProjectTab.jsx'))
+const PlanTab = lazy(() => import('./components/tabs/PlanTab.jsx'))
 const HistoryTab = lazy(() => import('./components/tabs/HistoryTab.jsx'))
 const ReportTab = lazy(() => import('./components/tabs/ReportTab.jsx'))
 const ToolsTab = lazy(() => import('./components/tabs/ToolsTab.jsx'))
@@ -48,6 +49,8 @@ function AppContent() {
         return <SelfCheckTab />
       case 'project':
         return <ProjectTab />
+      case 'plan':
+        return <PlanTab />
       case 'history':
         return <HistoryTab />
       case 'report':
