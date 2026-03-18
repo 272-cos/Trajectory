@@ -182,7 +182,7 @@ function DayCell({ dateISO, events, isCompleted, isSelected, isToday, inPlanRang
 
 // ── Day Detail Panel ──────────────────────────────────────────────────────────
 
-function DayDetail({ dateISO, events, isCompleted, onToggleComplete }) {
+function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate }) {
   const [expanded, setExpanded] = useState(null)
 
   const primaryEvent = events[0]
@@ -264,13 +264,24 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete }) {
                   )}
                   {event.type === EVENT_TYPES.PI_WORKOUT && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700">
-                      Record in <strong>Self-Check tab</strong> under <strong>Practice Mode - Quick Benchmark</strong>. Your predicted
-                      score updates the <strong>Trajectory tab</strong> automatically.
+                      Record in{' '}
+                      <button onClick={() => onNavigate('selfcheck')} className="font-bold underline hover:opacity-70 transition-opacity">
+                        Self-Check tab
+                      </button>{' '}
+                      under <strong>Practice Mode - Quick Benchmark</strong>. Your predicted score updates the{' '}
+                      <button onClick={() => onNavigate('project')} className="font-bold underline hover:opacity-70 transition-opacity">
+                        Trajectory tab
+                      </button>{' '}
+                      automatically.
                     </div>
                   )}
                   {event.type === EVENT_TYPES.FRACTIONAL_TEST && (
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 text-xs text-purple-700">
-                      Record in <strong>Self-Check tab</strong> under <strong>Practice Mode - Partial Test</strong>
+                      Record in{' '}
+                      <button onClick={() => onNavigate('selfcheck')} className="font-bold underline hover:opacity-70 transition-opacity">
+                        Self-Check tab
+                      </button>{' '}
+                      under <strong>Practice Mode - Partial Test</strong>
                       ({Math.round(event.fraction * 100)}%). Predicted full-test scores calculated automatically.
                     </div>
                   )}
@@ -351,7 +362,7 @@ function MonthGrid({ year, month, eventsByDate, completedDays, selectedDate, pla
 // ── Main PlanTab ──────────────────────────────────────────────────────────────
 
 export default function PlanTab() {
-  const { dcode, demographics, targetPfaDate, scodes } = useApp()
+  const { dcode, demographics, targetPfaDate, scodes, setActiveTab } = useApp()
 
   const todayParts = parseISO(TODAY)
   const [viewYear,  setViewYear]  = useState(todayParts.year)
@@ -483,8 +494,10 @@ export default function PlanTab() {
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-          <strong>Profile required.</strong> Set up your D-code in the <strong>Profile tab</strong>. Your age
-          bracket is needed to generate a personalized training plan.
+          <strong>Profile required.</strong> Set up your D-code in the{' '}
+          <button onClick={() => setActiveTab('profile')} className="font-bold underline hover:opacity-70 transition-opacity">
+            Profile tab
+          </button>. Your age bracket is needed to generate a personalized training plan.
         </div>
       </div>
     )
@@ -495,7 +508,10 @@ export default function PlanTab() {
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-          <strong>Target PFA date required.</strong> Set your target date in the <strong>Profile tab</strong>.
+          <strong>Target PFA date required.</strong> Set your target date in the{' '}
+          <button onClick={() => setActiveTab('profile')} className="font-bold underline hover:opacity-70 transition-opacity">
+            Profile tab
+          </button>.
         </div>
       </div>
     )
@@ -847,6 +863,7 @@ export default function PlanTab() {
           events={selectedEvents}
           isCompleted={completedDays.has(selectedDate)}
           onToggleComplete={() => handleToggleComplete(selectedDate)}
+          onNavigate={setActiveTab}
         />
       )}
 
