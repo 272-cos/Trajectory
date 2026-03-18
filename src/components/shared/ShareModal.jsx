@@ -32,15 +32,8 @@ export default function ShareModal({ url, title = 'Share Assessment', onClose })
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Fallback: select text in a temp input
-      const inp = document.createElement('input')
-      inp.value = url
-      document.body.appendChild(inp)
-      inp.select()
-      document.execCommand('copy')
-      document.body.removeChild(inp)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      // Clipboard API unavailable - prompt user to copy manually
+      setCopied(false)
     }
   }
 

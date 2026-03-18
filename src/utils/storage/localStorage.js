@@ -44,7 +44,9 @@ export function saveDCode(dcode) {
 export function getSCodes() {
   try {
     const scodes = localStorage.getItem(STORAGE_KEYS.SCODES)
-    return scodes ? JSON.parse(scodes) : []
+    if (!scodes) return []
+    const parsed = JSON.parse(scodes)
+    return Array.isArray(parsed) ? parsed : []
   } catch (error) {
     console.error('Error reading S-codes from localStorage:', error)
     return []
@@ -192,7 +194,9 @@ export function saveDraft(draft) {
 export function loadDraft() {
   try {
     const val = localStorage.getItem(DRAFT_KEY)
-    return val ? JSON.parse(val) : null
+    if (!val) return null
+    const parsed = JSON.parse(val)
+    return (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : null
   } catch {
     return null
   }
@@ -235,7 +239,9 @@ export function clearAllData() {
 export function getOutliers() {
   try {
     const val = localStorage.getItem('pfa_outliers')
-    return val ? JSON.parse(val) : []
+    if (!val) return []
+    const parsed = JSON.parse(val)
+    return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
   }
@@ -249,7 +255,9 @@ export function getOutliers() {
 export function getExercisePrefs() {
   try {
     const val = localStorage.getItem('pfa_exercise_prefs')
-    return val ? JSON.parse(val) : {}
+    if (!val) return {}
+    const parsed = JSON.parse(val)
+    return (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {}
   } catch {
     return {}
   }
@@ -278,7 +286,9 @@ const PRACTICE_SESSIONS_KEY = 'pfa_practice_sessions'
 export function getPracticeSessions() {
   try {
     const val = localStorage.getItem(PRACTICE_SESSIONS_KEY)
-    return val ? JSON.parse(val) : []
+    if (!val) return []
+    const parsed = JSON.parse(val)
+    return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
   }
@@ -336,7 +346,9 @@ export function getPreferredDays() {
     const val = localStorage.getItem(PREFERRED_DAYS_KEY)
     if (!val) return []
     const parsed = JSON.parse(val)
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    // Validate each element is an integer 0-6
+    return parsed.filter(d => Number.isInteger(d) && d >= 0 && d <= 6)
   } catch {
     return []
   }
@@ -365,7 +377,12 @@ const COMPLETED_DAYS_KEY = 'pfa_completed_days'
 export function getCompletedDays() {
   try {
     const val = localStorage.getItem(COMPLETED_DAYS_KEY)
-    return val ? new Set(JSON.parse(val)) : new Set()
+    if (!val) return new Set()
+    const parsed = JSON.parse(val)
+    if (!Array.isArray(parsed)) return new Set()
+    // Validate each entry is an ISO date string (YYYY-MM-DD)
+    const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+    return new Set(parsed.filter(d => typeof d === 'string' && ISO_DATE_RE.test(d)))
   } catch {
     return new Set()
   }

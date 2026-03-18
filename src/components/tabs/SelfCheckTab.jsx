@@ -94,21 +94,32 @@ export default function SelfCheckTab() {
   useEffect(() => {
     const draft = loadDraft()
     if (!draft) return
-    if (draft.assessmentDate) setAssessmentDate(draft.assessmentDate)
-    if (draft.cardioExercise) setCardioExercise(draft.cardioExercise)
-    if (draft.cardioValue) setCardioValue(draft.cardioValue)
-    if (draft.cardioExempt !== undefined) setCardioExempt(draft.cardioExempt)
-    if (draft.walkSelected !== undefined) setWalkSelected(draft.walkSelected)
-    if (draft.walkTime) setWalkTime(draft.walkTime)
-    if (draft.strengthExercise) setStrengthExercise(draft.strengthExercise)
-    if (draft.strengthValue) setStrengthValue(draft.strengthValue)
-    if (draft.strengthExempt !== undefined) setStrengthExempt(draft.strengthExempt)
-    if (draft.coreExercise) setCoreExercise(draft.coreExercise)
-    if (draft.coreValue) setCoreValue(draft.coreValue)
-    if (draft.coreExempt !== undefined) setCoreExempt(draft.coreExempt)
-    if (draft.bodyCompExempt !== undefined) setBodyCompExempt(draft.bodyCompExempt)
-    if (draft.heightInches) setHeightInches(draft.heightInches)
-    if (draft.waistInches) setWaistInches(draft.waistInches)
+    // Whitelist-only restore: ignore any keys not in the expected draft shape to
+    // prevent prototype-pollution or unexpected state injection from crafted storage.
+    const DRAFT_KEYS = new Set([
+      'assessmentDate', 'cardioExercise', 'cardioValue', 'cardioExempt',
+      'walkSelected', 'walkTime', 'strengthExercise', 'strengthValue', 'strengthExempt',
+      'coreExercise', 'coreValue', 'coreExempt', 'bodyCompExempt', 'heightInches',
+      'waistInches', '_ts',
+    ])
+    const safe = Object.fromEntries(
+      Object.entries(draft).filter(([k]) => DRAFT_KEYS.has(k))
+    )
+    if (safe.assessmentDate) setAssessmentDate(safe.assessmentDate)
+    if (safe.cardioExercise) setCardioExercise(safe.cardioExercise)
+    if (safe.cardioValue) setCardioValue(safe.cardioValue)
+    if (safe.cardioExempt !== undefined) setCardioExempt(safe.cardioExempt)
+    if (safe.walkSelected !== undefined) setWalkSelected(safe.walkSelected)
+    if (safe.walkTime) setWalkTime(safe.walkTime)
+    if (safe.strengthExercise) setStrengthExercise(safe.strengthExercise)
+    if (safe.strengthValue) setStrengthValue(safe.strengthValue)
+    if (safe.strengthExempt !== undefined) setStrengthExempt(safe.strengthExempt)
+    if (safe.coreExercise) setCoreExercise(safe.coreExercise)
+    if (safe.coreValue) setCoreValue(safe.coreValue)
+    if (safe.coreExempt !== undefined) setCoreExempt(safe.coreExempt)
+    if (safe.bodyCompExempt !== undefined) setBodyCompExempt(safe.bodyCompExempt)
+    if (safe.heightInches) setHeightInches(safe.heightInches)
+    if (safe.waistInches) setWaistInches(safe.waistInches)
     setDraftRestored(true)
     setTimeout(() => setDraftRestored(false), 3000)
   }, [])
@@ -268,36 +279,40 @@ export default function SelfCheckTab() {
     }
   }, [hasDemographics, demographics, assessmentDate, cardioExercise, cardioValue, cardioExempt, walkSelected, walkTime, walkPass, strengthExercise, strengthValue, strengthExempt, coreExercise, coreValue, coreExempt, heightInches, waistInches, bodyCompExempt])
 
-  // IV-05: Height must be 48-84 inches (enforce positive, validate range)
+  // IV-05: Height must be 48-84 inches (enforce positive finite number, validate range)
   const handleHeightChange = (e) => {
     const val = e.target.value
-    if (val && parseFloat(val) < 0) return // block negative
-    setHeightInches(val)
     if (val) {
       const h = parseFloat(val)
+      // Block non-numeric, non-finite, or negative input
+      if (isNaN(h) || !isFinite(h) || h < 0) return
+      setHeightInches(val)
       if (h < 48 || h > 84) {
         setHeightError('Height must be between 48 and 84 inches.')
       } else {
         setHeightError('')
       }
     } else {
+      setHeightInches(val)
       setHeightError('')
     }
   }
 
-  // IV-06: Waist must be 20.0-55.0 inches (enforce positive, validate range)
+  // IV-06: Waist must be 20.0-55.0 inches (enforce positive finite number, validate range)
   const handleWaistChange = (e) => {
     const val = e.target.value
-    if (val && parseFloat(val) < 0) return // block negative
-    setWaistInches(val)
     if (val) {
       const w = parseFloat(val)
+      // Block non-numeric, non-finite, or negative input
+      if (isNaN(w) || !isFinite(w) || w < 0) return
+      setWaistInches(val)
       if (w < 20 || w > 55) {
         setWaistError('Waist must be between 20.0 and 55.0 inches.')
       } else {
         setWaistError('')
       }
     } else {
+      setWaistInches(val)
       setWaistError('')
     }
   }
@@ -456,8 +471,8 @@ export default function SelfCheckTab() {
       setSelfCheckDirty(false)
       setSuccess('Assessment code generated successfully!')
       return true
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      setError('Could not generate assessment code. Check your inputs and try again.')
       return false
     }
   }

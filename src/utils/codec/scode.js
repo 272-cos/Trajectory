@@ -94,7 +94,8 @@ export function encodeSCode(assessment) {
     writer.write(exIdx,               2)
     writer.write(cardio.exempt ? 1 : 0, 1)
     if (!cardio.exempt) {
-      writer.write(Math.min(Math.round(cardio.value ?? 0), 2047), 11)
+      const cv = Math.max(0, Math.min(Math.round(cardio.value ?? 0) || 0, 2047))
+      writer.write(cv, 11)
       if (cardio.exercise === '2km_walk') {
         writer.write(cardio.walkPass ? 1 : 0, 1)   // cardio_walk_pass
       }
@@ -105,22 +106,28 @@ export function encodeSCode(assessment) {
   if (strength) {
     writer.write(STRENGTH_EX[strength.exercise] ?? 0, 1)
     writer.write(strength.exempt ? 1 : 0, 1)
-    if (!strength.exempt) writer.write(Math.min(Math.round(strength.value ?? 0), 127), 7)
+    if (!strength.exempt) {
+      const sv = Math.max(0, Math.min(Math.round(strength.value ?? 0) || 0, 127))
+      writer.write(sv, 7)
+    }
   }
 
   // ── Core (14 bits) ──
   if (core) {
     writer.write(CORE_EX[core.exercise] ?? 0, 2)
     writer.write(core.exempt ? 1 : 0, 1)
-    if (!core.exempt) writer.write(Math.min(Math.round(core.value ?? 0), 2047), 11)
+    if (!core.exempt) {
+      const corv = Math.max(0, Math.min(Math.round(core.value ?? 0) || 0, 2047))
+      writer.write(corv, 11)
+    }
   }
 
   // ── Body comp (25 bits when non-exempt) ──
   if (bodyComp) {
     writer.write(bodyComp.exempt ? 1 : 0, 1)
     if (!bodyComp.exempt) {
-      const h      = Math.min(Math.round((bodyComp.heightInches ?? 0) * 10), 2047)
-      const w      = Math.min(Math.round((bodyComp.waistInches  ?? 0) * 10), 1023)
+      const h      = Math.max(0, Math.min(Math.round((bodyComp.heightInches ?? 0) * 10) || 0, 2047))
+      const w      = Math.max(0, Math.min(Math.round((bodyComp.waistInches  ?? 0) * 10) || 0, 1023))
       const offset = Math.min(Math.max(0, bodyComp.measuredOffset ?? 0), 7)
       writer.write(h,      11)
       writer.write(w,      10)

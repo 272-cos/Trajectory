@@ -415,9 +415,10 @@ export function parseTime(timeStr) {
   // If it contains a colon, parse as mm:ss
   if (timeStr.includes(':')) {
     const parts = timeStr.split(':')
+    if (parts.length !== 2) return null
     const mins = parseInt(parts[0], 10)
     const secs = parseInt(parts[1], 10)
-    if (isNaN(mins) || isNaN(secs) || mins < 0 || secs < 0 || secs >= 60) return null
+    if (isNaN(mins) || isNaN(secs) || mins < 0 || mins > 99 || secs < 0 || secs >= 60) return null
     const total = mins * 60 + secs
     return total > 0 ? total : null
   }
