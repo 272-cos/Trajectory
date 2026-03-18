@@ -523,6 +523,309 @@ Each scoring table defines a curve: performance input (reps, time, shuttles) map
 
 ---
 
+---
+
+### Sprint 10 - Periodized Training Plan + Practice Mode
+
+**Goal:** Help Airmen who struggle to complete the full PT test build up to test-day performance through a structured, evidence-based periodized program. Replace the antipattern of "test repeatedly until you pass" with a three-layer training model that builds confidence through progressive mastery experiences - with one full mock test at exactly -2 weeks, and never before.
+
+**Design origin:** This sprint emerged from a professional trainer review of the app's gap between scoring (what you got) and training (how to improve). The problem being solved: the app already tells users they're failing, but struggling users often don't know how to train toward the test without burning themselves out or losing confidence. The periodized approach is the evidence-based solution.
+
+---
+
+#### Background: The Three-Layer Model
+
+Training for a PT test should use three distinct stimulus types, deliberately mixed throughout a periodized program. Using only the test itself as the training tool leads to overuse injury, CNS fatigue, and psychological burnout.
+
+**Layer 1 - Training Sessions (daily bread)**
+Regular workouts, never taken to maximal effort. Use the existing recommendation engine output. Frequency 3-4x/week depending on phase. Purpose: volume, movement pattern practice, aerobic base. Not measured as performance tests.
+
+**Layer 2 - Performance Indicator (PI) Workouts**
+Short sub-maximal benchmarks that predict full-test performance with high correlation, but cause a fraction of the recovery cost of even a half-test. Scheduled more frequently than fractional tests. Provide progress data without disrupting training weeks.
+
+| Exercise | PI Workout | Scaling Rule |
+|---|---|---|
+| Push-ups | Max reps in 30 seconds | x2 = ~predicted 1-min max (+/- 3 reps) |
+| Sit-ups | Max reps in 30 seconds | x2 = ~predicted 1-min max (+/- 3 reps) |
+| CLRC | Max reps in 30 seconds | x2 = ~predicted 2-min max |
+| 2-mile run | 1-mile time trial | x2 + 45s = ~predicted 2-mile |
+| 2-mile run | 400m at goal pace | x8 + 60s = ~predicted 2-mile |
+| HAMR | Prescribed interval set | Shuttle count scales linearly to level equivalent |
+| Plank | Hold to 50% target time | x2 = predicted full hold |
+
+These feel like warmups, not tests. They can precede a regular training session. The app scales the result to a projected full-test score and updates the projection.
+
+**Layer 3 - Fractional Tests (milestone check-ins)**
+Scaled versions of the actual test at prescribed fractions of the standard. Scheduled infrequently. Treated as progress milestones, not pass/fail events.
+
+Scheduled at:
+- 50% of standard: at the midpoint of the program (e.g., week 8 of 16)
+- 75% of standard: approximately 4 weeks out from the actual test
+- 100% (Full Mock Test): exactly 2 weeks before the actual test, once only
+
+"50% of standard" means half the rep count, half the run distance, half the plank standard. Simple and unambiguous.
+
+**Full Mock Test Rule (non-negotiable):**
+The full PT test is performed exactly once before the actual test: at -2 weeks. Never more frequently, never closer to test day than 14 days. After the mock test, the app instructs the user to taper - not to train hard. This rule exists because:
+- Maximal testing requires 3-5 days recovery; full test recovery can extend to a week
+- The supercompensation cycle (adaptation during rest, not during training) needs the 2-week window
+- Psychological benefit is greatest when the mastery experience (surviving the full test) has time to consolidate before test day
+- Bosquet et al. (2007) meta-analysis: 2-week taper with 40-60% volume reduction produces ~2-3% performance improvement on test day
+
+---
+
+#### Evidence Basis
+
+The design of this sprint draws on the following established principles:
+
+**Specific Adaptation to Imposed Demands (SAID)**
+The body adapts to what you demand of it. Practice must be exercise-specific. Repeating max-effort tests is a narrow stimulus that produces rapid habituation and then stagnation.
+
+**Supercompensation (Bompa & Haff)**
+Fitness improves during recovery, not during training. Maximal-effort testing has a high recovery cost (48-72h for calisthenics, 3-5 days for a 2-mile max effort). Frequent testing means spending most time recovering rather than adapting.
+
+**Progressive Overload (Zatsiorsky & Kraemer)**
+Systematic increases in volume, frequency, or intensity are required for continued adaptation. The three-layer model provides this structure explicitly rather than leaving it to chance.
+
+**Bandura's Self-Efficacy Theory (1997)**
+The single strongest predictor of performance under test conditions is self-efficacy - and the primary source of self-efficacy is "mastery experiences": succeeding at progressively harder tasks. The fractional test structure creates a reliable sequence of wins that compound into genuine test-day confidence. This is not a soft benefit - it measurably reduces test anxiety and improves performance (Cassady & Johnson, 2002).
+
+**Tapering (Bosquet et al., 2007)**
+A 2-week taper with 40-60% volume reduction while maintaining session frequency produces measurable performance gains in endurance events. Longer tapers risk detraining; shorter tapers don't allow full supercompensation.
+
+**Greasing the Groove (Tsatsouline)**
+For calisthenics specifically, multiple sub-maximal sets distributed throughout the day - never taken to failure - produce faster strength gains than single maximal sets. The neurological mechanism: frequent sub-maximal practice improves motor unit recruitment efficiency. Directly applicable to push-up and sit-up progression in the foundation phase.
+
+**80/20 Intensity Distribution (Seiler, 2010)**
+Elite endurance athletes perform approximately 80% of training volume at easy/aerobic intensity and 20% at moderate-to-high intensity. This applies to run preparation: most run training should be easy-paced, not hard-effort repetition. Translated to PT prep: 2-3 easy/moderate runs per week beats 1 max-effort run per week.
+
+---
+
+#### Program Calendar (16-Week Reference Model)
+
+The 16-week model maps cleanly to 4 phases of 4 weeks. For shorter windows, phases compress but the structure holds. The app adapts the schedule based on the user's actual target PFA date.
+
+```
+PHASE 1 - Foundation (Weeks 1-4)
+  Week 1: Baseline PI Workouts
+           - 30-sec max push-ups, 30-sec max sit-ups, 400m run
+           - Not a test. Establishes Day 1 numbers only.
+           - Training begins immediately.
+  Weeks 2-3: Training sessions only (3x/week, sub-maximal)
+  Week 4: PI Workout check-in
+           - Repeat Week 1 PI workouts exactly
+           - App shows delta from Week 1: first visible evidence of progress
+
+PHASE 2 - Building (Weeks 5-8)
+  Weeks 5-7: Training sessions (3x/week) + PI check-in at Week 6
+  Week 8: FRACTIONAL TEST #1 at 50% of standard
+           - Half the rep count, half the run distance, half the plank time
+           - Rest day before; rest day after
+           - Recorded in app as Progress Milestone 1
+
+PHASE 3 - Development (Weeks 9-12)
+  Weeks 9-11: Training sessions (3-4x/week) + PI check-in at Week 10
+  Week 12: FRACTIONAL TEST #2 at 75% of standard
+            - 75% rep count, 1.5-mile run, 75% plank time
+            - Rest day before; rest day after
+            - Recorded in app as Progress Milestone 2
+
+PHASE 4 - Peak + Taper (Weeks 13-16)
+  Week 13: Training (reduce volume ~20%, maintain frequency)
+           - PI Workout only; no fractional test
+           - App shows trajectory from all data points
+  Week 14: FULL MOCK TEST (once, never again before actual test)
+           - Rest day before; full test; rest 3-5 days after
+           - App prompt: "You proved you can do this. Now taper."
+  Week 15: TAPER - 50% volume reduction, maintain frequency
+           - Short easy runs only; sub-maximal push-up/sit-up sets
+           - No new training stress; let supercompensation occur
+  Week 16: ACTUAL TEST (optimal: mid-week)
+```
+
+For users who cannot complete even the 50% fractional test, an optional Phase 0 (2-4 weeks) uses pre-progression exercises:
+- Push-ups: wall push-ups -> incline push-ups -> knee push-ups -> standard
+- Run: walk/run intervals (1 min run / 2 min walk) progressing toward continuous run
+- Core: dead bugs and partial sit-ups before full range-of-motion sit-ups
+
+---
+
+#### Task 10.1 - Practice Mode in Self-Check (Option C)
+
+**Rationale:** The lowest-friction implementation. Adds a "Practice Check" mode to the existing Self-Check tab, reusing all existing scoring infrastructure. Users can record PI Workouts and fractional tests without creating full S-codes, and the app scales their results to predicted full-test scores to update the projection.
+
+**Implementation approach:**
+
+- [ ] Add "Practice Check" toggle at top of Self-Check tab (defaults to off = normal self-check behavior)
+- [ ] In Practice mode: replace "Max effort" framing with "Prescribed reps / time target" inputs
+- [ ] Add "Practice type" selector: PI Workout (30-sec benchmarks) | Fractional Test (50% / 75%)
+- [ ] PI Workout path:
+  - Push-ups: 30-second max rep entry
+  - Sit-ups: 30-second max rep entry
+  - Run: 1-mile or 400m time entry
+  - App scales result to predicted full-test value using PI scaling rules (see Three-Layer Model table above)
+  - Display: "Predicted 1-min max: ~42 push-ups (based on 21 in 30s)" with confidence note
+- [ ] Fractional Test path:
+  - User selects 50% or 75% fraction
+  - App pre-fills the rep/time targets (e.g., half the passing standard for user's bracket)
+  - User records actual reps achieved
+  - App scales result to full-test equivalent
+  - Display: "Equivalent full-test score: ~68 pts" with disclaimer
+- [ ] Practice results stored separately from S-codes (localStorage key: `pfa_practice_sessions`)
+- [ ] Practice results NOT encoded into S-codes (avoid polluting the scoring history)
+- [ ] Practice results displayed in History tab with distinct visual treatment (gray border vs. blue for S-codes)
+- [ ] Practice results feed into the Projection tab as additional data points (dotted line overlay, labeled "Scaled practice data")
+- [ ] Mock Test mode: when target PFA date is 12-16 days away, app displays a banner: "You are in the mock test window. Consider running your full mock test now - one time only."
+- [ ] Post-mock-test prompt: after a full S-code is recorded at -14 to -10 days out, app displays: "Mock test recorded. Your job now is to taper. Reduce training volume by 50% and avoid hard efforts until test day."
+- [ ] Unit tests: scaling calculations for all PI Workout types; fractional test projection math; mock test window detection logic
+
+**New utility file:** `src/utils/training/practiceSession.js`
+- `scalePIWorkout(exercise, value)` - applies scaling rule to PI result, returns predicted full-test value
+- `scaleFractionalTest(exercise, fraction, value)` - scales fractional test result to full equivalent
+- `isMockTestWindow(targetDate, today)` - returns true if today is 10-16 days before target
+- `isInTaperPeriod(targetDate, today)` - returns true if today is 0-14 days before target
+
+**New localStorage key:** `pfa_practice_sessions` - array of practice session objects, never encoded
+
+**Acceptance:**
+- Practice mode toggle switches Self-Check to PI/fractional entry without breaking normal mode
+- 30-sec push-up entry of 20 reps displays "Predicted 1-min max: ~40 reps"
+- 1-mile time of 8:30 displays "Predicted 2-mile: ~17:45"
+- Fractional test entry at 50% shows predicted full-test composite
+- History tab shows practice sessions visually distinct from S-codes
+- Projection tab dotted overlay renders from scaled practice data
+- Mock test window banner appears correctly when 10-16 days out
+- Post-mock-test prompt fires after full S-code recorded in window
+- `npm test` passes
+
+---
+
+#### Task 10.3 - Trajectory Tab Milestone Overlays (Option B) [OPTIONAL]
+
+**Tag: OPTIONAL** - Evaluate after Task 10.1 ships. Option B lives entirely inside the existing Trajectory tab. It adds zero new tabs and zero new navigation - but requires careful visual design to avoid cluttering the projection chart. Whether the payoff exceeds the clutter risk is a judgment call that should be made after seeing Option C in production. This task is documented here for future evaluation, not scheduled.
+
+**Concept:**
+The Trajectory tab already shows a projection line with historical S-code data points. Option B overlays the periodized training plan milestones directly onto that same chart: PI Workout dates appear as markers on the timeline, fractional test dates as milestone flags, the mock test as a distinct callout, and the taper period as a shaded background region. The user sees their projection line running toward test day with the program calendar embedded in the same view.
+
+**Why it could be a significant boon:**
+- Visually stimulated users (and most mobile users) respond better to a single unified chart than to multiple separate screens
+- The milestone markers give the projection line temporal meaning - "I am here, mock test is there, test day is there"
+- Scaled practice session data points (from Task 10.1) plotted on the same chart make the connection between daily training and projected score visceral and immediate
+- No context-switching required: the user can see their trajectory and their plan in one glance
+
+**Why it might not be worth it:**
+- The Trajectory tab chart is already carrying a lot (projection line, confidence band, historical points, passing threshold, amber warning zone)
+- Adding 5-6 milestone marker types on a mobile-width chart risks illegibility
+- If the chart becomes crowded, the primary function (projection) gets harder to read
+- Option A (dedicated tab) gives the calendar room to breathe and be detailed
+
+**Evaluation criteria before committing to this task:**
+1. Does the chart remain legible at 375px width (iPhone SE) with all overlays visible?
+2. Can the milestone types be visually distinguished at a glance without a legend?
+3. Does the "taper shading" background region compete with the passing threshold styling?
+4. User test: does a first-time user understand what the markers mean without explanation?
+
+**Implementation approach (if approved):**
+
+- [ ] Add milestone data to the Trajectory tab's Recharts `ComposedChart` as additional data series
+- [ ] PI Workout dates: small diamond markers on the x-axis, color-coded by type
+- [ ] Fractional test dates: vertical reference lines (`<ReferenceLine>`) labeled "50% Test" / "75% Test"
+- [ ] Mock test: vertical reference line labeled "Mock Test" in red with distinct dash pattern
+- [ ] Taper period: `<ReferenceArea>` shaded region between -14 days and test day (light amber fill)
+- [ ] Scaled practice session data points: plotted on the composite score axis as translucent dots, labeled "Practice (scaled)"
+- [ ] On mobile: milestone labels abbreviated or shown on tap (tooltip) to prevent overlap
+- [ ] Legend: collapsible/expandable, defaults collapsed to preserve chart readability
+- [ ] Toggle: "Show training milestones" switch in the chart header - defaults OFF, user opts in
+  - Defaulting to OFF preserves the existing experience; the toggle gives visually stimulated users access without imposing on users who prefer the clean chart
+- [ ] When no practice sessions exist yet: milestones show as future markers only (no data points)
+- [ ] Unit tests: milestone date calculation (PI dates, fractional test dates, mock test date, taper bounds) given a target PFA date and today
+
+**Key design constraint:**
+The toggle default-OFF approach is the safest path. It respects existing users, lets curious users discover the overlay, and gives real-world feedback on whether it helps or hurts before deciding whether to make it default-ON.
+
+**Acceptance (if this task is activated):**
+- All existing Trajectory tab tests still pass
+- Chart is legible at 375px with overlays ON (no label overlap)
+- Toggle persists preference in localStorage
+- Scaled practice points are visually distinct from full S-code points
+- Mock test reference line does not visually conflict with the 75.0 passing threshold line
+- `npm test` passes
+
+---
+
+#### Task 10.2 - Training Plan Calendar Tab (Option A)
+
+**Prerequisite:** Task 10.1 complete and verified (no regressions in Self-Check or Projection tabs). This task is planned but not scheduled until Option C ships cleanly.
+
+**Rationale:** Once practice sessions are recorded and scaling works, surface the full periodized calendar to the user as a dedicated tab. The user sees exactly when their PI Workouts, fractional tests, mock test, and taper fall on a calendar, mapped to their actual target PFA date.
+
+**Implementation approach:**
+
+- [ ] New "Plan" tab between Trajectory and History
+- [ ] Blocked until: D-code present (needs DOB for bracket) + target PFA date set
+- [ ] On first load: app generates the personalized program calendar based on:
+  - Weeks until target PFA date
+  - Current fitness tier per component (from most recent S-code or baseline PI)
+  - Detected phase (e.g., if 4 weeks out, jump to Phase 4 structure)
+- [ ] Calendar view: week-by-week grid
+  - Training session days (3-4x/week markers, links to existing recommendation engine output)
+  - PI Workout dates (highlighted, with specific prescribed benchmark targets)
+  - Fractional Test dates (highlighted, with prescribed rep targets for user's bracket)
+  - Mock Test date (highlighted in red: "Full Mock Test - do this once")
+  - Taper period (shaded, "Reduce volume 50%")
+  - Actual Test date (goal flag)
+- [ ] Each calendar event is tappable: expands to show the prescription for that session
+- [ ] As user logs practice sessions (from Task 10.1), the calendar marks items complete
+- [ ] Phase 0 detection: if user has no S-codes or composite < 50, calendar starts with Phase 0 pre-progression exercises
+- [ ] Regenerate button: if target PFA date changes, calendar rebuilds
+- [ ] Deconditioned user path: if push-up PI Workout returns < 5 reps, Phase 1 auto-extends to 6-8 weeks and prescribes pre-progression exercises (wall/incline/knee push-ups) instead of standard training
+- [ ] No free-text input; all prescriptions are from the existing recommendation engine + effort constants (GR-06)
+
+**New utility file:** `src/utils/training/trainingCalendar.js`
+- `generateCalendar(demographics, targetDate, currentScores, today)` - builds the full phase/week/session schedule
+- `detectPhase(weeksOut)` - returns Phase 1-4 or Phase 0 based on time remaining
+- `prescribePIWorkout(exercise, fitnessLevel)` - returns target benchmark for the user's current level
+- `prescribeFractionalTest(bracket, fraction)` - returns prescribed rep/time targets at given fraction of standard
+
+**Acceptance:**
+- Calendar renders correctly for 4-week, 8-week, and 16-week timelines
+- Mock test always falls at -14 days +/- 1 day
+- Taper period always 14 days
+- Phase 0 triggered when composite < 50 or no S-codes with < 5 PI reps
+- Completed practice sessions check off on calendar
+- No regressions in existing tabs
+
+---
+
+#### Design Rules for This Sprint
+
+The following rules must be encoded into the implementation. They are not edge cases - they are the design intent.
+
+| Rule | Description |
+|---|---|
+| TR-01 | Full PT test performed at most once before actual test: at -14 days |
+| TR-02 | After full mock test recorded, app surfaces taper instruction; does not suppress it |
+| TR-03 | PI Workout results always labeled "predicted" or "estimated" - never shown as definitive scores |
+| TR-04 | Fractional test results always labeled with the fraction used (e.g., "50% test") |
+| TR-05 | Practice sessions never contribute to official S-code history or report generation |
+| TR-06 | Scaling rules are approximate; app always includes confidence note on predicted values |
+| TR-07 | For users who cannot complete Phase 1 baseline (< 1 push-up, cannot run 400m), Phase 0 pre-progressions must be offered |
+| TR-08 | The goal framing is confidence-building, not score-maximizing - copy and UI must reflect this |
+| TR-09 | Mock test window (10-16 days out) banner is informational only; user is never forced into full mock test |
+| TR-10 | Taper period (0-14 days out) suppresses aggressive training recommendations in the recommendation engine |
+
+---
+
+#### Sprint 10 Summary
+
+| Task | Status | Prerequisite | Key Deliverable |
+|---|---|---|---|
+| 10.1 - Practice Mode (Option C) | Not started | None | Practice check entry, PI scaling, fractional test, mock test prompts |
+| 10.3 - Trajectory Overlays (Option B) | OPTIONAL - not scheduled | 10.1 verified; visual evaluation pass | Milestone overlays on projection chart; default-OFF toggle |
+| 10.2 - Training Plan Calendar Tab (Option A) | Not started | 10.1 verified | Full periodized calendar tab |
+
+---
+
 ## Implementation Notes
 
 ### Do Not Add
@@ -566,3 +869,4 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 | 7 | 7.1, 7.2, 7.3 | ✅ Complete | PWA + accessibility + chart update banner |
 | 8 | 8.1, 8.2, 8.3, 8.4 | 🔄 In Progress | 8.1 complete (effort-weighted strategy engine); 8.2 complete (stopwatch); 8.3 complete (HAMR metronome); 8.4 pending (exercise comparison) |
 | 9 | 9.1, 9.2 | ✅ Complete | 9.1 complete (curated training resource links); 9.2 complete (personalized training plans) |
+| 10 | 10.1, 10.3 (opt), 10.2 | Not started | Practice Mode (Option C) -> Trajectory overlays (Option B, optional eval) -> Training Plan tab (Option A) |
