@@ -161,7 +161,12 @@ export default function ProfileTab() {
       setDob(decoded.dob.toISOString().split('T')[0])
       setGender(decoded.gender)
       setPasteCode('')
-      setSuccess('Profile code loaded successfully!')
+      if (!targetPfaDate) {
+        setSuccess('Profile loaded! Set your Target PFA Date below.')
+        setTimeout(() => document.getElementById('target-date')?.focus(), 50)
+      } else {
+        setSuccess('Profile code loaded successfully!')
+      }
     } catch (err) {
       setError('Invalid profile code: ' + err.message)
     }
@@ -262,7 +267,7 @@ export default function ProfileTab() {
           {/* Generate Button */}
           <button
             onClick={handleGenerateDCode}
-            disabled={!dob}
+            disabled={!dob || !targetDate}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors"
           >
             Save Profile
