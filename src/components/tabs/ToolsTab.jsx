@@ -18,7 +18,7 @@ const COMP_LABELS = {
   cardio:   'Cardio',
   strength: 'Strength',
   core:     'Core',
-  bodyComp: 'Body Comp',
+  bodyComp: 'Body Comp (WHtR)',
 }
 
 const COMP_COLORS = {

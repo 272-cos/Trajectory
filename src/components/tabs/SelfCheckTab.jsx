@@ -671,12 +671,12 @@ export default function SelfCheckTab() {
                 </h3>
                 {/* UX-02: Pass/fail badge */}
                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${scores.composite.pass ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                  {scores.composite.pass ? 'PASSING' : 'FAILING'}
+                  {scores.composite.pass ? 'PASS' : 'FAIL'}
                 </span>
                 {/* UX-10: Diagnostic period badge */}
                 {isDiagnostic && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
-                    DIAGNOSTIC PERIOD
+                    Diagnostic Period
                   </span>
                 )}
               </div>
@@ -732,7 +732,7 @@ export default function SelfCheckTab() {
             {/* UX-10: Diagnostic period badge inline with date */}
             {isDiagnostic && (
               <span id="diag-badge" className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
-                DIAGNOSTIC PERIOD - non-scored
+                Diagnostic Period - non-scored
               </span>
             )}
           </div>
@@ -869,7 +869,7 @@ export default function SelfCheckTab() {
             <SegmentedControl
               options={[
                 { value: EXERCISES.SITUPS, label: 'Sit-ups (1 min)' },
-                { value: EXERCISES.CLRC, label: 'Rev. Crunches (2 min)' },
+                { value: EXERCISES.CLRC, label: 'Reverse Crunches (2 min)' },
                 { value: EXERCISES.PLANK, label: 'Forearm Plank' },
               ]}
               value={coreExercise}
@@ -1368,7 +1368,7 @@ function PracticeCheckForm({ demographics, assessmentDate, onDateChange, today }
                     onClick={() => { setFracStrengthExercise(ex); setFracStrengthValue('') }}
                     className={`px-3 py-1.5 text-xs rounded border transition-colors ${fracStrengthExercise === ex ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
                   >
-                    {ex === EXERCISES.PUSHUPS ? 'Push-ups' : 'HRPU'}
+                    {ex === EXERCISES.PUSHUPS ? 'Push-ups' : 'Hand-Release Push-ups'}
                   </button>
                 ))}
               </div>
@@ -1750,7 +1750,7 @@ function ProgressBar({ cardioExempt, cardioValue, walkSelected, walkTime,
     { name: 'Cardio', done: cardioExempt || !!(cardioValue || (walkSelected && walkTime)) },
     { name: 'Strength', done: strengthExempt || !!strengthValue },
     { name: 'Core', done: coreExempt || !!coreValue },
-    { name: 'Body Comp', done: bodyCompExempt || !!(heightInches && waistInches) },
+    { name: 'Body Comp (WHtR)', done: bodyCompExempt || !!(heightInches && waistInches) },
   ]
   const completed = components.filter(c => c.done).length
 

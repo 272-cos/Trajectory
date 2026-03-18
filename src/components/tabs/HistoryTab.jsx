@@ -39,7 +39,7 @@ const EXERCISE_LABELS = {
   [EXERCISES.HAMR]: 'HAMR Shuttle',
   [EXERCISES.WALK_2KM]: '2km Walk',
   [EXERCISES.PUSHUPS]: 'Push-ups',
-  [EXERCISES.HRPU]: 'HRPU',
+  [EXERCISES.HRPU]: 'Hand-Release Push-ups',
   [EXERCISES.SITUPS]: 'Sit-ups',
   [EXERCISES.CLRC]: 'Reverse Crunches',
   [EXERCISES.PLANK]: 'Forearm Plank',
@@ -50,7 +50,7 @@ const COMPONENT_LABELS = {
   [COMPONENTS.CARDIO]: 'Cardio',
   [COMPONENTS.STRENGTH]: 'Strength',
   [COMPONENTS.CORE]: 'Core',
-  [COMPONENTS.BODY_COMP]: 'Body Comp',
+  [COMPONENTS.BODY_COMP]: 'Body Comp (WHtR)',
 }
 
 const COMPONENT_COLORS = {
@@ -905,7 +905,7 @@ function AssessmentCard({
               {/* EC-14: Diagnostic period badge */}
               {isDiag && (
                 <span className="inline-block px-1.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded">
-                  DIAGNOSTIC PERIOD
+                  Diagnostic Period
                 </span>
               )}
               {/* EC-20: Same-date warning */}

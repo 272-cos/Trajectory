@@ -36,7 +36,7 @@ export const EXERCISE_NAMES = {
   [EXERCISES.PUSHUPS]: 'Push-ups',
   [EXERCISES.HRPU]: 'Hand-Release Push-ups',
   [EXERCISES.SITUPS]: 'Sit-ups',
-  [EXERCISES.CLRC]: 'Rev. Crunches',
+  [EXERCISES.CLRC]: 'Reverse Crunches',
   [EXERCISES.PLANK]: 'Forearm Plank',
   [EXERCISES.WHTR]: 'Body Comp (WHtR)',
 }
@@ -478,7 +478,7 @@ function getComponentName(comp) {
     [COMPONENTS.CARDIO]: 'Cardio',
     [COMPONENTS.STRENGTH]: 'Strength',
     [COMPONENTS.CORE]: 'Core',
-    [COMPONENTS.BODY_COMP]: 'Body Comp',
+    [COMPONENTS.BODY_COMP]: 'Body Comp (WHtR)',
   }
   return names[comp] || comp
 }

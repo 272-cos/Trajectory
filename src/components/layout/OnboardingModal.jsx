@@ -15,7 +15,7 @@ function TrainingResourcesDemo() {
         <div className="px-3 py-2 flex items-center justify-between bg-gray-50 border-b border-gray-100">
           <div>
             <span className="text-xs font-semibold text-gray-800">Cardio</span>
-            <span className="ml-2 text-xs text-gray-500">14:30 2-mile run</span>
+            <span className="ml-2 text-xs text-gray-500">14:30 2-Mile Run</span>
           </div>
           <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">82 pts - PASS</span>
         </div>
