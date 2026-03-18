@@ -259,7 +259,7 @@ export default function ProfileTab() {
                 targetDateError
                   ? 'border-red-400'
                   : highlightTargetDate
-                  ? 'border-amber-400 animate-pulse'
+                  ? 'border-amber-500 ring-2 ring-amber-300 ring-offset-1 animate-pulse'
                   : 'border-gray-300'
               }`}
             />
