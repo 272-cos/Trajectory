@@ -824,8 +824,8 @@ export default function PlanTab() {
             { dot: 'bg-blue-500',   label: 'Quick Benchmark' },
             { dot: 'bg-purple-500', label: 'Partial Test' },
             { dot: 'bg-orange-500', label: 'Mock' },
-            { dot: 'bg-red-500',    label: 'Test Day' },
             { dot: 'bg-amber-400',  label: 'Taper' },
+            { dot: 'bg-red-500',    label: 'Test Day' },
           ].map(({ dot, label }) => (
             <div key={label} className="flex items-center gap-1">
               <span className={`w-2 h-2 rounded-full ${dot}`} />
