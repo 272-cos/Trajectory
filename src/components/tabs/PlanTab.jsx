@@ -575,19 +575,45 @@ export default function PlanTab() {
         {/* Preferred training days picker */}
         {(() => {
           const DOW_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+          const DOW_FULL   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+          const n          = pendingDays.length
+          const over       = n > 3
+          const exact      = n === 3
           const consecutive = hasConsecutiveDays(pendingDays)
-          const readyToConfirm = pendingDays.length === 3
-          const changed = pendingDays.join(',') !== preferredDays.join(',')
+          const changed    = pendingDays.join(',') !== preferredDays.join(',')
+
+          // Three-segment progress bar: one pip per slot
+          const pipColor = (i) => {
+            if (i >= Math.min(n, 3)) return 'bg-gray-200'
+            return over ? 'bg-amber-400' : 'bg-blue-500'
+          }
+
+          // Hint text below bar
+          const hint =
+            n === 0 ? 'Pick the three days that fit your week best'  :
+            n === 1 ? 'Two more to go'                               :
+            n === 2 ? 'One more and you are set'                     :
+            over    ? 'Rest is part of the plan - drop it to three'  :
+            null
+
           return (
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs font-medium text-gray-500">
-                  Select 3 training days
-                </div>
-                <div className="text-xs text-gray-400">
-                  {pendingDays.length}/3 selected
-                </div>
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              {/* Three-pip progress bar */}
+              <div className="flex gap-1.5 mb-1">
+                {[0, 1, 2].map(i => (
+                  <div
+                    key={i}
+                    className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${pipColor(i)}`}
+                  />
+                ))}
               </div>
+
+              {/* Status copy */}
+              <div className={`text-xs mb-2.5 min-h-[1rem] transition-colors leading-snug ${over ? 'text-amber-600 font-medium' : 'text-gray-400'}`}>
+                {hint}
+              </div>
+
+              {/* Day buttons */}
               <div className="flex gap-1">
                 {DOW_LABELS.map((label, dow) => {
                   const active = pendingDays.includes(dow)
@@ -598,39 +624,39 @@ export default function PlanTab() {
                       className={[
                         'flex-1 py-1.5 rounded text-xs font-semibold transition-colors border',
                         active
-                          ? 'bg-blue-600 border-blue-700 text-white'
+                          ? over
+                            ? 'bg-amber-400 border-amber-500 text-white'
+                            : 'bg-blue-600 border-blue-700 text-white'
                           : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
                       ].join(' ')}
                       aria-pressed={active}
-                      aria-label={`${active ? 'Remove' : 'Add'} ${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow]}`}
+                      aria-label={`${active ? 'Remove' : 'Add'} ${DOW_FULL[dow]}`}
                     >
                       {label}
                     </button>
                   )
                 })}
               </div>
-              {consecutive && (
-                <div className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+
+              {/* Consecutive-day warning (only when not already showing over-limit warning) */}
+              {consecutive && !over && (
+                <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2.5 py-1.5">
                   Back-to-back days increase injury risk - spacing workouts aids recovery.
                 </div>
               )}
+
+              {/* Confirm button */}
               <button
                 onClick={handleConfirmDays}
-                disabled={!readyToConfirm || !changed}
+                disabled={!exact || !changed}
                 className={[
-                  'mt-2 w-full py-1.5 rounded text-xs font-semibold border transition-colors',
-                  readyToConfirm && changed
-                    ? 'bg-blue-600 border-blue-700 text-white hover:bg-blue-700'
+                  'mt-2.5 w-full py-2 rounded-lg text-xs font-semibold border transition-all',
+                  exact && changed
+                    ? 'bg-blue-600 border-blue-700 text-white hover:bg-blue-700 shadow-sm'
                     : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed',
                 ].join(' ')}
               >
-                {pendingDays.length < 3
-                  ? `Select ${3 - pendingDays.length} more day${3 - pendingDays.length !== 1 ? 's' : ''} to confirm`
-                  : pendingDays.length > 3
-                    ? `Deselect ${pendingDays.length - 3} day${pendingDays.length - 3 !== 1 ? 's' : ''} to confirm`
-                    : !changed
-                      ? 'No changes to apply'
-                      : 'Confirm - regenerate calendar'}
+                {exact && changed ? 'Confirm training days' : 'Confirm training days'}
               </button>
             </div>
           )
