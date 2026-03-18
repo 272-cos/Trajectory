@@ -322,6 +322,43 @@ export function clearPracticeSessions() {
   }
 }
 
+// ── Completed training days ───────────────────────────────────────────────────
+
+const COMPLETED_DAYS_KEY = 'pfa_completed_days'
+
+/**
+ * Get the set of ISO date strings the user has manually marked complete.
+ * @returns {Set<string>}
+ */
+export function getCompletedDays() {
+  try {
+    const val = localStorage.getItem(COMPLETED_DAYS_KEY)
+    return val ? new Set(JSON.parse(val)) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+/**
+ * Toggle a date's completed state. Returns true if now complete, false if unchecked.
+ * @param {string} dateISO - ISO date string e.g. '2026-03-18'
+ * @returns {boolean}
+ */
+export function toggleCompletedDay(dateISO) {
+  try {
+    const days = getCompletedDays()
+    if (days.has(dateISO)) {
+      days.delete(dateISO)
+    } else {
+      days.add(dateISO)
+    }
+    localStorage.setItem(COMPLETED_DAYS_KEY, JSON.stringify([...days]))
+    return days.has(dateISO)
+  } catch {
+    return false
+  }
+}
+
 /**
  * Toggle outlier flag for an S-code
  * @param {string} scode - S-code string to toggle

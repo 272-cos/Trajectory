@@ -43,7 +43,7 @@ export const PHASE_DESCRIPTIONS = {
   [PHASES.PHASE_0]: 'Build a safe movement foundation before progressing to standard training.',
   [PHASES.PHASE_1]: 'Establish aerobic base and movement patterns with consistent, low-intensity work.',
   [PHASES.PHASE_2]: 'Add volume and early benchmark testing to track progress.',
-  [PHASES.PHASE_3]: 'Sharpen fitness with higher intensity and fractional test validation.',
+  [PHASES.PHASE_3]: 'Sharpen fitness with higher intensity and partial test validation.',
   [PHASES.PHASE_4]: 'Lock in fitness gains, complete your mock test, and taper for peak performance.',
 }
 
@@ -147,7 +147,7 @@ export function prescribePIWorkout(exercise, fitnessLevel) {
   if (!exercisePrescriptions) {
     return {
       target: 'Max effort in the time limit',
-      description: 'PI Workout benchmark',
+      description: 'Quick Benchmark',
       notes: 'Record your result and compare to previous sessions.',
     }
   }
@@ -168,12 +168,12 @@ export function prescribePIWorkout(exercise, fitnessLevel) {
  */
 export function prescribeFractionalTest(exercise, ageBracket, gender, fraction) {
   const pct = Math.round(fraction * 100)
-  const label = `${pct}% Fractional Test`
+  const label = `${pct}% Partial Test`
 
   return {
     target: `Perform ${pct}% of your passing standard for this exercise`,
     description: label,
-    notes: `TR-04: This is a ${pct}% test. Your predicted full-test score will be calculated automatically. Results are approximate - always label as estimated.`,
+    notes: `TR-04: This is a ${pct}% partial test. Your predicted full-test score will be calculated automatically. Results are approximate - always label as estimated.`,
   }
 }
 
@@ -366,7 +366,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         addEvent(dayISO, {
           type:        EVENT_TYPES.PI_WORKOUT,
           date:        dayISO,
-          label:       `PI Workout - ${rx.description}`,
+          label:       `Quick Benchmark - ${rx.description}`,
           description: rx.description,
           notes:       rx.notes,
           target:      rx.target,
@@ -383,7 +383,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         addEvent(dayISO, {
           type:        EVENT_TYPES.FRACTIONAL_TEST,
           date:        dayISO,
-          label:       '50% Fractional Test',
+          label:       '50% Partial Test',
           description: 'Run a 50% effort test across all components.',
           notes:       'TR-04: Label all results as "50% test estimates". Record actual reps/times.',
           fraction:    0.5,
@@ -398,7 +398,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         addEvent(dayISO, {
           type:        EVENT_TYPES.FRACTIONAL_TEST,
           date:        dayISO,
-          label:       '75% Fractional Test',
+          label:       '75% Partial Test',
           description: 'Run a 75% effort test across all components.',
           notes:       'TR-04: Label all results as "75% test estimates". You should be well above passing at this point.',
           fraction:    0.75,

@@ -1,16 +1,8 @@
 /**
  * Plan Tab - Training Plan Calendar (Task 10.2)
  *
- * Displays a personalized, periodized training calendar from today to the
- * target PFA date. Blocked until D-code + target PFA date are set.
- *
- * Features:
- * - Week-by-week calendar grid with phase context
- * - PI Workout days, Fractional Test days, Mock Test, Taper period, Test Day
- * - Tappable events that expand to show prescriptions
- * - Practice session completion checkmarks
- * - Phase 0 (deconditioned path) detection
- * - Regenerate button when target PFA date changes
+ * Month-view calendar grid. Tap a day to see the prescription; tap
+ * "Mark Complete" to log adherence. Navigation arrows step through months.
  */
 
 import { useState, useMemo, useCallback } from 'react'
@@ -18,7 +10,11 @@ import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { calculateCompositeScore, calculateComponentScore } from '../../utils/scoring/scoringEngine.js'
 import { COMPONENTS, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
-import { getPracticeSessions } from '../../utils/storage/localStorage.js'
+import {
+  getPracticeSessions,
+  getCompletedDays,
+  toggleCompletedDay,
+} from '../../utils/storage/localStorage.js'
 import {
   generateCalendar,
   PHASES,
@@ -35,22 +31,33 @@ import { isMockTestWindow, isInTaperPeriod } from '../../utils/training/practice
 
 const TODAY = new Date().toISOString().split('T')[0]
 
-const EVENT_COLORS = {
-  [EVENT_TYPES.TEST_DAY]:        { bg: 'bg-red-100 border-red-400',   text: 'text-red-800',   icon: '🎯', badge: 'bg-red-500 text-white' },
-  [EVENT_TYPES.MOCK_TEST]:       { bg: 'bg-orange-100 border-orange-400', text: 'text-orange-800', icon: '📋', badge: 'bg-orange-500 text-white' },
-  [EVENT_TYPES.FRACTIONAL_TEST]: { bg: 'bg-purple-100 border-purple-400', text: 'text-purple-800', icon: '📊', badge: 'bg-purple-500 text-white' },
-  [EVENT_TYPES.PI_WORKOUT]:      { bg: 'bg-blue-100 border-blue-400',  text: 'text-blue-800',  icon: '📈', badge: 'bg-blue-500 text-white' },
-  [EVENT_TYPES.TAPER]:           { bg: 'bg-amber-50 border-amber-300', text: 'text-amber-800', icon: '🏖', badge: 'bg-amber-400 text-white' },
-  [EVENT_TYPES.TRAINING]:        { bg: 'bg-green-50 border-green-300', text: 'text-green-800', icon: '💪', badge: 'bg-green-500 text-white' },
-  [EVENT_TYPES.REST]:            { bg: 'bg-gray-50 border-gray-200',   text: 'text-gray-500',  icon: '😴', badge: 'bg-gray-400 text-white' },
+const DOW_HEADERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+
+// Dot colors for event types shown on day cells
+const EVENT_DOT = {
+  [EVENT_TYPES.TEST_DAY]:        'bg-red-500',
+  [EVENT_TYPES.MOCK_TEST]:       'bg-orange-500',
+  [EVENT_TYPES.FRACTIONAL_TEST]: 'bg-purple-500',
+  [EVENT_TYPES.PI_WORKOUT]:      'bg-blue-500',
+  [EVENT_TYPES.TAPER]:           'bg-amber-400',
+  [EVENT_TYPES.TRAINING]:        'bg-green-500',
 }
 
-const PHASE_COLORS = {
-  [PHASES.PHASE_0]: 'text-gray-700 bg-gray-100 border-gray-300',
-  [PHASES.PHASE_1]: 'text-green-700 bg-green-50 border-green-300',
-  [PHASES.PHASE_2]: 'text-blue-700 bg-blue-50 border-blue-300',
-  [PHASES.PHASE_3]: 'text-orange-700 bg-orange-50 border-orange-300',
-  [PHASES.PHASE_4]: 'text-red-700 bg-red-50 border-red-300',
+// Full-bleed bg tints for special day cells
+const CELL_TINT = {
+  [EVENT_TYPES.TEST_DAY]:  'bg-red-100',
+  [EVENT_TYPES.MOCK_TEST]: 'bg-orange-100',
+  [EVENT_TYPES.TAPER]:     'bg-amber-50',
+}
+
+// Detail-panel colors keyed by type
+const DETAIL_COLORS = {
+  [EVENT_TYPES.TEST_DAY]:        { border: 'border-red-400',    bg: 'bg-red-50',     text: 'text-red-800',    icon: '🎯' },
+  [EVENT_TYPES.MOCK_TEST]:       { border: 'border-orange-400', bg: 'bg-orange-50',  text: 'text-orange-800', icon: '📋' },
+  [EVENT_TYPES.FRACTIONAL_TEST]: { border: 'border-purple-400', bg: 'bg-purple-50',  text: 'text-purple-800', icon: '📊' },
+  [EVENT_TYPES.PI_WORKOUT]:      { border: 'border-blue-400',   bg: 'bg-blue-50',    text: 'text-blue-800',   icon: '📈' },
+  [EVENT_TYPES.TAPER]:           { border: 'border-amber-400',  bg: 'bg-amber-50',   text: 'text-amber-800',  icon: '🏖' },
+  [EVENT_TYPES.TRAINING]:        { border: 'border-green-400',  bg: 'bg-green-50',   text: 'text-green-800',  icon: '💪' },
 }
 
 const PHASE_BANNER_COLORS = {
@@ -61,177 +68,279 @@ const PHASE_BANNER_COLORS = {
   [PHASES.PHASE_4]: 'bg-red-100 border-red-300 text-red-800',
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Date helpers ──────────────────────────────────────────────────────────────
+
+function toISO(year, month, day) {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function parseISO(iso) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return { year: y, month: m, day: d }
+}
+
+function monthLabel(year, month) {
+  return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate()
+}
+
+// 0=Sun dow of first day of month
+function firstDowOfMonth(year, month) {
+  return new Date(year, month - 1, 1).getDay()
+}
+
+function prevMonth(year, month) {
+  return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 }
+}
+
+function nextMonth(year, month) {
+  return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 }
+}
 
 function formatDisplayDate(isoDate) {
   const d = new Date(isoDate + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
-function formatShortDate(isoDate) {
-  const d = new Date(isoDate + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
+// ── Day Cell ──────────────────────────────────────────────────────────────────
 
-function isPast(isoDate) {
-  return isoDate < TODAY
-}
+function DayCell({ dateISO, events, isCompleted, isSelected, isToday, inPlanRange, onSelect }) {
+  if (!dateISO) {
+    return <div className="aspect-square" />
+  }
 
-// ── Event Card ─────────────────────────────────────────────────────────────────
+  const { day } = parseISO(dateISO)
+  const isPast = dateISO < TODAY
 
-function EventCard({ event, isExpanded, onToggle }) {
-  const colors = EVENT_COLORS[event.type] || EVENT_COLORS[EVENT_TYPES.TRAINING]
-  const past = isPast(event.date)
+  // Dominant event type for cell tinting (priority order)
+  const dominantType = events.find(e => e.type === EVENT_TYPES.TEST_DAY)?.type
+    || events.find(e => e.type === EVENT_TYPES.MOCK_TEST)?.type
+    || events.find(e => e.type === EVENT_TYPES.TAPER)?.type
+    || null
+
+  const tint = dominantType ? CELL_TINT[dominantType] || '' : ''
+  const nonTaperEvents = events.filter(e => e.type !== EVENT_TYPES.TAPER)
 
   return (
-    <div
-      className={`border rounded-lg p-3 cursor-pointer transition-all ${colors.bg} ${past ? 'opacity-60' : ''}`}
-      onClick={onToggle}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onToggle()}
-      aria-expanded={isExpanded}
+    <button
+      onClick={() => inPlanRange && onSelect(dateISO)}
+      className={[
+        'relative flex flex-col items-center justify-start pt-1 pb-1 rounded-lg transition-all min-h-[52px]',
+        tint,
+        isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : '',
+        isToday ? 'font-bold' : '',
+        inPlanRange ? 'cursor-pointer active:scale-95' : 'cursor-default opacity-40',
+      ].join(' ')}
+      aria-label={`${dateISO}${events.length ? `, ${events.length} event(s)` : ''}${isCompleted ? ', completed' : ''}`}
+      tabIndex={inPlanRange ? 0 : -1}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-lg flex-shrink-0" aria-hidden="true">{colors.icon}</span>
-          <div className="min-w-0">
-            <div className={`text-sm font-semibold leading-tight ${colors.text}`}>
-              {event.label}
-            </div>
-            <div className="text-xs text-gray-500 mt-0.5">
-              {formatDisplayDate(event.date)}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {event.completed && (
-            <span className="text-green-600 text-sm font-bold" title="Completed">✓</span>
-          )}
-          {event.type !== EVENT_TYPES.TAPER && event.type !== EVENT_TYPES.REST && (
-            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${colors.badge}`}>
-              {event.type === EVENT_TYPES.TEST_DAY ? 'TEST' :
-               event.type === EVENT_TYPES.MOCK_TEST ? 'MOCK' :
-               event.type === EVENT_TYPES.FRACTIONAL_TEST ? `${Math.round(event.fraction * 100)}%` :
-               event.type === EVENT_TYPES.PI_WORKOUT ? 'PI' :
-               event.type === EVENT_TYPES.TRAINING ? 'TRAIN' : ''}
-            </span>
-          )}
-          <span className={`text-gray-400 text-xs transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-            ▼
-          </span>
-        </div>
-      </div>
+      {/* Day number */}
+      <span className={[
+        'text-xs leading-none mb-0.5',
+        isToday ? 'text-blue-600' : isPast && inPlanRange ? 'text-gray-400' : 'text-gray-700',
+      ].join(' ')}>
+        {day}
+      </span>
 
-      {isExpanded && (
-        <div className="mt-3 pt-3 border-t border-current border-opacity-20 space-y-2">
-          {event.description && (
-            <p className={`text-sm ${colors.text}`}>{event.description}</p>
-          )}
-          {event.target && (
-            <div className="bg-white bg-opacity-60 rounded p-2">
-              <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-0.5">Target</div>
-              <div className="text-sm font-medium text-gray-800">{event.target}</div>
-            </div>
-          )}
-          {event.notes && (
-            <p className="text-xs text-gray-600 italic">{event.notes}</p>
-          )}
-          {event.type === EVENT_TYPES.FRACTIONAL_TEST && (
-            <div className="bg-white bg-opacity-60 rounded p-2 text-xs text-gray-600">
-              Go to the Self-Check tab and enable Practice Mode, then select Fractional Test
-              ({Math.round(event.fraction * 100)}%) to record your results. Your predicted full-test
-              scores will be calculated automatically.
-            </div>
-          )}
-          {event.type === EVENT_TYPES.PI_WORKOUT && (
-            <div className="bg-white bg-opacity-60 rounded p-2 text-xs text-gray-600">
-              Go to the Self-Check tab and enable Practice Mode, then select PI Workout to record
-              your result. Your predicted full-test score will update the Trajectory tab.
-            </div>
-          )}
-          {event.type === EVENT_TYPES.MOCK_TEST && (
-            <div className="bg-white bg-opacity-60 rounded p-2 text-xs text-orange-700 font-medium">
-              TR-01: Do this mock test exactly once. After today, shift to taper mode. Reduce
-              training volume by 50% and avoid hard efforts until test day.
-            </div>
-          )}
+      {/* Today indicator */}
+      {isToday && (
+        <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
+      )}
+
+      {/* Completed overlay */}
+      {isCompleted && inPlanRange && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="text-green-500 text-lg font-bold leading-none opacity-80">✓</span>
+        </span>
+      )}
+
+      {/* Event dots (up to 3) */}
+      {!isCompleted && nonTaperEvents.length > 0 && (
+        <div className="flex gap-0.5 flex-wrap justify-center">
+          {nonTaperEvents.slice(0, 3).map((ev, i) => (
+            <span
+              key={i}
+              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${EVENT_DOT[ev.type] || 'bg-gray-400'}`}
+            />
+          ))}
         </div>
       )}
+
+      {/* Taper stripe */}
+      {events.some(e => e.type === EVENT_TYPES.TAPER) && nonTaperEvents.length === 0 && (
+        <span className="text-amber-400 text-xs leading-none">~</span>
+      )}
+    </button>
+  )
+}
+
+// ── Day Detail Panel ──────────────────────────────────────────────────────────
+
+function DayDetail({ dateISO, events, isCompleted, onToggleComplete }) {
+  const [expanded, setExpanded] = useState(null)
+
+  const primaryEvent = events[0]
+  if (!primaryEvent) return null
+
+  const colors = DETAIL_COLORS[primaryEvent.type] || DETAIL_COLORS[EVENT_TYPES.TRAINING]
+  const canComplete = events.some(e =>
+    e.type === EVENT_TYPES.TRAINING ||
+    e.type === EVENT_TYPES.PI_WORKOUT ||
+    e.type === EVENT_TYPES.FRACTIONAL_TEST ||
+    e.type === EVENT_TYPES.MOCK_TEST,
+  )
+  const isPast = dateISO <= TODAY
+
+  return (
+    <div className={`rounded-xl border-2 ${colors.border} overflow-hidden`}>
+      {/* Header */}
+      <div className={`${colors.bg} px-4 py-3 flex items-center justify-between`}>
+        <div>
+          <div className={`text-sm font-bold ${colors.text}`}>
+            {colors.icon} {formatDisplayDate(dateISO)}
+          </div>
+          <div className={`text-xs ${colors.text} opacity-75 mt-0.5`}>
+            {events.length} scheduled event{events.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+        {canComplete && (
+          <button
+            onClick={onToggleComplete}
+            className={[
+              'flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-all',
+              isCompleted
+                ? 'bg-green-500 border-green-600 text-white'
+                : 'bg-white border-gray-300 text-gray-700 hover:border-green-400 hover:text-green-700',
+            ].join(' ')}
+          >
+            <span>{isCompleted ? '✓' : '○'}</span>
+            {isCompleted ? 'Done' : isPast ? 'Mark done' : 'Mark done'}
+          </button>
+        )}
+      </div>
+
+      {/* Events list */}
+      <div className="divide-y divide-gray-100">
+        {events.map((event, idx) => {
+          const ec = DETAIL_COLORS[event.type] || DETAIL_COLORS[EVENT_TYPES.TRAINING]
+          const isOpen = expanded === idx
+
+          return (
+            <div key={idx}>
+              <button
+                onClick={() => setExpanded(isOpen ? null : idx)}
+                className="w-full text-left px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base" aria-hidden>{ec.icon}</span>
+                  <span className="text-sm font-medium text-gray-800">{event.label}</span>
+                </div>
+                <span className={`text-gray-400 text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+
+              {isOpen && (
+                <div className={`px-4 pb-4 space-y-2 ${ec.bg}`}>
+                  {event.description && (
+                    <p className={`text-sm ${ec.text}`}>{event.description}</p>
+                  )}
+                  {event.target && (
+                    <div className="bg-white rounded-lg p-2.5 border border-gray-100">
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">
+                        Target
+                      </div>
+                      <div className="text-sm font-medium text-gray-800">{event.target}</div>
+                    </div>
+                  )}
+                  {event.notes && (
+                    <p className="text-xs text-gray-600 italic">{event.notes}</p>
+                  )}
+                  {event.type === EVENT_TYPES.PI_WORKOUT && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700">
+                      Record in Self-Check tab under Practice Mode - Quick Benchmark. Your predicted
+                      score updates the Trajectory tab automatically.
+                    </div>
+                  )}
+                  {event.type === EVENT_TYPES.FRACTIONAL_TEST && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 text-xs text-purple-700">
+                      Record in Self-Check tab under Practice Mode - Partial Test
+                      ({Math.round(event.fraction * 100)}%). Predicted full-test scores calculated automatically.
+                    </div>
+                  )}
+                  {event.type === EVENT_TYPES.MOCK_TEST && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 text-xs text-orange-700 font-medium">
+                      TR-01: Do this exactly once. After today, shift to taper - cut volume 50%,
+                      maintain intensity, rest more.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-// ── Week Row ──────────────────────────────────────────────────────────────────
+// ── Month Grid ────────────────────────────────────────────────────────────────
 
-function WeekRow({ week, eventsByDate, expandedEvents, onToggleEvent }) {
-  const phaseColor = PHASE_COLORS[week.phase] || PHASE_COLORS[PHASES.PHASE_1]
-  const isCurrentWeek = week.weekStart <= TODAY && TODAY <= week.weekEnd
+function MonthGrid({ year, month, eventsByDate, completedDays, selectedDate, planStart, planEnd, onSelectDate }) {
+  const totalDays = daysInMonth(year, month)
+  const startDow = firstDowOfMonth(year, month)
 
-  // Gather all events for this week's days
-  const weekDates = []
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(week.weekStart + 'T12:00:00')
-    d.setDate(d.getDate() + i)
-    weekDates.push(d.toISOString().split('T')[0])
-  }
+  // Build cell array: nulls for leading empty cells, then day ISOs
+  const cells = [
+    ...Array(startDow).fill(null),
+    ...Array.from({ length: totalDays }, (_, i) => toISO(year, month, i + 1)),
+  ]
 
-  const weekEvents = weekDates.flatMap(d => eventsByDate[d] || [])
-  const hasEvents = weekEvents.length > 0
+  // Pad trailing cells to complete final row
+  while (cells.length % 7 !== 0) cells.push(null)
 
-  if (!hasEvents && !isCurrentWeek) {
-    // Still show the week row but compact for rest weeks
-    return (
-      <div className={`rounded-lg border p-3 ${isCurrentWeek ? 'ring-2 ring-blue-400' : ''}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isCurrentWeek && (
-              <span className="text-xs font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">NOW</span>
-            )}
-            <span className="text-sm text-gray-500">
-              Week {week.weekNumber} ({formatShortDate(week.weekStart)} - {formatShortDate(week.weekEnd)})
-            </span>
-          </div>
-          <span className="text-xs text-gray-400">{week.weeksToTarget}w out - Rest week</span>
-        </div>
-      </div>
-    )
+  const rows = []
+  for (let i = 0; i < cells.length; i += 7) {
+    rows.push(cells.slice(i, i + 7))
   }
 
   return (
-    <div className={`rounded-xl border-2 overflow-hidden ${isCurrentWeek ? 'border-blue-400 shadow-md' : 'border-gray-200'}`}>
-      {/* Week header */}
-      <div className={`flex items-center justify-between px-4 py-2 ${isCurrentWeek ? 'bg-blue-50' : 'bg-gray-50'} border-b border-gray-200`}>
-        <div className="flex items-center gap-2">
-          {isCurrentWeek && (
-            <span className="text-xs font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">THIS WEEK</span>
-          )}
-          <span className="text-sm font-semibold text-gray-700">
-            Week {week.weekNumber}
-          </span>
-          <span className="text-xs text-gray-500">
-            {formatShortDate(week.weekStart)} - {formatShortDate(week.weekEnd)}
-          </span>
-        </div>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded border ${phaseColor}`}>
-          {PHASE_LABELS[week.phase]}
-        </span>
+    <div>
+      {/* Day-of-week headers */}
+      <div className="grid grid-cols-7 mb-1">
+        {DOW_HEADERS.map(h => (
+          <div key={h} className="text-center text-xs font-medium text-gray-400 py-1">
+            {h}
+          </div>
+        ))}
       </div>
 
-      {/* Week events */}
-      <div className="p-3 space-y-2">
-        {weekEvents.map((event, idx) => {
-          const key = `${event.date}-${event.type}-${idx}`
-          return (
-            <EventCard
-              key={key}
-              event={event}
-              isExpanded={expandedEvents.has(key)}
-              onToggle={() => onToggleEvent(key)}
-            />
-          )
-        })}
-      </div>
+      {/* Rows */}
+      {rows.map((row, ri) => (
+        <div key={ri} className="grid grid-cols-7 gap-0.5 mb-0.5">
+          {row.map((dateISO, ci) => {
+            if (!dateISO) return <div key={ci} className="min-h-[52px]" />
+
+            const events = eventsByDate[dateISO] || []
+            const inRange = dateISO >= planStart && dateISO <= planEnd
+            return (
+              <DayCell
+                key={dateISO}
+                dateISO={dateISO}
+                events={events}
+                isCompleted={completedDays.has(dateISO)}
+                isSelected={dateISO === selectedDate}
+                isToday={dateISO === TODAY}
+                inPlanRange={inRange}
+                onSelect={onSelectDate}
+              />
+            )
+          })}
+        </div>
+      ))}
     </div>
   )
 }
@@ -240,23 +349,39 @@ function WeekRow({ week, eventsByDate, expandedEvents, onToggleEvent }) {
 
 export default function PlanTab() {
   const { dcode, demographics, targetPfaDate, scodes } = useApp()
-  const [expandedEvents, setExpandedEvents] = useState(new Set())
-  const [calendarKey, setCalendarKey] = useState(0) // increment to regenerate
 
-  const handleToggleEvent = useCallback((key) => {
-    setExpandedEvents(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.add(key)
-      }
-      return next
-    })
+  const todayParts = parseISO(TODAY)
+  const [viewYear,  setViewYear]  = useState(todayParts.year)
+  const [viewMonth, setViewMonth] = useState(todayParts.month)
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [completedDays, setCompletedDays] = useState(() => getCompletedDays())
+  const [calendarKey, setCalendarKey] = useState(0)
+
+  const handlePrevMonth = () => {
+    const p = prevMonth(viewYear, viewMonth)
+    setViewYear(p.year)
+    setViewMonth(p.month)
+    setSelectedDate(null)
+  }
+
+  const handleNextMonth = () => {
+    const n = nextMonth(viewYear, viewMonth)
+    setViewYear(n.year)
+    setViewMonth(n.month)
+    setSelectedDate(null)
+  }
+
+  const handleSelectDate = useCallback((dateISO) => {
+    setSelectedDate(prev => prev === dateISO ? null : dateISO)
+  }, [])
+
+  const handleToggleComplete = useCallback((dateISO) => {
+    toggleCompletedDay(dateISO)
+    setCompletedDays(getCompletedDays())
   }, [])
 
   const handleRegenerate = () => {
-    setExpandedEvents(new Set())
+    setSelectedDate(null)
     setCalendarKey(k => k + 1)
   }
 
@@ -270,50 +395,41 @@ export default function PlanTab() {
       try {
         const decoded = decodeSCode(code)
         const d = decoded.date instanceof Date ? decoded.date : new Date(decoded.date)
-        if (!bestDate || d > bestDate) {
-          bestDate = d
-          best = decoded
-        }
-      } catch {
-        // skip invalid
-      }
+        if (!bestDate || d > bestDate) { bestDate = d; best = decoded }
+      } catch { /* skip */ }
     }
-
     if (!best) return null
 
     const age = calculateAge(demographics.dob, new Date())
     const ageBracket = getAgeBracket(age)
     const { gender } = demographics
-
     const compScores = {}
+
     for (const comp of (best.components || [])) {
       if (comp.exempt || !comp.tested) continue
       const result = calculateComponentScore(comp, gender, ageBracket)
       compScores[comp.type] = result?.percentage ?? null
     }
 
-    // Attempt composite
     let composite = null
     const allComps = [COMPONENTS.CARDIO, COMPONENTS.STRENGTH, COMPONENTS.CORE, COMPONENTS.BODY_COMP]
     if (allComps.every(c => compScores[c] != null || (best.components || []).some(x => x.type === c && x.exempt))) {
       try {
         const result = calculateCompositeScore(best.components || [], gender, ageBracket)
         composite = result?.composite ?? null
-      } catch {
-        // ignore
-      }
+      } catch { /* ignore */ }
     }
 
     return {
       composite,
-      cardio:   compScores[COMPONENTS.CARDIO]    ?? null,
-      strength: compScores[COMPONENTS.STRENGTH]  ?? null,
-      core:     compScores[COMPONENTS.CORE]       ?? null,
-      bodyComp: compScores[COMPONENTS.BODY_COMP]  ?? null,
+      cardio:   compScores[COMPONENTS.CARDIO]   ?? null,
+      strength: compScores[COMPONENTS.STRENGTH] ?? null,
+      core:     compScores[COMPONENTS.CORE]      ?? null,
+      bodyComp: compScores[COMPONENTS.BODY_COMP] ?? null,
     }
   }, [scodes, demographics])
 
-  // ── Build practice session map (date -> session) ───────────────────────────
+  // ── Practice session map (for completion state from recorded sessions) ──────
   const practiceSessionMap = useMemo(() => {
     const sessions = getPracticeSessions()
     const map = {}
@@ -343,13 +459,11 @@ export default function PlanTab() {
   // ── Guard: missing prerequisites ──────────────────────────────────────────
   if (!dcode) {
     return (
-      <div className="space-y-4">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-            <strong>Profile required.</strong> Set up your profile (D-code) in the Profile tab first.
-            Your age bracket is needed to generate a personalized training plan.
-          </div>
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+          <strong>Profile required.</strong> Set up your D-code in the Profile tab. Your age
+          bracket is needed to generate a personalized training plan.
         </div>
       </div>
     )
@@ -357,195 +471,203 @@ export default function PlanTab() {
 
   if (!targetPfaDate) {
     return (
-      <div className="space-y-4">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-            <strong>Target PFA date required.</strong> Set your target PFA date in the Profile tab.
-            The calendar will generate a personalized plan based on weeks remaining.
-          </div>
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+          <strong>Target PFA date required.</strong> Set your target date in the Profile tab.
         </div>
       </div>
     )
   }
 
-  if (!calendar) {
-    return (
-      <div className="space-y-4">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
-          <p className="text-gray-500 text-sm">Generating your personalized calendar...</p>
-        </div>
-      </div>
-    )
-  }
+  if (!calendar) return null
 
-  const phaseLabel      = PHASE_LABELS[calendar.startingPhase]
-  const phaseDesc       = PHASE_DESCRIPTIONS[calendar.startingPhase]
   const phaseBannerColor = PHASE_BANNER_COLORS[calendar.startingPhase] || PHASE_BANNER_COLORS[PHASES.PHASE_1]
+
+  // Bounds check: is the current view month within plan range?
+  const planStart   = TODAY
+  const planEnd     = targetPfaDate
+  const viewMonthISO = toISO(viewYear, viewMonth, 1)
+  const viewEndISO   = toISO(viewYear, viewMonth, daysInMonth(viewYear, viewMonth))
+  const canGoPrev = viewMonthISO > planStart.slice(0, 7) + '-01'
+  const canGoNext = viewEndISO < planEnd
+
+  // Selected day events
+  const selectedEvents = selectedDate ? (calendar.eventsByDate[selectedDate] || []) : []
+
+  // Progress counter
+  const totalPlanDays = Object.values(calendar.eventsByDate)
+    .flat()
+    .filter(e => e.type === EVENT_TYPES.TRAINING || e.type === EVENT_TYPES.PI_WORKOUT || e.type === EVENT_TYPES.FRACTIONAL_TEST || e.type === EVENT_TYPES.MOCK_TEST)
+    .map(e => e.date)
+  const uniquePlanDays = [...new Set(totalPlanDays)]
+  const completedCount = uniquePlanDays.filter(d => completedDays.has(d)).length
 
   return (
     <div className="space-y-4">
-      {/* Header card */}
-      <div className="bg-white rounded-xl shadow-md p-5">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-md p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-bold text-gray-900">Training Plan</h2>
           <button
             onClick={handleRegenerate}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-300 hover:border-blue-500 rounded-lg px-3 py-1.5 transition-colors"
-            title="Regenerate calendar based on current data"
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
           >
             Regenerate
           </button>
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
+        {/* Stats strip */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-700">{daysToTest ?? '-'}</div>
-            <div className="text-xs text-gray-500">days to test</div>
+            <div className="text-xs text-gray-500">days out</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-700">{calendar.totalWeeks}</div>
-            <div className="text-xs text-gray-500">weeks total</div>
+            <div className="text-2xl font-bold text-green-600">{completedCount}</div>
+            <div className="text-xs text-gray-500">of {uniquePlanDays.length} done</div>
           </div>
           <div className="text-center">
-            <div className={`text-sm font-bold px-2 py-1 rounded ${phaseBannerColor}`}>
-              {phaseLabel}
+            <div className={`text-xs font-bold px-2 py-1 rounded border ${phaseBannerColor}`}>
+              {PHASE_LABELS[calendar.startingPhase]}
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">current phase</div>
+            <div className="text-xs text-gray-500 mt-0.5">phase</div>
           </div>
         </div>
 
-        {/* Phase description */}
-        <div className={`rounded-lg border p-3 text-sm ${phaseBannerColor}`}>
-          {calendar.isPhase0 && (
-            <p className="font-semibold mb-1">Pre-Progression Path Active</p>
-          )}
-          <p>{phaseDesc}</p>
+        {/* Progress bar */}
+        {uniquePlanDays.length > 0 && (
+          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-500 rounded-full transition-all"
+              style={{ width: `${Math.round((completedCount / uniquePlanDays.length) * 100)}%` }}
+            />
+          </div>
+        )}
+
+        {/* Phase context */}
+        <div className={`mt-3 rounded-lg border p-2.5 text-xs ${phaseBannerColor}`}>
+          {calendar.isPhase0 && <span className="font-semibold">Pre-Progression: </span>}
+          {PHASE_DESCRIPTIONS[calendar.startingPhase]}
         </div>
 
         {/* Fitness level summary */}
         {currentScores && (
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-4 gap-1.5">
             {[
-              { label: 'Cardio',    score: currentScores.cardio },
-              { label: 'Strength',  score: currentScores.strength },
-              { label: 'Core',      score: currentScores.core },
-              { label: 'Body Comp', score: currentScores.bodyComp },
+              { label: 'Cardio',  score: currentScores.cardio },
+              { label: 'Str',     score: currentScores.strength },
+              { label: 'Core',    score: currentScores.core },
+              { label: 'Body',    score: currentScores.bodyComp },
             ].map(({ label, score }) => {
               const level = getFitnessLevel(score)
-              const color = level === FITNESS_LEVELS.HIGH ? 'text-green-600' :
-                            level === FITNESS_LEVELS.MED  ? 'text-amber-600' :
-                            'text-red-600'
+              const color = level === FITNESS_LEVELS.HIGH ? 'text-green-600 bg-green-50' :
+                            level === FITNESS_LEVELS.MED  ? 'text-amber-600 bg-amber-50' :
+                            'text-red-600 bg-red-50'
               return (
-                <div key={label} className="flex items-center justify-between bg-gray-50 rounded px-2 py-1.5">
-                  <span className="text-xs text-gray-600">{label}</span>
-                  <span className={`text-xs font-semibold ${color}`}>
-                    {score != null ? `${Math.round(score)}%` : 'No data'}
-                  </span>
+                <div key={label} className={`text-center rounded p-1.5 ${color}`}>
+                  <div className="text-xs font-semibold">{score != null ? `${Math.round(score)}%` : '-'}</div>
+                  <div className="text-xs opacity-70">{label}</div>
                 </div>
               )
             })}
-          </div>
-        )}
-
-        {!currentScores && (
-          <div className="mt-3 bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
-            No self-check data found. Calendar uses Phase 0 defaults. Complete a Self-Check to
-            receive personalized training targets.
           </div>
         )}
       </div>
 
       {/* Status banners */}
       {inTaper && !inMockWindow && (
-        <div className="bg-amber-100 border border-amber-400 rounded-xl p-4 text-sm text-amber-800">
-          <strong>Taper Period Active.</strong> Reduce training volume by 50%. Maintain intensity but
-          cut frequency. Focus on sleep, hydration, and recovery. TR-10.
+        <div className="bg-amber-100 border border-amber-400 rounded-xl px-4 py-3 text-sm text-amber-800">
+          <strong>Taper Active</strong> - Volume -50%, intensity maintained. Rest and recover. TR-10.
         </div>
       )}
-
       {inMockWindow && (
-        <div className="bg-orange-100 border border-orange-400 rounded-xl p-4 text-sm text-orange-800">
-          <strong>Mock Test Window ({daysToTest} days out).</strong> Consider running your full mock
-          test now - one time only. After your mock test, shift to taper mode. TR-09: This is
-          informational only.
+        <div className="bg-orange-100 border border-orange-400 rounded-xl px-4 py-3 text-sm text-orange-800">
+          <strong>Mock Test Window</strong> - {daysToTest} days out. One full mock test now, then taper. TR-09.
         </div>
       )}
 
-      {/* Legend */}
+      {/* Calendar card */}
       <div className="bg-white rounded-xl shadow-md p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Event Types</h3>
-        <div className="grid grid-cols-2 gap-1.5">
+        {/* Month navigation */}
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={handlePrevMonth}
+            disabled={!canGoPrev}
+            className="p-2 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            aria-label="Previous month"
+          >
+            &#8249;
+          </button>
+          <span className="text-sm font-semibold text-gray-800">
+            {monthLabel(viewYear, viewMonth)}
+          </span>
+          <button
+            onClick={handleNextMonth}
+            disabled={!canGoNext}
+            className="p-2 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            aria-label="Next month"
+          >
+            &#8250;
+          </button>
+        </div>
+
+        <MonthGrid
+          year={viewYear}
+          month={viewMonth}
+          eventsByDate={calendar.eventsByDate}
+          completedDays={completedDays}
+          selectedDate={selectedDate}
+          planStart={planStart}
+          planEnd={planEnd}
+          onSelectDate={handleSelectDate}
+        />
+
+        {/* Legend */}
+        <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-x-3 gap-y-1">
           {[
-            { type: EVENT_TYPES.TRAINING,        label: 'Training Day' },
-            { type: EVENT_TYPES.PI_WORKOUT,      label: 'PI Workout' },
-            { type: EVENT_TYPES.FRACTIONAL_TEST, label: 'Fractional Test' },
-            { type: EVENT_TYPES.MOCK_TEST,       label: 'Mock Test' },
-            { type: EVENT_TYPES.TAPER,           label: 'Taper Period' },
-            { type: EVENT_TYPES.TEST_DAY,        label: 'Test Day' },
-          ].map(({ type, label }) => {
-            const colors = EVENT_COLORS[type]
-            return (
-              <div key={type} className="flex items-center gap-1.5">
-                <span className="text-base" aria-hidden="true">{colors.icon}</span>
-                <span className="text-xs text-gray-600">{label}</span>
-              </div>
-            )
-          })}
+            { dot: 'bg-green-500',  label: 'Training' },
+            { dot: 'bg-blue-500',   label: 'Quick Benchmark' },
+            { dot: 'bg-purple-500', label: 'Partial Test' },
+            { dot: 'bg-orange-500', label: 'Mock' },
+            { dot: 'bg-red-500',    label: 'Test Day' },
+            { dot: 'bg-amber-400',  label: 'Taper' },
+          ].map(({ dot, label }) => (
+            <div key={label} className="flex items-center gap-1">
+              <span className={`w-2 h-2 rounded-full ${dot}`} />
+              <span className="text-xs text-gray-500">{label}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-1">
+            <span className="text-green-500 text-sm font-bold leading-none">✓</span>
+            <span className="text-xs text-gray-500">Complete</span>
+          </div>
         </div>
       </div>
+
+      {/* Day detail panel */}
+      {selectedDate && (
+        <DayDetail
+          key={selectedDate}
+          dateISO={selectedDate}
+          events={selectedEvents}
+          isCompleted={completedDays.has(selectedDate)}
+          onToggleComplete={() => handleToggleComplete(selectedDate)}
+        />
+      )}
+
+      {selectedDate && selectedEvents.length === 0 && (
+        <div className="bg-white rounded-xl shadow-md p-4 text-center text-sm text-gray-500">
+          Rest day - no scheduled training on this date.
+        </div>
+      )}
 
       {/* Disclaimer */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
-        UNOFFICIAL ESTIMATE. This training plan is for self-assessment purposes only. Not a
-        substitute for official AF fitness guidance. All predictions are approximate. TR-06.
+        UNOFFICIAL ESTIMATE. For self-assessment only. Not a substitute for official AF fitness
+        guidance. All predictions approximate. TR-06.
       </div>
 
-      {/* Calendar weeks */}
-      <div className="space-y-3">
-        {calendar.weeks.length === 0 && (
-          <div className="bg-white rounded-xl shadow-md p-6 text-center text-gray-500 text-sm">
-            Your target PFA date is too close to generate a training calendar.
-            Complete your mock test and follow taper guidance above.
-          </div>
-        )}
-
-        {calendar.weeks.map((week) => (
-          <WeekRow
-            key={`week-${week.weekNumber}`}
-            week={week}
-            eventsByDate={calendar.eventsByDate}
-            expandedEvents={expandedEvents}
-            onToggleEvent={handleToggleEvent}
-          />
-        ))}
-
-        {/* Test Day card */}
-        {calendar.targetDate && (
-          <div className="rounded-xl border-2 border-red-400 overflow-hidden">
-            <div className="bg-red-50 px-4 py-2 border-b border-red-200">
-              <span className="text-sm font-bold text-red-800">Test Day - {formatDisplayDate(calendar.targetDate)}</span>
-            </div>
-            <div className="p-3">
-              {(calendar.eventsByDate[calendar.targetDate] || []).map((event, idx) => {
-                const key = `${event.date}-${event.type}-${idx}`
-                return (
-                  <EventCard
-                    key={key}
-                    event={event}
-                    isExpanded={expandedEvents.has(key)}
-                    onToggle={() => handleToggleEvent(key)}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom spacer */}
       <div className="h-4" />
     </div>
   )
