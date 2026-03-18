@@ -165,7 +165,6 @@ export default function ProfileTab() {
       if (!targetPfaDate) {
         setSuccess("Profile loaded! Don't forget to set your Target PFA Date.")
         setHighlightTargetDate(true)
-        setTimeout(() => document.getElementById('target-date')?.focus(), 50)
       } else {
         setSuccess('Profile code loaded successfully!')
       }
@@ -252,7 +251,6 @@ export default function ProfileTab() {
               type="date"
               value={targetDate}
               onChange={(e) => { setHighlightTargetDate(false); handleTargetDateChange(e) }}
-              onFocus={() => setHighlightTargetDate(false)}
               min={new Date().toISOString().split('T')[0]}
               aria-invalid={!!targetDateError}
               aria-describedby={targetDateError ? 'target-date-error' : 'target-date-hint'}
