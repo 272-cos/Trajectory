@@ -14,6 +14,8 @@ import {
   getPracticeSessions,
   getCompletedDays,
   toggleCompletedDay,
+  getPreferredDays,
+  savePreferredDays,
 } from '../../utils/storage/localStorage.js'
 import {
   generateCalendar,
@@ -24,6 +26,7 @@ import {
   FITNESS_LEVELS,
   getFitnessLevel,
   daysBetween,
+  hasConsecutiveDays,
 } from '../../utils/training/trainingCalendar.js'
 import { isMockTestWindow, isInTaperPeriod } from '../../utils/training/practiceSession.js'
 
@@ -356,6 +359,7 @@ export default function PlanTab() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [completedDays, setCompletedDays] = useState(() => getCompletedDays())
   const [calendarKey, setCalendarKey] = useState(0)
+  const [preferredDays, setPreferredDays] = useState(() => getPreferredDays())
 
   const handlePrevMonth = () => {
     const p = prevMonth(viewYear, viewMonth)
@@ -384,6 +388,17 @@ export default function PlanTab() {
     setSelectedDate(null)
     setCalendarKey(k => k + 1)
   }
+
+  const handleToggleDay = useCallback((dow) => {
+    setPreferredDays(prev => {
+      const next = prev.includes(dow)
+        ? prev.length > 1 ? prev.filter(d => d !== dow) : prev // keep at least 1
+        : [...prev, dow].sort((a, b) => a - b)
+      savePreferredDays(next)
+      return next
+    })
+    setSelectedDate(null)
+  }, [])
 
   // ── Compute current scores from most recent S-code ─────────────────────────
   const currentScores = useMemo(() => {
@@ -447,9 +462,9 @@ export default function PlanTab() {
       targetPfaDate,
       currentScores,
       TODAY,
-      { practiceSessionMap },
+      { practiceSessionMap, preferredDays },
     )
-  }, [demographics, targetPfaDate, currentScores, practiceSessionMap, calendarKey])
+  }, [demographics, targetPfaDate, currentScores, practiceSessionMap, preferredDays, calendarKey])
 
   // ── Status banners ─────────────────────────────────────────────────────────
   const inMockWindow = targetPfaDate ? isMockTestWindow(targetPfaDate, TODAY) : false
@@ -550,6 +565,43 @@ export default function PlanTab() {
           {calendar.isPhase0 && <span className="font-semibold">Pre-Progression: </span>}
           {PHASE_DESCRIPTIONS[calendar.startingPhase]}
         </div>
+
+        {/* Preferred training days picker */}
+        {(() => {
+          const DOW_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+          const consecutive = hasConsecutiveDays(preferredDays)
+          return (
+            <div className="mt-3">
+              <div className="text-xs text-gray-500 mb-1.5 font-medium">Training days</div>
+              <div className="flex gap-1">
+                {DOW_LABELS.map((label, dow) => {
+                  const active = preferredDays.includes(dow)
+                  return (
+                    <button
+                      key={dow}
+                      onClick={() => handleToggleDay(dow)}
+                      className={[
+                        'flex-1 py-1.5 rounded text-xs font-semibold transition-colors border',
+                        active
+                          ? 'bg-blue-600 border-blue-700 text-white'
+                          : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
+                      ].join(' ')}
+                      aria-pressed={active}
+                      aria-label={`${active ? 'Remove' : 'Add'} ${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow]}`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              {consecutive && (
+                <div className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                  Back-to-back days increase injury risk - spacing workouts aids recovery. Train when you can though.
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Fitness level summary */}
         {currentScores && (

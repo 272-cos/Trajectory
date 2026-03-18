@@ -221,6 +221,7 @@ export function clearAllData() {
     localStorage.removeItem('pfa_exercise_prefs')
     localStorage.removeItem('pfa_personal_goal')
     localStorage.removeItem('pfa_practice_sessions')
+    localStorage.removeItem(PREFERRED_DAYS_KEY)
     localStorage.removeItem(DRAFT_KEY)
   } catch (error) {
     console.error('Error clearing localStorage:', error)
@@ -317,6 +318,38 @@ export function removePracticeSession(id) {
 export function clearPracticeSessions() {
   try {
     localStorage.removeItem(PRACTICE_SESSIONS_KEY)
+  } catch {
+    // ignore
+  }
+}
+
+// ── Preferred training days ───────────────────────────────────────────────────
+
+const PREFERRED_DAYS_KEY = 'pfa_preferred_days'
+const DEFAULT_PREFERRED_DAYS = [2, 4, 6] // Tue, Thu, Sat (DOW 0=Sun)
+
+/**
+ * Get preferred training days from localStorage.
+ * @returns {number[]} Array of DOW ints (0=Sun ... 6=Sat), sorted ascending
+ */
+export function getPreferredDays() {
+  try {
+    const val = localStorage.getItem(PREFERRED_DAYS_KEY)
+    if (!val) return DEFAULT_PREFERRED_DAYS
+    const parsed = JSON.parse(val)
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_PREFERRED_DAYS
+  } catch {
+    return DEFAULT_PREFERRED_DAYS
+  }
+}
+
+/**
+ * Save preferred training days to localStorage.
+ * @param {number[]} days - Array of DOW ints (0=Sun ... 6=Sat)
+ */
+export function savePreferredDays(days) {
+  try {
+    localStorage.setItem(PREFERRED_DAYS_KEY, JSON.stringify(days))
   } catch {
     // ignore
   }

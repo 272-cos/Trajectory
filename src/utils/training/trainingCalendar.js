@@ -217,18 +217,37 @@ export function shouldUsePhase0(compositeScore, piPushups) {
 
 // ── Week event builder ────────────────────────────────────────────────────────
 
-const TRAINING_DAYS_PER_WEEK = [1, 3, 5] // Mon, Wed, Fri (0=Sun)
+const DEFAULT_TRAINING_DAYS = [2, 4, 6] // Tue, Thu, Sat (DOW 0=Sun)
+
+/**
+ * Returns true if the preferredDays array contains any two back-to-back days
+ * (including the Sun/Sat wrap-around pair).
+ *
+ * @param {number[]} days - Array of DOW ints (0=Sun ... 6=Sat)
+ * @returns {boolean}
+ */
+export function hasConsecutiveDays(days) {
+  const sorted = [...days].sort((a, b) => a - b)
+  for (let i = 0; i < sorted.length - 1; i++) {
+    if (sorted[i + 1] - sorted[i] === 1) return true
+  }
+  // Sun (0) and Sat (6) are adjacent in the weekly cycle
+  return sorted.includes(0) && sorted.includes(6)
+}
 
 /**
  * Get the ISO date strings for the training days within a given week.
  * Week starts on Monday.
  *
  * @param {string} weekStartISO - ISO date of the week's Monday
- * @returns {string[]} Array of ISO date strings (Tue, Thu, Sat for balanced spacing)
+ * @param {number[]} preferredDays - DOW ints (0=Sun ... 6=Sat) the user wants to train
+ * @returns {string[]} Sorted array of ISO date strings within that Mon-Sun week
  */
-function getTrainingDaysForWeek(weekStartISO) {
-  // Use Tue (1), Thu (3), Sat (5) offsets from Monday start
-  return TRAINING_DAYS_PER_WEEK.map(offset => addDays(weekStartISO, offset))
+function getTrainingDaysForWeek(weekStartISO, preferredDays = DEFAULT_TRAINING_DAYS) {
+  // Convert DOW to offset from Monday: Mon=0, Tue=1, ..., Sun=6
+  return preferredDays
+    .map(dow => addDays(weekStartISO, (dow - 1 + 7) % 7))
+    .sort()
 }
 
 /**
@@ -256,10 +275,11 @@ function getMondayOfWeek(dateISO) {
  * @param {object} [options]
  * @param {number|null} [options.piPushups] - Most recent 30-sec PI push-up count
  * @param {object} [options.practiceSessionMap] - Map of date -> practice session (for completion marking)
+ * @param {number[]} [options.preferredDays] - DOW ints (0=Sun...6=Sat) for training days per week
  * @returns {object} Calendar structure
  */
 export function generateCalendar(demographics, targetDateISO, currentScores, todayISO, options = {}) {
-  const { piPushups = null, practiceSessionMap = {} } = options
+  const { piPushups = null, practiceSessionMap = {}, preferredDays = DEFAULT_TRAINING_DAYS } = options
 
   const totalDays = daysBetween(todayISO, targetDateISO)
   const totalWeeks = weeksBetween(todayISO, targetDateISO)
@@ -343,7 +363,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
     const is50TestWeek = phaseForWeek === PHASES.PHASE_2 && weeksToTarget === 10
     const is75TestWeek = phaseForWeek === PHASES.PHASE_3 && weeksToTarget === 6
 
-    const trainingDays = getTrainingDaysForWeek(weekStart)
+    const trainingDays = getTrainingDaysForWeek(weekStart, preferredDays)
 
     trainingDays.forEach((dayISO, idx) => {
       // Skip days before today
