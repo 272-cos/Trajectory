@@ -462,7 +462,7 @@ export default function PlanTab() {
 
   // ── Generate the calendar ─────────────────────────────────────────────────
   const calendar = useMemo(() => {
-    if (!targetPfaDate) return null
+    if (!targetPfaDate || preferredDays.length !== 3) return null
     return generateCalendar(
       demographics,
       targetPfaDate,
@@ -501,7 +501,90 @@ export default function PlanTab() {
     )
   }
 
-  if (!calendar) return null
+  if (!calendar) {
+    // preferredDays not yet chosen - show picker only
+    return (
+      <div className="bg-white rounded-xl shadow-md p-4">
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Training Plan</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Choose your three training days to generate a personalized calendar.
+        </p>
+        {(() => {
+          const DOW_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+          const DOW_FULL   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+          const n          = pendingDays.length
+          const over       = n > 3
+          const exact      = n === 3
+          const consecutive = hasConsecutiveDays(pendingDays)
+
+          const pipColor = (i) => {
+            if (i >= Math.min(n, 3)) return 'bg-gray-200'
+            return over ? 'bg-amber-400' : 'bg-blue-500'
+          }
+
+          const hint =
+            n === 0 ? 'Pick the three days that fit your week best'  :
+            n === 1 ? 'Two more to go'                               :
+            n === 2 ? 'One more and you are set'                     :
+            over    ? 'Rest is part of the plan - drop it to three'  :
+            null
+
+          return (
+            <div>
+              <div className="flex gap-1.5 mb-1">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${pipColor(i)}`} />
+                ))}
+              </div>
+              <div className={`text-xs mb-2.5 min-h-[1rem] transition-colors leading-snug ${over ? 'text-amber-600 font-medium' : 'text-gray-400'}`}>
+                {hint}
+              </div>
+              <div className="flex gap-1">
+                {DOW_LABELS.map((label, dow) => {
+                  const active = pendingDays.includes(dow)
+                  return (
+                    <button
+                      key={dow}
+                      onClick={() => handleToggleDay(dow)}
+                      className={[
+                        'flex-1 py-1.5 rounded text-xs font-semibold transition-colors border',
+                        active
+                          ? over
+                            ? 'bg-amber-400 border-amber-500 text-white'
+                            : 'bg-blue-600 border-blue-700 text-white'
+                          : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
+                      ].join(' ')}
+                      aria-pressed={active}
+                      aria-label={`${active ? 'Remove' : 'Add'} ${DOW_FULL[dow]}`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              {consecutive && !over && (
+                <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2.5 py-1.5">
+                  Back-to-back days increase injury risk - spacing workouts aids recovery.
+                </div>
+              )}
+              <button
+                onClick={handleConfirmDays}
+                disabled={!exact}
+                className={[
+                  'mt-2.5 w-full py-2 rounded-lg text-xs font-semibold border transition-all',
+                  exact
+                    ? 'bg-blue-600 border-blue-700 text-white hover:bg-blue-700 shadow-sm'
+                    : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed',
+                ].join(' ')}
+              >
+                Generate my training calendar
+              </button>
+            </div>
+          )
+        })()}
+      </div>
+    )
+  }
 
   const phaseBannerColor = PHASE_BANNER_COLORS[calendar.startingPhase] || PHASE_BANNER_COLORS[PHASES.PHASE_1]
 

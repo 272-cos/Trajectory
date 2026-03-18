@@ -326,20 +326,19 @@ export function clearPracticeSessions() {
 // ── Preferred training days ───────────────────────────────────────────────────
 
 const PREFERRED_DAYS_KEY = 'pfa_preferred_days'
-const DEFAULT_PREFERRED_DAYS = [2, 4, 6] // Tue, Thu, Sat (DOW 0=Sun)
-
 /**
  * Get preferred training days from localStorage.
- * @returns {number[]} Array of DOW ints (0=Sun ... 6=Sat), sorted ascending
+ * @returns {number[]} Array of DOW ints (0=Sun ... 6=Sat), sorted ascending.
+ *   Returns [] when the user has not yet made a selection (no default imposed).
  */
 export function getPreferredDays() {
   try {
     const val = localStorage.getItem(PREFERRED_DAYS_KEY)
-    if (!val) return DEFAULT_PREFERRED_DAYS
+    if (!val) return []
     const parsed = JSON.parse(val)
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_PREFERRED_DAYS
+    return Array.isArray(parsed) ? parsed : []
   } catch {
-    return DEFAULT_PREFERRED_DAYS
+    return []
   }
 }
 
