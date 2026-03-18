@@ -32,7 +32,7 @@ const COMP_LABELS = {
   cardio:   'Cardio',
   strength: 'Strength',
   core:     'Core',
-  bodyComp: 'Body Comp',
+  bodyComp: 'Body Comp (WHtR)',
 }
 
 const COMP_ORDER = ['cardio', 'strength', 'core', 'bodyComp']
@@ -100,9 +100,9 @@ function exerciseName(exercise) {
     [EXERCISES.HAMR]:      'HAMR',
     [EXERCISES.WALK_2KM]:  '2km Walk',
     [EXERCISES.PUSHUPS]:   'Push-ups',
-    [EXERCISES.HRPU]:      'HRPU',
+    [EXERCISES.HRPU]:      'Hand-Release Push-ups',
     [EXERCISES.SITUPS]:    'Sit-ups',
-    [EXERCISES.CLRC]:      'CLRC',
+    [EXERCISES.CLRC]:      'Reverse Crunches',
     [EXERCISES.PLANK]:     'Forearm Plank',
     [EXERCISES.WHTR]:      'Waist-to-Height Ratio',
   }
@@ -1059,7 +1059,7 @@ export default function ProjectTab() {
           {/* ── Diagnostic period warning ──────────────────────────────────── */}
           {isDiagnosticPeriod(targetPfaDate) && (
             <div className="bg-blue-50 border border-blue-300 rounded-lg p-3 text-sm text-blue-800">
-              <strong>DIAGNOSTIC PERIOD</strong> - target date is within the Mar-Jun 2026 diagnostic
+              <strong>Diagnostic Period</strong> - target date is within the Mar-Jun 2026 diagnostic
               period. Scored PFAs begin Jul 1, 2026.
             </div>
           )}

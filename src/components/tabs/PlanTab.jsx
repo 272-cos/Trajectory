@@ -494,7 +494,7 @@ export default function PlanTab() {
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Training Plan</h2>
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-          <strong>Profile required.</strong> Set up your D-code in the{' '}
+          <strong>Profile required.</strong> Set up your Profile Code in the{' '}
           <button onClick={() => setActiveTab('profile')} className="font-bold underline hover:opacity-70 transition-opacity">
             Profile tab
           </button>. Your age bracket is needed to generate a personalized training plan.

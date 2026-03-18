@@ -281,11 +281,11 @@ const EXERCISE_SHORT_LABELS = {
   [EXERCISES.HAMR]:      'HAMR Shuttle',
   [EXERCISES.WALK_2KM]:  '2km Walk',
   [EXERCISES.PUSHUPS]:   'Push-ups',
-  [EXERCISES.HRPU]:      'HRPU',
+  [EXERCISES.HRPU]:      'Hand-Release Push-ups',
   [EXERCISES.SITUPS]:    'Sit-ups',
   [EXERCISES.CLRC]:      'Reverse Crunches',
   [EXERCISES.PLANK]:     'Forearm Plank',
-  [EXERCISES.WHTR]:      'WHtR',
+  [EXERCISES.WHTR]:      'Body Comp (WHtR)',
 }
 
 /**

@@ -28,7 +28,7 @@ export const PI_EXERCISES = {
 export const PI_EXERCISE_LABELS = {
   [PI_EXERCISES.PUSHUPS_30S]:   'Push-ups (30 sec)',
   [PI_EXERCISES.SITUPS_30S]:    'Sit-ups (30 sec)',
-  [PI_EXERCISES.CLRC_30S]:      'Rev. Crunches (30 sec)',
+  [PI_EXERCISES.CLRC_30S]:      'Reverse Crunches (30 sec)',
   [PI_EXERCISES.RUN_1MILE]:     '1-Mile Run',
   [PI_EXERCISES.RUN_400M]:      '400m Run',
   [PI_EXERCISES.PLANK_HALF]:    'Plank (held to half target)',

@@ -117,7 +117,7 @@ export function AppProvider({ children }) {
         saveDCode(urlDCode)
       } catch (err) {
         // EC-28: error per bad param, still load valid params
-        hydrationErrors.push(`Invalid D-code in URL: ${err.message}`)
+        hydrationErrors.push(`Invalid Profile Code in URL: ${err.message}`)
       }
     }
 
@@ -134,7 +134,7 @@ export function AppProvider({ children }) {
         }
       } catch (err) {
         // EC-28: error per bad param, still load valid params
-        hydrationErrors.push(`Invalid S-code in URL: ${err.message}`)
+        hydrationErrors.push(`Invalid Assessment Code in URL: ${err.message}`)
       }
     }
     if (scodesChanged) {
@@ -145,7 +145,7 @@ export function AppProvider({ children }) {
     if (dCodeSchemaVersion != null && sCodeSchemaVersions.length > 0) {
       const mismatchedVersions = sCodeSchemaVersions.filter(v => v !== dCodeSchemaVersion)
       if (mismatchedVersions.length > 0) {
-        hydrationErrors.push('D-code and S-code schema versions differ. Codes loaded independently but may be from different app versions.')
+        hydrationErrors.push('Profile Code and Assessment Code schema versions differ. Codes loaded independently but may be from different app versions.')
       }
     }
 

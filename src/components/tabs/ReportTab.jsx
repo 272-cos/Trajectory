@@ -33,7 +33,7 @@ const EXERCISE_LABELS = {
   [EXERCISES.HAMR]: 'HAMR Shuttle',
   [EXERCISES.WALK_2KM]: '2km Walk',
   [EXERCISES.PUSHUPS]: 'Push-ups',
-  [EXERCISES.HRPU]: 'HRPU',
+  [EXERCISES.HRPU]: 'Hand-Release Push-ups',
   [EXERCISES.SITUPS]: 'Sit-ups',
   [EXERCISES.CLRC]: 'Reverse Crunches',
   [EXERCISES.PLANK]: 'Forearm Plank',
@@ -44,7 +44,7 @@ const COMPONENT_LABELS = {
   [COMPONENTS.CARDIO]: 'Cardio',
   [COMPONENTS.STRENGTH]: 'Strength',
   [COMPONENTS.CORE]: 'Core',
-  [COMPONENTS.BODY_COMP]: 'Body Comp',
+  [COMPONENTS.BODY_COMP]: 'Body Comp (WHtR)',
 }
 
 const COMP_ORDER = [COMPONENTS.CARDIO, COMPONENTS.STRENGTH, COMPONENTS.CORE, COMPONENTS.BODY_COMP]
@@ -458,7 +458,7 @@ function ReportPreview({ rank, name, unit, dcode, reportEntries, allExempt, incl
         <section className="text-xs text-gray-500 border-t border-gray-200 pt-4 space-y-1 font-sans">
           <p>Scoring Charts: {CHART_VERSION}</p>
           <p>Regulatory Basis: DAFMAN 36-2905 (Change 1, 22 Jan 2026)</p>
-          <p>Component Weights: Cardio 50% | Body Comp 20% | Strength 15% | Core 15%</p>
+          <p>Component Weights: Cardio 50% | Body Comp (WHtR) 20% | Strength 15% | Core 15%</p>
         </section>
 
         {/* RP-07: Footer */}
@@ -493,7 +493,7 @@ function AssessmentSection({ entry, index, total }) {
           {/* RP-05 / EC-14: Diagnostic period badge */}
           {isDiag && (
             <span className="px-2 py-0.5 text-xs font-bold bg-blue-100 text-blue-800 rounded font-sans">
-              DIAGNOSTIC PERIOD (non-scored)
+              Diagnostic Period (non-scored)
             </span>
           )}
         </div>
@@ -550,7 +550,7 @@ function AssessmentSection({ entry, index, total }) {
                 {comp.walkOnly && (
                   <p className="text-xs text-gray-500 mt-0.5">
                     2km Walk (pass/fail only - 0 pts to composite)
-                    {!comp.pass && <span className="text-red-600 font-medium ml-1">FAILED - Overall FAIL</span>}
+                    {!comp.pass && <span className="text-red-600 font-medium ml-1">FAIL - Overall FAIL</span>}
                   </p>
                 )}
               </div>
@@ -689,7 +689,7 @@ function buildPlainText({ rank, name, unit, dcode, reportEntries, allExempt, inc
       const composite = scores?.composite
 
       if (reportEntries.length > 1) lines.push(`  --- Self-Check #${idx + 1} ---`)
-      lines.push(`  Date: ${dateStr}${isDiag ? ' [DIAGNOSTIC PERIOD (non-scored)]' : ''}`)
+      lines.push(`  Date: ${dateStr}${isDiag ? ' [Diagnostic Period (non-scored)]' : ''}`)
       if (composite?.composite != null) {
         lines.push(`  Composite Score: ${composite.composite.toFixed(1)} - ${composite.pass ? 'PASS' : 'FAIL'}`)
       }
@@ -740,7 +740,7 @@ function buildPlainText({ rank, name, unit, dcode, reportEntries, allExempt, inc
   lines.push('SCORING INFORMATION')
   lines.push(`  Charts: ${CHART_VERSION}`)
   lines.push('  Basis: DAFMAN 36-2905 (Change 1, 22 Jan 2026)')
-  lines.push('  Weights: Cardio 50% | Body Comp 20% | Strength 15% | Core 15%')
+  lines.push('  Weights: Cardio 50% | Body Comp (WHtR) 20% | Strength 15% | Core 15%')
   lines.push('')
   lines.push('================================================')
   lines.push('Prepared by member for supervisory awareness.')
@@ -820,7 +820,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
           <div class="assessment-header">
             ${reportEntries.length > 1 ? `<span class="counter">#${idx + 1}</span>` : ''}
             <span class="date">${dateStr}</span>
-            ${isDiag ? '<span class="badge diag">DIAGNOSTIC PERIOD (non-scored)</span>' : ''}
+            ${isDiag ? '<span class="badge diag">Diagnostic Period (non-scored)</span>' : ''}
             ${composite?.composite != null ? `<span class="composite ${composite.pass ? 'pass' : 'fail'}">${composite.composite.toFixed(1)} ${composite.pass ? 'PASS' : 'FAIL'}</span>` : ''}
           </div>
           <table class="comp-table">
@@ -928,7 +928,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
   <div class="scoring-info">
     <p>Scoring Charts: ${CHART_VERSION}</p>
     <p>Basis: DAFMAN 36-2905 (Change 1, 22 Jan 2026)</p>
-    <p>Weights: Cardio 50% | Body Comp 20% | Strength 15% | Core 15%</p>
+    <p>Weights: Cardio 50% | Body Comp (WHtR) 20% | Strength 15% | Core 15%</p>
   </div>
 
   <footer>
