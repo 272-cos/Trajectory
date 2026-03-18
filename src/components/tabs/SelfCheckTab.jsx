@@ -718,7 +718,7 @@ export default function SelfCheckTab() {
 
         {/* IV-01: Self-check date picker - max = today */}
         <div className="mb-6">
-          <label htmlFor="assessment-date" className="block text-sm font-medium text-gray-700 mb-2">Assessment Date</label>
+          <label htmlFor="assessment-date" className="block text-sm font-medium text-gray-700 mb-2">Most Recent Assessment Date</label>
           <div className="flex items-center gap-3 flex-wrap">
             <input
               id="assessment-date"
