@@ -25,12 +25,15 @@ export class BitWriter {
 
   /**
    * Write bits to stream
-   * @param {number} value - Value to write
+   * @param {number} value - Value to write (must be a non-negative integer)
    * @param {number} numBits - Number of bits
    */
   write(value, numBits) {
+    // Guard: negative values or NaN would corrupt the bit stream via two's-complement
+    // arithmetic right-shift. Clamp to [0, 2^numBits - 1] as a safety net.
+    const safe = (isNaN(value) || value < 0) ? 0 : value
     for (let i = numBits - 1; i >= 0; i--) {
-      const bit = (value >> i) & 1
+      const bit = (safe >> i) & 1
       this.currentByte = (this.currentByte << 1) | bit
       this.bitPosition++
 

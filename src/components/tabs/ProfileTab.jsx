@@ -133,8 +133,8 @@ export default function ProfileTab() {
       const decoded = decodeDCode(code)
       updateDCode(code, decoded)
       setSuccess('Profile code generated successfully!')
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      setError('Could not generate profile code. Check your date of birth and try again.')
     }
   }
 
@@ -169,8 +169,8 @@ export default function ProfileTab() {
       } else {
         setSuccess('Profile code loaded successfully!')
       }
-    } catch (err) {
-      setError('Invalid profile code: ' + err.message)
+    } catch {
+      setError('Invalid profile code. Check for typos and try again.')
     }
   }
 

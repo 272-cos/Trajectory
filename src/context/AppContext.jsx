@@ -107,6 +107,12 @@ export function AppProvider({ children }) {
     let dCodeSchemaVersion = null
     const sCodeSchemaVersions = []
 
+    // Reject unreasonably large query strings to prevent DoS-style abuse
+    if (window.location.search.length > 8192) {
+      console.warn('URL query string too large; skipping hydration.')
+      return
+    }
+
     const urlDCode = params.get('d')
     if (urlDCode) {
       try {
@@ -115,9 +121,9 @@ export function AppProvider({ children }) {
         setDCode(urlDCode)
         setDemographics(decoded)
         saveDCode(urlDCode)
-      } catch (err) {
+      } catch {
         // EC-28: error per bad param, still load valid params
-        hydrationErrors.push(`Invalid Profile Code in URL: ${err.message}`)
+        hydrationErrors.push('Invalid Profile Code in URL. Check for typos or regenerate from the Profile tab.')
       }
     }
 
@@ -132,9 +138,9 @@ export function AppProvider({ children }) {
           currentSCodes = [...currentSCodes, code]
           scodesChanged = true
         }
-      } catch (err) {
+      } catch {
         // EC-28: error per bad param, still load valid params
-        hydrationErrors.push(`Invalid Assessment Code in URL: ${err.message}`)
+        hydrationErrors.push('An Assessment Code in the URL was invalid and could not be loaded.')
       }
     }
     if (scodesChanged) {
