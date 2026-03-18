@@ -360,6 +360,7 @@ export default function PlanTab() {
   const [completedDays, setCompletedDays] = useState(() => getCompletedDays())
   const [calendarKey, setCalendarKey] = useState(0)
   const [preferredDays, setPreferredDays] = useState(() => getPreferredDays())
+  const [pendingDays, setPendingDays] = useState(() => getPreferredDays())
 
   const handlePrevMonth = () => {
     const p = prevMonth(viewYear, viewMonth)
@@ -390,15 +391,20 @@ export default function PlanTab() {
   }
 
   const handleToggleDay = useCallback((dow) => {
-    setPreferredDays(prev => {
-      const next = prev.includes(dow)
-        ? prev.length > 3 ? prev.filter(d => d !== dow) : prev // minimum 3 days
-        : [...prev, dow].sort((a, b) => a - b)
-      savePreferredDays(next)
-      return next
-    })
-    setSelectedDate(null)
+    setPendingDays(prev =>
+      prev.includes(dow)
+        ? prev.filter(d => d !== dow)
+        : [...prev, dow].sort((a, b) => a - b),
+    )
   }, [])
+
+  const handleConfirmDays = useCallback(() => {
+    if (pendingDays.length !== 3) return
+    savePreferredDays(pendingDays)
+    setPreferredDays(pendingDays)
+    setSelectedDate(null)
+    setCalendarKey(k => k + 1)
+  }, [pendingDays])
 
   // ── Compute current scores from most recent S-code ─────────────────────────
   const currentScores = useMemo(() => {
@@ -569,13 +575,22 @@ export default function PlanTab() {
         {/* Preferred training days picker */}
         {(() => {
           const DOW_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-          const consecutive = hasConsecutiveDays(preferredDays)
+          const consecutive = hasConsecutiveDays(pendingDays)
+          const readyToConfirm = pendingDays.length === 3
+          const changed = pendingDays.join(',') !== preferredDays.join(',')
           return (
             <div className="mt-3">
-              <div className="text-xs text-gray-500 mb-1.5 font-medium">Training days</div>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-xs font-medium text-gray-500">
+                  Select 3 training days
+                </div>
+                <div className="text-xs text-gray-400">
+                  {pendingDays.length}/3 selected
+                </div>
+              </div>
               <div className="flex gap-1">
                 {DOW_LABELS.map((label, dow) => {
-                  const active = preferredDays.includes(dow)
+                  const active = pendingDays.includes(dow)
                   return (
                     <button
                       key={dow}
@@ -599,6 +614,22 @@ export default function PlanTab() {
                   Back-to-back days increase injury risk - spacing workouts aids recovery.
                 </div>
               )}
+              <button
+                onClick={handleConfirmDays}
+                disabled={!readyToConfirm || !changed}
+                className={[
+                  'mt-2 w-full py-1.5 rounded text-xs font-semibold border transition-colors',
+                  readyToConfirm && changed
+                    ? 'bg-blue-600 border-blue-700 text-white hover:bg-blue-700'
+                    : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed',
+                ].join(' ')}
+              >
+                {!readyToConfirm
+                  ? `Select ${3 - pendingDays.length} more day${3 - pendingDays.length !== 1 ? 's' : ''} to confirm`
+                  : !changed
+                    ? 'No changes to apply'
+                    : 'Confirm - regenerate calendar'}
+              </button>
             </div>
           )
         })()}
