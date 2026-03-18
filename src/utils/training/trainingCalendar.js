@@ -181,8 +181,7 @@ export function prescribeFractionalTest(exercise, ageBracket, gender, fraction) 
 
 function addDays(dateISO, days) {
   const d = new Date(dateISO)
-  d.setDate(d.getDate() + days)
-  return d.toISOString().split('T')[0]
+  return new Date(d.getTime() + days * 86400000).toISOString().split('T')[0]
 }
 
 function daysBetween(fromISO, toISO) {
@@ -257,10 +256,9 @@ function getTrainingDaysForWeek(weekStartISO, preferredDays = DEFAULT_TRAINING_D
  */
 function getMondayOfWeek(dateISO) {
   const d = new Date(dateISO)
-  const day = d.getDay() // 0=Sun, 1=Mon, ...
+  const day = d.getUTCDay() // use UTC to match how ISO strings are parsed
   const diff = day === 0 ? -6 : 1 - day
-  d.setDate(d.getDate() + diff)
-  return d.toISOString().split('T')[0]
+  return new Date(d.getTime() + diff * 86400000).toISOString().split('T')[0]
 }
 
 // ── Main calendar generator ───────────────────────────────────────────────────
