@@ -143,9 +143,11 @@ export const EFFORT_WEEKS_PER_UNIT = {
   [EXERCISES.WHTR]: 4.0,
 }
 
-// Diagnostic period (non-scored) per DAFMAN 36-2905
+// Diagnostic period (non-scored) per DTM Fitness SAF/MR 23 Sep 2025
+// Six-month diagnostic period: 1 Mar 2026 - 31 Aug 2026
+// Official scored testing begins: 1 Sep 2026
 export const DIAGNOSTIC_PERIOD_START = '2026-03-01'
-export const DIAGNOSTIC_PERIOD_END = '2026-06-30'
+export const DIAGNOSTIC_PERIOD_END = '2026-08-31'
 
 // Scoring chart version (EC-24, GR-15)
 // To update: bump CHART_VERSION + CHART_RELEASE_DATE, add new table module to

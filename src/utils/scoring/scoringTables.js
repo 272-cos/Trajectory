@@ -949,7 +949,6 @@ export const SCORING_TABLES = {
         { threshold: 165, points: 13.5 }, // 2:45
         { threshold: 145, points: 12.5 }, // 2:25
         { threshold: 125, points: 11.5 }, // 2:05
-        { threshold: 125, points: 11.5 }, // 2:05
         { threshold: 105, points: 10.5 }, // 1:45
         { threshold: 85, points: 9.5 }, // 1:25
         { threshold: 65, points: 8.5 }, // 1:05

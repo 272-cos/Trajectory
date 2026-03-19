@@ -103,8 +103,8 @@ src/
   - Strength: Push-ups (1-min), HRPU (2-min)
   - Core: Sit-ups (1-min), CLRC (2-min), Forearm Plank
   - Body Comp: Waist-to-Height Ratio
-- **Diagnostic period:** Mar 1 - Jun 30, 2026 (non-scored; auto-detected from S-code date)
-- **Scored PFAs begin:** Jul 1, 2026
+- **Diagnostic period:** Mar 1 - Aug 31, 2026 (non-scored; auto-detected from S-code date)
+- **Scored PFAs begin:** Sep 1, 2026
 
 ## Partial Component Testing
 
