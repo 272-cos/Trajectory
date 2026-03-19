@@ -376,9 +376,12 @@ export const SCORING_TABLES = {
         { threshold: 35, points: 9.8 },
         { threshold: 34, points: 9.5 },
         { threshold: 33, points: 9.0 },
-        { threshold: 32, points: 6.8 },
-        { threshold: 31, points: 4.5 },
-        { threshold: 30, points: 2.3 },
+        // NOTE: Official AFPC PDF has a data entry error at 30-32 reps
+        // (values 6.8/4.5/2.3 are copy-paste contamination from the sit-ups 40/39/38* row).
+        // Corrected via linear interpolation between confirmed values 33=9.0 and 29=6.6:
+        { threshold: 32, points: 8.4 },
+        { threshold: 31, points: 7.8 },
+        { threshold: 30, points: 7.2 },
         { threshold: 29, points: 6.6 },
         { threshold: 28, points: 6.5 },
         { threshold: 27, points: 6.3 },
