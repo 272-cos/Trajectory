@@ -173,7 +173,7 @@ export function prescribeFractionalTest(exercise, ageBracket, gender, fraction) 
   return {
     target: `Perform ${pct}% of your passing standard for this exercise`,
     description: label,
-    notes: `TR-04: This is a ${pct}% partial test. Your predicted full-test score will be calculated automatically. Results are approximate - always label as estimated.`,
+    notes: `This is a ${pct}% partial test. Your predicted full-test score will be calculated automatically. Results are approximate - always label as estimated.`,
   }
 }
 
@@ -315,7 +315,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       type:        EVENT_TYPES.MOCK_TEST,
       date:        mockTestDate,
       label:       'Full Mock Test',
-      description: 'TR-01: One full practice test, done exactly once at -14 days.',
+      description: 'One full practice test, 14 days before your actual assessment.',
       notes:       'Simulate test conditions. After this, shift to taper. Reduce training volume by 50%.',
       priority:    'high',
     })
@@ -333,7 +333,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       date:        d,
       label:       'Taper Period',
       description: 'Reduce volume 50%. Maintain intensity, cut frequency.',
-      notes:       'TR-10: Do not add new training stress. Sleep, hydrate, and recover.',
+      notes:       'Do not add new training stress. Sleep, hydrate, and recover.',
       priority:    'medium',
     })
   }
@@ -403,7 +403,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
           date:        dayISO,
           label:       '50% Partial Test',
           description: 'Run a 50% effort test across all components.',
-          notes:       'TR-04: Label all results as "50% test estimates". Record actual reps/times.',
+          notes:       'Label all results as "50% test estimates". Record actual reps/times.',
           fraction:    0.5,
           priority:    'high',
           completed:   !!(practiceSessionMap[dayISO]),
@@ -418,7 +418,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
           date:        dayISO,
           label:       '75% Partial Test',
           description: 'Run a 75% effort test across all components.',
-          notes:       'TR-04: Label all results as "75% test estimates". You should be well above passing at this point.',
+          notes:       'Label all results as "75% test estimates". You should be well above passing at this point.',
           fraction:    0.75,
           priority:    'high',
           completed:   !!(practiceSessionMap[dayISO]),
@@ -481,9 +481,9 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 function getTrainingDayDescription(phase, sessionIndex) {
   const sessions = {
     [PHASES.PHASE_0]: [
-      'Wall push-ups, chair-assisted sit-ups, 10-min brisk walk',
-      'Incline push-ups, glute bridges, 15-min light walk',
-      'Knee push-ups, modified crunches, 20-min easy walk or bike',
+      'Wall push-ups: 3x10, Chair-assisted sit-ups: 3x8, 10-min brisk walk',
+      'Incline push-ups: 3x8, Glute bridges: 3x12, 15-min light walk',
+      'Knee push-ups: 3x6, Modified crunches: 3x10, 20-min easy walk or bike',
     ],
     [PHASES.PHASE_1]: [
       'Cardio base: 20-30 min conversational-pace run/walk',
@@ -513,11 +513,11 @@ function getTrainingDayDescription(phase, sessionIndex) {
 
 function getTrainingDayNotes(phase) {
   const notes = {
-    [PHASES.PHASE_0]: 'TR-07: Pre-progression. Focus on form and consistency - not intensity.',
-    [PHASES.PHASE_1]: 'TR-08: Goal is to build confidence and habits. Effort should feel sustainable.',
-    [PHASES.PHASE_2]: 'TR-08: Add effort gradually. If something hurts, back off immediately.',
-    [PHASES.PHASE_3]: 'TR-08: This is the hardest phase. One hard day between recovery days.',
-    [PHASES.PHASE_4]: 'TR-10: Taper-prep. Less is more. Show up to test day rested, not exhausted.',
+    [PHASES.PHASE_0]: 'Pre-progression: Rest 60-90s between sets. Stop a rep or two short of failure - form matters more than count right now.',
+    [PHASES.PHASE_1]: 'Goal is to build confidence and habits. Effort should feel sustainable.',
+    [PHASES.PHASE_2]: 'Add effort gradually. If something hurts, back off immediately.',
+    [PHASES.PHASE_3]: 'This is the hardest phase. One hard day between recovery days.',
+    [PHASES.PHASE_4]: 'Taper-prep: less is more. Show up to test day rested, not exhausted.',
   }
   return notes[phase] || notes[PHASES.PHASE_1]
 }
