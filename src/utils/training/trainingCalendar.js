@@ -132,13 +132,13 @@ export function prescribePIWorkout(exercise, fitnessLevel) {
       [FITNESS_LEVELS.HIGH]: { target: '2+ min hold',     description: 'Forearm Plank (hold half your target)', notes: 'Predicted full plank: ~4+ min. Breathing pattern is key at this level.' },
     },
     [EXERCISES.RUN_2MILE]: {
-      [FITNESS_LEVELS.LOW]:  { target: '1-mile @ conversational pace', description: '1-mile run benchmark', notes: 'Predicted 2-mile: time x2 + 45s. No anaerobic effort today.' },
-      [FITNESS_LEVELS.MED]:  { target: '1-mile @ goal race pace', description: '1-mile run benchmark', notes: 'Predicted 2-mile: time x2 + 45s. Should feel comfortably hard.' },
-      [FITNESS_LEVELS.HIGH]: { target: '1-mile @ faster than race pace', description: '1-mile time trial', notes: 'Predicted 2-mile: time x2 + 45s. Controlled max effort.' },
+      [FITNESS_LEVELS.LOW]:  { target: '1-mile @ easy effort (can speak full sentences)', description: '1-mile run benchmark', notes: 'Predicted 2-mile: time x2 + 45s. No anaerobic effort today.' },
+      [FITNESS_LEVELS.MED]:  { target: '1-mile @ comfortably hard (2-3 word answers only)', description: '1-mile run benchmark', notes: 'Predicted 2-mile: time x2 + 45s. Should feel sustainably hard.' },
+      [FITNESS_LEVELS.HIGH]: { target: '1-mile @ near-max (hard breathing, single words only)', description: '1-mile time trial', notes: 'Predicted 2-mile: time x2 + 45s. Controlled max effort.' },
     },
     [EXERCISES.HAMR]: {
-      [FITNESS_LEVELS.LOW]:  { target: '5-8 shuttle intervals', description: 'HAMR interval set', notes: 'Focus on quick directional change, low center of gravity.' },
-      [FITNESS_LEVELS.MED]:  { target: '9-14 shuttle intervals', description: 'HAMR interval set', notes: 'Push for consistent splits across all intervals.' },
+      [FITNESS_LEVELS.LOW]:  { target: '5-8 shuttle intervals', description: 'HAMR interval set', notes: 'Plant foot wide on turns and push off hard - technique over speed.' },
+      [FITNESS_LEVELS.MED]:  { target: '9-14 shuttle intervals', description: 'HAMR interval set', notes: 'Each shuttle should finish in the same time - no fading in later reps.' },
       [FITNESS_LEVELS.HIGH]: { target: '15+ shuttle intervals', description: 'HAMR interval set', notes: 'Race pace effort on each shuttle. Rest 1:1 between.' },
     },
   }

@@ -1008,9 +1008,9 @@ export default function ProjectTab() {
             'text-red-600'
           }`}>
             {daysToTarget} days remaining
-            {daysToTarget <= 30 && ' - urgent!'}
-            {daysToTarget > 30 && daysToTarget <= 90 && ' - moderate timeline'}
-            {daysToTarget > 90 && ' - plenty of time to prepare'}
+            {daysToTarget <= 30 && ' - act now'}
+            {daysToTarget > 30 && daysToTarget <= 90 && ' - steady progression needed'}
+            {daysToTarget > 90 && ' - build your foundation now'}
           </p>
         )}
       </div>

@@ -37,14 +37,14 @@ const RECOMMENDATIONS = {
   [COMPONENTS.CARDIO]: {
     [EXERCISES.RUN_2MILE]: {
       [TIERS.FAILING]: [
-        'Walk-Run Intervals: 2 min run / 1 min walk × 10, gradually decrease walk time',
+        'Walk-Run Intervals: 2 min run / 1 min walk × 10, cut walk by 15 sec each week',
         'Long Slow Distance: 3-5 mile runs at conversational pace, 2×/week',
         'Breathing Technique: Practice rhythmic breathing (3-step inhale, 2-step exhale)',
       ],
       [TIERS.MARGINAL]: [
         'Tempo Runs: 15-20 min at 80% max heart rate, 1×/week',
         'Fartlek Training: Varied pace for 20 minutes (fast 2 min, easy 3 min)',
-        'Goal-Paced Running: Run at target PFA pace for 1 mile, rest, repeat',
+        'Goal-Paced Running: Run 1 mile at target 2-mile pace, rest 3 min, repeat × 2',
       ],
       [TIERS.STRONG]: [
         'Norwegian 4×4: 4 minutes high intensity + 3 min recovery × 4',
@@ -54,7 +54,7 @@ const RECOMMENDATIONS = {
     },
     [EXERCISES.HAMR]: {
       [TIERS.FAILING]: [
-        'Cone Drills: 5-10 yard shuttle runs, focus on quick direction change',
+        'Cone Drills: 5-10 yard shuttle runs × 12 reps, sharp plant-and-push on each turn',
         'Lateral Shuffles: Side-to-side movement for 30 seconds × 5',
         'Form Practice: Low center of gravity on turns, push off outside foot',
       ],
