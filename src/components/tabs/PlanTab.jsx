@@ -29,6 +29,7 @@ import {
   hasConsecutiveDays,
 } from '../../utils/training/trainingCalendar.js'
 import { isMockTestWindow, isInTaperPeriod } from '../../utils/training/practiceSession.js'
+import { generateICS, downloadICS, downloadSingleEvent } from '../../utils/training/icsExport.js'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -291,6 +292,12 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
                       maintain intensity, rest more.
                     </div>
                   )}
+                  <button
+                    onClick={() => downloadSingleEvent(event)}
+                    className="text-xs text-gray-500 hover:text-blue-600 underline transition-colors"
+                  >
+                    Add to calendar
+                  </button>
                 </div>
               )}
             </div>
@@ -629,12 +636,24 @@ export default function PlanTab() {
       <div className="bg-white rounded-xl shadow-md p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-bold text-gray-900">Training Plan</h2>
-          <button
-            onClick={handleRegenerate}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
-          >
-            Regenerate
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const ics = generateICS(calendar.eventsByDate)
+                downloadICS(ics)
+              }}
+              className="text-xs text-green-700 hover:text-green-900 font-medium border border-green-200 hover:border-green-400 rounded-lg px-3 py-1.5 transition-colors"
+              aria-label="Export training plan to calendar"
+            >
+              Add to Calendar
+            </button>
+            <button
+              onClick={handleRegenerate}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              Regenerate
+            </button>
+          </div>
         </div>
 
         {/* Stats strip */}

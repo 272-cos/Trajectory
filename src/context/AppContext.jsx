@@ -185,9 +185,15 @@ export function AppProvider({ children }) {
       }, 8000)
     }
 
-    // Load dark mode preference
+    // Load dark mode: user preference overrides system; if no preference saved, match system
     const storedDark = getDarkMode()
-    setDarkModeState(storedDark)
+    const hasStoredPref = localStorage.getItem('pfa_dark_mode') !== null
+    if (hasStoredPref) {
+      setDarkModeState(storedDark)
+    } else {
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      setDarkModeState(systemDark)
+    }
 
     // Load personal goal
     const storedGoal = getPersonalGoal()
@@ -197,6 +203,20 @@ export function AppProvider({ children }) {
     if (!isOnboarded()) {
       setShowOnboarding(true)
     }
+  }, [])
+
+  // Warn on browser tab close if Self-Check has unsaved data
+  const selfCheckDirtyRef = useRef(false)
+  useEffect(() => { selfCheckDirtyRef.current = selfCheckDirty }, [selfCheckDirty])
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (selfCheckDirtyRef.current) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [])
 
   // Save D-code to localStorage when it changes

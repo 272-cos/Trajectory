@@ -65,8 +65,12 @@ function scheduleAudioBeep(ctx, isLevelChange) {
     scheduleBeepTone(ctx, when)
     scheduleBeepTone(ctx, when + TRIPLE_GAP)
     scheduleBeepTone(ctx, when + TRIPLE_GAP * 2)
+    // Haptic feedback for level change (Android/iOS with vibration support)
+    if (navigator.vibrate) navigator.vibrate([30, 50, 30, 50, 30])
   } else {
     scheduleBeepTone(ctx, when)
+    // Brief haptic pulse per shuttle
+    if (navigator.vibrate) navigator.vibrate(15)
   }
 }
 
