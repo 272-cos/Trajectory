@@ -8,9 +8,8 @@ import { encodeSCode, decodeSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
-import { EXERCISE_NAMES } from '../../utils/scoring/strategyEngine.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
-import { getExercisePrefs, saveExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getPracticeSessions, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
+import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getPracticeSessions, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
 import { getTrainingResources } from '../../utils/training/resources.js'
 import { BASE_REGISTRY } from '../../utils/codec/bitpack.js'
 import ShareModal from '../shared/ShareModal.jsx'
@@ -78,8 +77,8 @@ export default function SelfCheckTab() {
   // Altitude base selection (persisted)
   const [selectedBase, setSelectedBase] = useState(() => getSelectedBase())
 
-  // Exercise preferences (locked choices persisted to localStorage)
-  const [exercisePrefs, setExercisePrefs] = useState(() => getExercisePrefs())
+  // Exercise preferences (read from localStorage - set on Project tab)
+  const exercisePrefs = getExercisePrefs()
 
   // UI state
   const [scode, setSCode] = useState('')
@@ -324,18 +323,6 @@ export default function SelfCheckTab() {
       setWaistInches(val)
       setWaistError('')
     }
-  }
-
-  // Toggle lock for an exercise preference
-  const handleToggleLock = (component, exercise) => {
-    const updated = { ...exercisePrefs }
-    if (updated[component] === exercise) {
-      delete updated[component] // Unlock
-    } else {
-      updated[component] = exercise // Lock current choice
-    }
-    setExercisePrefs(updated)
-    saveExercisePrefs(updated)
   }
 
   const handleGenerateSCode = () => {
@@ -1050,41 +1037,6 @@ export default function SelfCheckTab() {
           </div>
         )}
 
-        {/* Exercise lock controls */}
-        {!allExempt && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-500 mb-2 font-medium">Lock exercise preferences (persists across sessions)</p>
-            <div className="flex flex-wrap gap-3">
-              {!cardioExempt && (
-                <LockButton
-                  component={COMPONENTS.CARDIO}
-                  exercise={cardioExercise}
-                  label={EXERCISE_NAMES[cardioExercise] || cardioExercise}
-                  locked={exercisePrefs[COMPONENTS.CARDIO] === cardioExercise}
-                  onToggle={handleToggleLock}
-                />
-              )}
-              {!strengthExempt && (
-                <LockButton
-                  component={COMPONENTS.STRENGTH}
-                  exercise={strengthExercise}
-                  label={EXERCISE_NAMES[strengthExercise] || strengthExercise}
-                  locked={exercisePrefs[COMPONENTS.STRENGTH] === strengthExercise}
-                  onToggle={handleToggleLock}
-                />
-              )}
-              {!coreExempt && (
-                <LockButton
-                  component={COMPONENTS.CORE}
-                  exercise={coreExercise}
-                  label={EXERCISE_NAMES[coreExercise] || coreExercise}
-                  locked={exercisePrefs[COMPONENTS.CORE] === coreExercise}
-                  onToggle={handleToggleLock}
-                />
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Action bar - sticky on mobile */}
@@ -1633,37 +1585,6 @@ function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, wal
     </div>
   )
 }
-
-// Lock button for exercise preference persistence
-function LockButton({ component, exercise, label, locked, onToggle }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onToggle(component, exercise)}
-      aria-pressed={locked}
-      aria-label={locked ? `Unlock ${label} preference` : `Lock ${label} as preferred exercise`}
-      className={[
-        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium min-h-[36px]',
-        'border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1',
-        locked
-          ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
-      ].join(' ')}
-    >
-      {locked ? (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5" aria-hidden="true">
-          <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
-        </svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-        </svg>
-      )}
-      {label}
-    </button>
-  )
-}
-
 
 // UX-03: Segmented control - replaces dropdowns for exercise selection
 function SegmentedControl({ options, value, onChange, disabled = false, groupLabel }) {
