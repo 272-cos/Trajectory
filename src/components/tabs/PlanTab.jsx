@@ -29,6 +29,7 @@ import {
   hasConsecutiveDays,
 } from '../../utils/training/trainingCalendar.js'
 import { isMockTestWindow, isInTaperPeriod } from '../../utils/training/practiceSession.js'
+import { downloadSingleEvent } from '../../utils/training/icsExport.js'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -290,6 +291,14 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
                       TR-01: Do this exactly once. After today, shift to taper - cut volume 50%,
                       maintain intensity, rest more.
                     </div>
+                  )}
+                  {event.type === EVENT_TYPES.TEST_DAY && (
+                    <button
+                      onClick={() => downloadSingleEvent(event)}
+                      className="w-full py-2 px-3 min-h-[44px] text-sm font-medium text-red-700 bg-white border border-red-300 hover:border-red-500 rounded-lg transition-colors"
+                    >
+                      Add PFA date to calendar
+                    </button>
                   )}
                 </div>
               )}
@@ -797,8 +806,10 @@ export default function PlanTab() {
         </div>
       )}
 
+      {/* Calendar + detail - side-by-side on lg */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
       {/* Calendar card */}
-      <div className="bg-white rounded-xl shadow-md p-4">
+      <div className="lg:col-span-3 bg-white rounded-xl shadow-md p-4">
         {/* Month navigation */}
         <div className="flex items-center justify-between mb-3">
           <button
@@ -856,22 +867,31 @@ export default function PlanTab() {
       </div>
 
       {/* Day detail panel */}
-      {selectedDate && (
-        <DayDetail
-          key={selectedDate}
-          dateISO={selectedDate}
-          events={selectedEvents}
-          isCompleted={completedDays.has(selectedDate)}
-          onToggleComplete={() => handleToggleComplete(selectedDate)}
-          onNavigate={setActiveTab}
-        />
-      )}
+      <div className="lg:col-span-2">
+        {selectedDate && (
+          <DayDetail
+            key={selectedDate}
+            dateISO={selectedDate}
+            events={selectedEvents}
+            isCompleted={completedDays.has(selectedDate)}
+            onToggleComplete={() => handleToggleComplete(selectedDate)}
+            onNavigate={setActiveTab}
+          />
+        )}
 
-      {selectedDate && selectedEvents.length === 0 && (
-        <div className="bg-white rounded-xl shadow-md p-4 text-center text-sm text-gray-500">
-          Rest day - no scheduled training on this date.
-        </div>
-      )}
+        {selectedDate && selectedEvents.length === 0 && (
+          <div className="bg-white rounded-xl shadow-md p-4 text-center text-sm text-gray-500">
+            Rest day - no scheduled training on this date.
+          </div>
+        )}
+
+        {!selectedDate && (
+          <div className="hidden lg:flex bg-gray-50 rounded-xl border border-gray-200 p-6 items-center justify-center text-sm text-gray-400 h-full">
+            Select a day to see details
+          </div>
+        )}
+      </div>
+      </div>{/* close calendar + detail grid */}
 
       {/* Disclaimer */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-500">

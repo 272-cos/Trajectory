@@ -19,7 +19,7 @@ export default function Header() {
         backgroundPosition: 'center 45%',
       }}
     >
-      <div className="container mx-auto max-w-4xl px-4 py-5 flex items-center justify-between">
+      <div className="container mx-auto max-w-4xl lg:max-w-6xl px-4 py-5 flex items-center justify-between">
         <div className="flex flex-col items-start">
           <img
             src={`${BASE}icons/logo-transparent.png`}

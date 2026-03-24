@@ -9,8 +9,9 @@ import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
-import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getPracticeSessions } from '../../utils/storage/localStorage.js'
+import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getPracticeSessions, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
 import { getTrainingResources } from '../../utils/training/resources.js'
+import { BASE_REGISTRY } from '../../utils/codec/bitpack.js'
 import ShareModal from '../shared/ShareModal.jsx'
 import {
   PI_EXERCISES, PI_EXERCISE_LABELS, PI_IS_TIME, PI_TO_FULL_EXERCISE,
@@ -39,7 +40,7 @@ function formatTimeInput(rawValue) {
 }
 
 export default function SelfCheckTab() {
-  const { demographics, addSCode, removeSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator, targetPfaDate, scodes } = useApp()
+  const { demographics, addSCode, removeSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator, targetPfaDate, scodes, setActiveTab } = useApp()
 
   // IV-01: Assessment date - picker with max = today (local date, not UTC)
   const _now = new Date()
@@ -72,6 +73,9 @@ export default function SelfCheckTab() {
   const [bodyCompExempt, setBodyCompExempt] = useState(false)
   const [heightError, setHeightError] = useState('')
   const [waistError, setWaistError] = useState('')
+
+  // Altitude base selection (persisted)
+  const [selectedBase, setSelectedBase] = useState(() => getSelectedBase())
 
   // Exercise preferences (read from localStorage - set on Project tab)
   const exercisePrefs = getExercisePrefs()
@@ -175,17 +179,22 @@ export default function SelfCheckTab() {
   // Check if we have demographics
   const hasDemographics = demographics && demographics.dob && demographics.gender
 
+  // Default bracket for exploration mode (25-29 Male - middle of the road)
+  const DEFAULT_GENDER = 'male'
+  const DEFAULT_AGE_BRACKET = '25_29'
+
   // Calculate scores whenever inputs change
   useEffect(() => {
-    if (!hasDemographics || !assessmentDate) {
+    if (!assessmentDate) {
       setScores(null)
       return
     }
 
     try {
-      const age = calculateAge(demographics.dob, assessmentDate)
-      const ageBracket = getAgeBracket(age)
-      const gender = demographics.gender
+      const gender = hasDemographics ? demographics.gender : DEFAULT_GENDER
+      const ageBracket = hasDemographics
+        ? getAgeBracket(calculateAge(demographics.dob, assessmentDate))
+        : DEFAULT_AGE_BRACKET
 
       const components = []
 
@@ -321,7 +330,7 @@ export default function SelfCheckTab() {
     setSuccess('')
 
     if (!hasDemographics) {
-      setError('Please create your profile first (Profile tab)')
+      setError('Profile needed to save. Set your DOB and gender in the Profile tab - takes 10 seconds.')
       return false
     }
 
@@ -432,12 +441,12 @@ export default function SelfCheckTab() {
           exempt: false
         } : bodyCompExempt ? { heightInches: null, waistInches: null, exempt: true } : null,
         feedback: {
-          baseId: 0,
+          baseId: selectedBase,
           rpe: 3,
           sleepQuality: 2,
           nutrition: 2,
           injured: false,
-          environmentFlags: 0,
+          environmentFlags: selectedBase > 0 ? 0b010000 : 0, // ALTITUDE_NOTABLE when base selected
           confidence: 3,
         },
       }
@@ -456,7 +465,13 @@ export default function SelfCheckTab() {
       })
       clearDraft()
       setSelfCheckDirty(false)
-      setSuccess('Assessment code generated successfully!')
+      // First-save celebration with backup hint
+      const isFirstSave = scodes.length === 0
+      if (isFirstSave) {
+        setSuccess('First assessment saved! Your data lives on this device only - back up anytime from the Tools tab.')
+      } else {
+        setSuccess('Assessment saved!')
+      }
       return true
     } catch {
       setError('Could not generate assessment code. Check your inputs and try again.')
@@ -535,17 +550,6 @@ export default function SelfCheckTab() {
     setSelfCheckDirty(true)
   }
 
-  if (!hasDemographics) {
-    return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <h3 className="text-lg font-bold text-yellow-900 mb-2">Profile Required</h3>
-        <p className="text-yellow-800 mb-4">
-          Please create your profile first (DOB + gender) in the <strong>Profile tab</strong> before recording assessments.
-        </p>
-      </div>
-    )
-  }
-
   const isDiagnostic = isDiagnosticPeriod(assessmentDate)
 
   // Mock test / taper window detection (TR-01, TR-02, TR-09, TR-10)
@@ -599,6 +603,26 @@ export default function SelfCheckTab() {
           <p className="text-sm text-blue-800">
             <span className="font-bold">Taper period:</span> Your PFA is within 2 weeks. Reduce training volume by 50% and avoid hard efforts until test day.
           </p>
+        </div>
+      )}
+
+      {/* Exploration mode hint - profile not yet set */}
+      {!hasDemographics && (
+        <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <span className="text-blue-600 text-lg flex-shrink-0" aria-hidden="true">i</span>
+          <div className="flex-1">
+            <p className="text-sm text-blue-800">
+              Scores shown use a default bracket (25-29 Male).{' '}
+              <button
+                type="button"
+                onClick={() => setActiveTab('profile')}
+                className="underline font-medium text-blue-700 hover:text-blue-900"
+              >
+                Set up your profile
+              </button>
+              {' '}for personalized scoring.
+            </p>
+          </div>
         </div>
       )}
 
@@ -675,6 +699,12 @@ export default function SelfCheckTab() {
                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${scores.composite.pass ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
                   {scores.composite.pass ? 'PASS' : 'FAIL'}
                 </span>
+                {/* Approximate score indicator when using default bracket */}
+                {!hasDemographics && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">
+                    Approximate
+                  </span>
+                )}
                 {/* UX-10: Diagnostic period badge */}
                 {isDiagnostic && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
@@ -733,13 +763,15 @@ export default function SelfCheckTab() {
             />
             {/* UX-10: Diagnostic period badge inline with date */}
             {isDiagnostic && (
-              <span id="diag-badge" className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
-                Diagnostic Period - non-scored
+              <span id="diag-badge" className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                Familiarization period - practice only
               </span>
             )}
           </div>
         </div>
 
+        {/* Exercise Components - 2-col on md+ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-6">
         {/* Cardio Component */}
         <ComponentSection
           title="Cardio (50 pts)"
@@ -969,6 +1001,34 @@ export default function SelfCheckTab() {
           )}
           <TrainingResources component={COMPONENTS.BODY_COMP} />
         </ComponentSection>
+        </div>{/* close exercise components grid */}
+
+        {/* Altitude base selection */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            High-Altitude Base (optional)
+          </label>
+          <select
+            value={selectedBase}
+            onChange={(e) => {
+              const val = Number(e.target.value)
+              setSelectedBase(val)
+              saveSelectedBase(val)
+            }}
+            className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Select high-altitude base"
+          >
+            <option value={0}>None - not at a high-altitude base</option>
+            {BASE_REGISTRY.filter(Boolean).map(b => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.state}) - {b.elevationFt.toLocaleString()} ft
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">
+            CO, WY, and NM bases above 5,000 ft. Recorded in your assessment code for context.
+          </p>
+        </div>
 
         {/* IV-10: All-exempt warning */}
         {allExempt && (
@@ -995,6 +1055,15 @@ export default function SelfCheckTab() {
             Clear
           </button>
         </div>
+        {!hasDemographics && (
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Saving requires a profile.{' '}
+            <button type="button" onClick={() => setActiveTab('profile')} className="underline text-blue-600 hover:text-blue-800">
+              Set up profile
+            </button>
+            {' '}- takes 10 seconds.
+          </p>
+        )}
 
         {/* Success/Error Messages */}
         {success && (

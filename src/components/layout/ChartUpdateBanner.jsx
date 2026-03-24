@@ -28,7 +28,7 @@ export default function ChartUpdateBanner() {
       aria-live="polite"
       className="bg-blue-50 border-b border-blue-200 px-4 py-2"
     >
-      <div className="container mx-auto max-w-4xl flex items-center justify-between gap-3">
+      <div className="container mx-auto max-w-4xl lg:max-w-6xl flex items-center justify-between gap-3">
         <p className="text-xs text-blue-800">
           <span className="font-semibold">Charts:</span> Using {CHART_VERSION} scoring tables.{' '}
           <a

@@ -589,13 +589,21 @@ export default function HistoryTab() {
 
       {/* Assessment timeline */}
       {decodedEntries.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <p className="text-gray-600">
-            No assessments yet. Complete a self-check or paste an assessment code above.
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-base font-bold text-gray-900 mb-2">Assessment Timeline</h3>
+          <p className="text-sm text-gray-600 mb-3">
+            Your self-check history appears here as a trend chart and timeline. Paste a code above or complete an assessment to get started.
           </p>
+          <button
+            type="button"
+            onClick={() => setActiveTab('selfcheck')}
+            className="text-sm underline font-medium text-blue-700 hover:text-blue-900"
+          >
+            Go to Self-Check
+          </button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {decodedEntries.map((entry) => (
             <AssessmentCard
               key={entry.code}

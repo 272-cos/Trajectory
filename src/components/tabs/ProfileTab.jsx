@@ -188,6 +188,7 @@ export default function ProfileTab() {
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Profile</h2>
 
@@ -276,7 +277,7 @@ export default function ProfileTab() {
           <button
             onClick={handleGenerateDCode}
             disabled={!dob || !targetDate}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-lg transition-colors"
           >
             Save Profile
           </button>
@@ -347,6 +348,7 @@ export default function ProfileTab() {
           </button>
         </div>
       </div>
+      </div>{/* close grid */}
 
       {/* Reference link */}
       <div className="text-center">

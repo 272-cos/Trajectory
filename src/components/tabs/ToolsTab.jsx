@@ -5,12 +5,13 @@
  * - "What Score Do I Need?" reverse lookup
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import Stopwatch from '../tools/Stopwatch.jsx'
 import HamrMetronome from '../tools/HamrMetronome.jsx'
 import { useApp } from '../../context/AppContext.jsx'
 import { calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { generateTargetTable } from '../../utils/scoring/reverseScoring.js'
+import { exportBackup, importBackup } from '../../utils/storage/localStorage.js'
 
 // ── Component labels ──────────────────────────────────────────────────────────
 
@@ -155,6 +156,139 @@ function ScoreTargetLookup() {
   )
 }
 
+// ── Backup & Restore ────────────────────────────────────────────────────────
+
+function BackupRestore() {
+  const { addToast } = useApp()
+  const [expanded, setExpanded] = useState(false)
+  const [restoreResult, setRestoreResult] = useState(null)
+  const fileInputRef = useRef(null)
+
+  const handleExport = useCallback(() => {
+    try {
+      const json = exportBackup()
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const date = new Date().toISOString().split('T')[0]
+      a.download = `trajectory-backup-${date}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      addToast('Backup downloaded', 'success')
+    } catch {
+      addToast('Export failed', 'error')
+    }
+  }, [addToast])
+
+  const handleImport = useCallback((e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const result = importBackup(ev.target.result)
+      setRestoreResult(result)
+      if (result.ok) {
+        addToast(`Restored ${result.keysRestored} settings - reloading`, 'success')
+        setTimeout(() => window.location.reload(), 1200)
+      }
+    }
+    reader.readAsText(file)
+    // Reset so the same file can be re-selected
+    e.target.value = ''
+  }, [addToast])
+
+  const handleCopyBackup = useCallback(() => {
+    try {
+      const json = exportBackup()
+      navigator.clipboard.writeText(json).then(() => {
+        addToast('Backup copied to clipboard', 'success')
+      })
+    } catch {
+      addToast('Copy failed', 'error')
+    }
+  }, [addToast])
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <button
+        type="button"
+        onClick={() => setExpanded(e => !e)}
+        className="flex items-center justify-between w-full text-left"
+        aria-expanded={expanded}
+      >
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700">Backup & Restore</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Move your data to a new device or create a local backup.
+          </p>
+        </div>
+        <span className="text-gray-400 text-xs ml-4">{expanded ? '▲' : '▼'}</span>
+      </button>
+
+      {expanded && (
+        <div className="mt-4 space-y-4">
+          <p className="text-xs text-gray-500">
+            Your profile, assessment codes, training progress, and preferences are exported
+            as a single JSON file. No personal information beyond what you entered is included.
+          </p>
+
+          {/* Export */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Export</h4>
+            <div className="flex gap-2">
+              <button
+                onClick={handleExport}
+                className="flex-1 px-4 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Download Backup
+              </button>
+              <button
+                onClick={handleCopyBackup}
+                className="px-4 py-2.5 min-h-[44px] bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+                aria-label="Copy backup to clipboard"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+
+          {/* Import */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Restore</h4>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,application/json"
+              onChange={handleImport}
+              className="hidden"
+              aria-label="Select backup file to restore"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full px-4 py-2.5 min-h-[44px] bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+            >
+              Import Backup File
+            </button>
+            <p className="text-xs text-gray-400">
+              Importing overwrites matching settings. The page reloads automatically after restore.
+            </p>
+          </div>
+
+          {/* Result feedback */}
+          {restoreResult && !restoreResult.ok && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+              {restoreResult.error}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main Tab ──────────────────────────────────────────────────────────────────
 
 export default function ToolsTab() {
@@ -165,9 +299,12 @@ export default function ToolsTab() {
       aria-labelledby="tools-tab"
       className="space-y-4"
     >
-      <ScoreTargetLookup />
-      <HamrMetronome />
-      <Stopwatch />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ScoreTargetLookup />
+        <HamrMetronome />
+        <Stopwatch />
+        <BackupRestore />
+      </div>
     </div>
   )
 }

@@ -227,6 +227,10 @@ export function clearAllData() {
     localStorage.removeItem('pfa_practice_sessions')
     localStorage.removeItem(PREFERRED_DAYS_KEY)
     localStorage.removeItem(DRAFT_KEY)
+    localStorage.removeItem('pfa_selected_base')
+    localStorage.removeItem('pfa_completed_days')
+    localStorage.removeItem('pfa_show_milestones')
+    localStorage.removeItem('pfa_chart_banner_dismissed')
   } catch (error) {
     console.error('Error clearing localStorage:', error)
   }
@@ -406,6 +410,116 @@ export function toggleCompletedDay(dateISO) {
   } catch {
     return false
   }
+}
+
+// ── Milestone overlay toggle ─────────────────────────────────────────────────
+
+const SHOW_MILESTONES_KEY = 'pfa_show_milestones'
+
+/**
+ * Get the milestone overlay preference (defaults OFF).
+ * @returns {boolean}
+ */
+export function getShowMilestones() {
+  try {
+    return localStorage.getItem(SHOW_MILESTONES_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Set the milestone overlay preference.
+ * @param {boolean} show
+ */
+export function setShowMilestones(show) {
+  try {
+    localStorage.setItem(SHOW_MILESTONES_KEY, show ? 'true' : 'false')
+  } catch { /* ignore */ }
+}
+
+// ── Backup / Restore ────────────────────────────────────────────────────────
+
+/** All localStorage keys managed by this app. */
+const ALL_KEYS = [
+  'pfa_dcode', 'pfa_scodes', 'pfa_target_date', 'pfa_onboarded',
+  'pfa_dark_mode', 'pfa_personal_goal', 'pfa_draft', 'pfa_outliers',
+  'pfa_exercise_prefs', 'pfa_practice_sessions', 'pfa_preferred_days',
+  'pfa_completed_days', 'pfa_show_milestones', 'pfa_chart_banner_dismissed',
+  'pfa_selected_base',
+]
+
+/**
+ * Export all app data as a JSON string.
+ * @returns {string} JSON backup payload
+ */
+export function exportBackup() {
+  const data = {}
+  for (const key of ALL_KEYS) {
+    const val = localStorage.getItem(key)
+    if (val !== null) data[key] = val
+  }
+  return JSON.stringify({
+    _format: 'trajectory_backup',
+    _version: 1,
+    _exported: new Date().toISOString(),
+    data,
+  }, null, 2)
+}
+
+/**
+ * Validate and import a backup payload.
+ * Overwrites all matching keys; keys not in the backup are left untouched.
+ * @param {string} jsonString - Backup JSON string
+ * @returns {{ ok: boolean, error?: string, keysRestored: number }}
+ */
+export function importBackup(jsonString) {
+  let parsed
+  try {
+    parsed = JSON.parse(jsonString)
+  } catch {
+    return { ok: false, error: 'Invalid JSON', keysRestored: 0 }
+  }
+  if (!parsed || parsed._format !== 'trajectory_backup' || !parsed.data) {
+    return { ok: false, error: 'Not a Trajectory backup file', keysRestored: 0 }
+  }
+  const allowedSet = new Set(ALL_KEYS)
+  let count = 0
+  for (const [key, val] of Object.entries(parsed.data)) {
+    if (allowedSet.has(key) && typeof val === 'string') {
+      localStorage.setItem(key, val)
+      count++
+    }
+  }
+  return { ok: true, keysRestored: count }
+}
+
+// ── Selected base (altitude) ─────────────────────────────────────────────────
+
+const SELECTED_BASE_KEY = 'pfa_selected_base'
+
+/**
+ * Get the user's selected base ID for altitude tracking.
+ * @returns {number} Base ID (0 = none selected)
+ */
+export function getSelectedBase() {
+  try {
+    const val = localStorage.getItem(SELECTED_BASE_KEY)
+    const num = val ? parseInt(val, 10) : 0
+    return Number.isInteger(num) && num >= 0 && num <= 7 ? num : 0
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Save the user's selected base ID.
+ * @param {number} baseId - 0-7
+ */
+export function saveSelectedBase(baseId) {
+  try {
+    localStorage.setItem(SELECTED_BASE_KEY, String(baseId))
+  } catch { /* ignore */ }
 }
 
 /**

@@ -119,7 +119,14 @@ Users can test any subset of components. Rules:
 |--------|-------------|----------------------------------------------------------|
 | 1      | Complete    | Core tabs, scoring, codecs, recommendations, localStorage |
 | 2      | Complete    | S-code V3 (feedback block), all 18 AFPC scoring brackets, History tab |
-| 3      | In Progress | URL hydration, Web Share API, 2km walk, HAMR conversion, input validation, Projection engine, Report tab |
+| 3      | Complete    | URL hydration, Web Share API, 2km walk, HAMR conversion, input validation, Projection engine, Report tab |
+| 4      | Complete    | Projection engine + Project tab |
+| 5      | Complete    | History tab with trend chart |
+| 6      | Complete    | Report generation |
+| 7      | Complete    | PWA + accessibility + chart update banner |
+| 8      | Complete    | Strategy engine, stopwatch, HAMR metronome, exercise comparison |
+| 9      | Complete    | Curated training resource links, personalized training plans |
+| 10     | Complete    | Practice mode, training plan calendar tab, milestone overlays |
 
 ## Documentation
 

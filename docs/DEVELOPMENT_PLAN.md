@@ -21,7 +21,7 @@
 | Report tab | ✅ Complete | Print + clipboard output, watermark, projection toggle |
 | URL hydration | ✅ Complete | `?d=`, `?s=`, `?tab=` params with error toasts |
 | Web Share API | ✅ Complete | `navigator.share()` + copy fallback |
-| PWA / service worker | ❌ Not started | Offline support (Sprint 7) |
+| PWA / service worker | ✅ Complete | Offline support (Sprint 7) |
 | Test coverage | ✅ Complete | 270 unit tests across scoring, codec, projection engines |
 
 ---
@@ -700,9 +700,9 @@ For users who cannot complete even the 50% fractional test, an optional Phase 0 
 
 ---
 
-#### Task 10.3 - Trajectory Tab Milestone Overlays (Option B) [OPTIONAL]
+#### Task 10.3 - Trajectory Tab Milestone Overlays (Option B) [COMPLETE]
 
-**Tag: OPTIONAL** - Evaluate after Task 10.1 ships. Option B lives entirely inside the existing Trajectory tab. It adds zero new tabs and zero new navigation - but requires careful visual design to avoid cluttering the projection chart. Whether the payoff exceeds the clutter risk is a judgment call that should be made after seeing Option C in production. This task is documented here for future evaluation, not scheduled.
+**Tag: COMPLETE** - Implemented with a default-OFF toggle to preserve existing experience. Uses Recharts ReferenceLine for mock/fractional tests, ReferenceArea for taper period. Toggle persists in localStorage. 21 unit tests validate milestone date calculations.
 
 **Concept:**
 The Trajectory tab already shows a projection line with historical S-code data points. Option B overlays the periodized training plan milestones directly onto that same chart: PI Workout dates appear as markers on the timeline, fractional test dates as milestone flags, the mock test as a distinct callout, and the taper period as a shaded background region. The user sees their projection line running toward test day with the program calendar embedded in the same view.
@@ -727,18 +727,18 @@ The Trajectory tab already shows a projection line with historical S-code data p
 
 **Implementation approach (if approved):**
 
-- [ ] Add milestone data to the Trajectory tab's Recharts `ComposedChart` as additional data series
-- [ ] PI Workout dates: small diamond markers on the x-axis, color-coded by type
-- [ ] Fractional test dates: vertical reference lines (`<ReferenceLine>`) labeled "50% Test" / "75% Test"
-- [ ] Mock test: vertical reference line labeled "Mock Test" in red with distinct dash pattern
-- [ ] Taper period: `<ReferenceArea>` shaded region between -14 days and test day (light amber fill)
-- [ ] Scaled practice session data points: plotted on the composite score axis as translucent dots, labeled "Practice (scaled)"
-- [ ] On mobile: milestone labels abbreviated or shown on tap (tooltip) to prevent overlap
-- [ ] Legend: collapsible/expandable, defaults collapsed to preserve chart readability
-- [ ] Toggle: "Show training milestones" switch in the chart header - defaults OFF, user opts in
+- [x] Add milestone data to the Trajectory tab's Recharts `ComposedChart` as additional data series
+- [x] PI Workout dates: small diamond markers on the x-axis, color-coded by type
+- [x] Fractional test dates: vertical reference lines (`<ReferenceLine>`) labeled "50% Test" / "75% Test"
+- [x] Mock test: vertical reference line labeled "Mock Test" in red with distinct dash pattern
+- [x] Taper period: `<ReferenceArea>` shaded region between -14 days and test day (light amber fill)
+- [x] Scaled practice session data points: plotted on the composite score axis as translucent dots, labeled "Practice (scaled)"
+- [x] On mobile: milestone labels abbreviated or shown on tap (tooltip) to prevent overlap
+- [x] Legend: collapsible/expandable, defaults collapsed to preserve chart readability
+- [x] Toggle: "Show training milestones" switch in the chart header - defaults OFF, user opts in
   - Defaulting to OFF preserves the existing experience; the toggle gives visually stimulated users access without imposing on users who prefer the clean chart
-- [ ] When no practice sessions exist yet: milestones show as future markers only (no data points)
-- [ ] Unit tests: milestone date calculation (PI dates, fractional test dates, mock test date, taper bounds) given a target PFA date and today
+- [x] When no practice sessions exist yet: milestones show as future markers only (no data points)
+- [x] Unit tests: milestone date calculation (PI dates, fractional test dates, mock test date, taper bounds) given a target PFA date and today
 
 **Key design constraint:**
 The toggle default-OFF approach is the safest path. It respects existing users, lets curious users discover the overlay, and gives real-world feedback on whether it helps or hurts before deciding whether to make it default-ON.
@@ -867,6 +867,6 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 | 5 | 5.1 | ✅ Complete | History tab with trend chart |
 | 6 | 6.1 | ✅ Complete | Report generation |
 | 7 | 7.1, 7.2, 7.3 | ✅ Complete | PWA + accessibility + chart update banner |
-| 8 | 8.1, 8.2, 8.3, 8.4 | 🔄 In Progress | 8.1 complete (effort-weighted strategy engine); 8.2 complete (stopwatch); 8.3 complete (HAMR metronome); 8.4 pending (exercise comparison) |
-| 9 | 9.1, 9.2 | ✅ Complete | 9.1 complete (curated training resource links); 9.2 complete (personalized training plans) |
-| 10 | 10.1, 10.3 (opt), 10.2 | 10.1 Complete | Practice Mode (Option C) complete; 10.3 (Option B) optional eval; 10.2 (Option A) not started |
+| 8 | 8.1, 8.2, 8.3, 8.4 | ✅ Complete | Strategy engine, stopwatch, HAMR metronome, exercise comparison |
+| 9 | 9.1, 9.2 | ✅ Complete | Curated training resource links, personalized training plans |
+| 10 | 10.1, 10.2, 10.3 | ✅ Complete | Practice mode, training plan calendar, milestone overlays |

@@ -39,6 +39,7 @@ export default [
         TextEncoder: 'readonly',
         TextDecoder: 'readonly',
         AudioContext: 'readonly',
+        FileReader: 'readonly',
       },
     },
     plugins: {

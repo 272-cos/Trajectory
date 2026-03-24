@@ -61,8 +61,9 @@ export default function TabNavigation() {
       aria-label="Application tabs"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      style={{ touchAction: 'pan-y' }}
     >
-      <div className="container mx-auto px-4 max-w-4xl">
+      <div className="container mx-auto px-4 max-w-4xl lg:max-w-6xl">
         <div className="flex overflow-x-auto" role="tablist">
           {TABS.map(tab => (
             <button

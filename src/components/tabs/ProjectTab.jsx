@@ -13,6 +13,7 @@ import {
   YAxis,
   Tooltip,
   ReferenceLine,
+  ReferenceArea,
   CartesianGrid,
 } from 'recharts'
 import { useApp } from '../../context/AppContext.jsx'
@@ -23,8 +24,9 @@ import { isDiagnosticPeriod, calculateAge, getAgeBracket } from '../../utils/sco
 import { calculateWHtR, calculateComponentScore, calculateCompositeScore } from '../../utils/scoring/scoringEngine.js'
 import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS, COMPONENT_EXERCISES } from '../../utils/scoring/strategyEngine.js'
 import { getRecommendations, generateWeeklyPlan } from '../../utils/recommendations/recommendationEngine.js'
-import { getExercisePrefs, saveExercisePrefs, getPracticeSessions } from '../../utils/storage/localStorage.js'
+import { getExercisePrefs, saveExercisePrefs, getPracticeSessions, getShowMilestones, setShowMilestones } from '../../utils/storage/localStorage.js'
 import { scalePIWorkout } from '../../utils/training/practiceSession.js'
+import { generateCalendar, EVENT_TYPES } from '../../utils/training/trainingCalendar.js'
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -111,7 +113,7 @@ function exerciseName(exercise) {
 
 // ─── Projection Trajectory Chart ──────────────────────────────────────────────
 
-function ProjectionChart({ historicalScores, projectedComposite, targetDate, practicePredictions }) {
+function ProjectionChart({ historicalScores, projectedComposite, targetDate, practicePredictions, milestones, showMilestones, onToggleMilestones }) {
   if (historicalScores.length === 0) return null
 
   // Build chart data: historical points + projected endpoint
@@ -165,9 +167,53 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
     chartData.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate))
   }
 
+  // Build milestone reference data when overlay is active
+  const hasMilestones = showMilestones && milestones
+  const taperStartLabel = hasMilestones && milestones.taperStart
+    ? new Date(milestones.taperStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null
+  const targetLabel = targetDate
+    ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null
+
+  // Ensure milestone dates are represented in chart data so reference lines align
+  if (hasMilestones) {
+    const ensureDate = (dateISO) => {
+      if (!dateISO) return
+      if (chartData.find(d => d.rawDate === dateISO)) return
+      chartData.push({
+        date: new Date(dateISO).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        rawDate: dateISO,
+        actual: null,
+        projected: null,
+        practice: null,
+      })
+    }
+
+    // Add mock test and fractional test dates to chart data
+    if (milestones.mockTestDate) ensureDate(milestones.mockTestDate)
+    milestones.fractionalTests?.forEach(ft => ensureDate(ft.date))
+
+    // Re-sort
+    chartData.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate))
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Score Trajectory</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-700">Score Trajectory</h3>
+        {milestones && (
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <span className="text-xs text-gray-500">Milestones</span>
+            <input
+              type="checkbox"
+              checked={showMilestones}
+              onChange={(e) => onToggleMilestones(e.target.checked)}
+              className="w-3.5 h-3.5 accent-blue-600 rounded"
+            />
+          </label>
+        )}
+      </div>
       <div className="h-52 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
@@ -193,12 +239,48 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
               ]}
               contentStyle={{ fontSize: 12, borderRadius: 6 }}
             />
+
+            {/* Taper period shaded region */}
+            {hasMilestones && taperStartLabel && targetLabel && (
+              <ReferenceArea
+                x1={taperStartLabel}
+                x2={targetLabel}
+                fill="#fbbf24"
+                fillOpacity={0.12}
+                strokeOpacity={0}
+              />
+            )}
+
             <ReferenceLine
               y={75}
               stroke="#ef4444"
               strokeDasharray="4 3"
               label={{ value: '75 (Pass)', position: 'insideTopRight', fontSize: 10, fill: '#ef4444' }}
             />
+
+            {/* Mock test vertical reference line */}
+            {hasMilestones && milestones.mockTestDate && (
+              <ReferenceLine
+                x={new Date(milestones.mockTestDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                stroke="#f97316"
+                strokeDasharray="6 2"
+                strokeWidth={1.5}
+                label={{ value: 'Mock', position: 'insideTopLeft', fontSize: 9, fill: '#f97316' }}
+              />
+            )}
+
+            {/* Fractional test vertical reference lines */}
+            {hasMilestones && milestones.fractionalTests?.map(ft => (
+              <ReferenceLine
+                key={ft.date}
+                x={new Date(ft.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                stroke="#8b5cf6"
+                strokeDasharray="4 4"
+                strokeWidth={1}
+                label={{ value: ft.label, position: 'insideTopLeft', fontSize: 9, fill: '#8b5cf6' }}
+              />
+            ))}
+
             {/* Actual scores - solid line */}
             <Line
               type="monotone"
@@ -233,7 +315,7 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex gap-4 justify-center mt-2 text-xs text-gray-500">
+      <div className="flex gap-3 justify-center mt-2 text-xs text-gray-500 flex-wrap">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-4 h-0.5 bg-indigo-500" />
           Actual
@@ -249,8 +331,24 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
         {hasPracticeData && (
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-4 h-0.5 bg-gray-400" style={{ borderTop: '2px dotted #9ca3af', height: 0 }} />
-            Practice (scaled)
+            Practice
           </span>
+        )}
+        {hasMilestones && (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-4 h-0.5 bg-orange-500" style={{ borderTop: '2px dashed #f97316', height: 0 }} />
+              Mock
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-4 h-0.5 bg-purple-500" style={{ borderTop: '2px dashed #8b5cf6', height: 0 }} />
+              Test
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-2.5 bg-amber-300 rounded-sm opacity-40" />
+              Taper
+            </span>
+          </>
         )}
       </div>
     </div>
@@ -625,10 +723,16 @@ function WeeklyTrainingPlan({ plan }) {
 // ─── Main Tab ──────────────────────────────────────────────────────────────────
 
 export default function ProjectTab() {
-  const { scodes, demographics, targetPfaDate, updateTargetPfaDate, personalGoal, updatePersonalGoal } = useApp()
+  const { scodes, demographics, targetPfaDate, updateTargetPfaDate, personalGoal, updatePersonalGoal, setActiveTab } = useApp()
   const [targetDateInput, setTargetDateInput] = useState('')
   const [targetDateError, setTargetDateError] = useState('')
+  const [showMilestones, setShowMilestonesState] = useState(() => getShowMilestones())
   const [exercisePrefs, setExercisePrefs] = useState(() => getExercisePrefs())
+
+  const handleToggleMilestones = (checked) => {
+    setShowMilestonesState(checked)
+    setShowMilestones(checked)
+  }
 
   const handlePrefChange = (component, exercise) => {
     const updated = { ...exercisePrefs }
@@ -928,6 +1032,55 @@ export default function ProjectTab() {
     }
   }, [decodedScodes, currentPcts, targetPfaDate])
 
+  // Milestone data for chart overlay (Task 10.3)
+  const milestones = useMemo(() => {
+    if (!demographics || !targetPfaDate) return null
+
+    const _n = new Date()
+    const todayISO = `${_n.getFullYear()}-${String(_n.getMonth() + 1).padStart(2, '0')}-${String(_n.getDate()).padStart(2, '0')}`
+
+    // Build minimal current scores for calendar generation
+    const calScores = { composite: null, cardio: null, strength: null, core: null, bodyComp: null }
+    if (decodedScodes.length > 0) {
+      // Use currentPcts to approximate component scores (percentage scale)
+      if (currentPcts.cardio != null) calScores.cardio = currentPcts.cardio
+      if (currentPcts.strength != null) calScores.strength = currentPcts.strength
+      if (currentPcts.core != null) calScores.core = currentPcts.core
+      if (currentPcts.bodyComp != null) calScores.bodyComp = currentPcts.bodyComp
+      // Approximate composite
+      const vals = [currentPcts.cardio, currentPcts.strength, currentPcts.core, currentPcts.bodyComp].filter(v => v != null)
+      if (vals.length > 0) calScores.composite = vals.reduce((a, b) => a + b, 0) / vals.length
+    }
+
+    try {
+      const cal = generateCalendar(demographics, targetPfaDate, calScores, todayISO)
+      if (!cal) return null
+
+      // Extract fractional test dates from event map
+      const fractionalTests = []
+      const eventsByDate = cal.eventsByDate || {}
+      for (const [date, events] of Object.entries(eventsByDate)) {
+        for (const evt of events) {
+          if (evt.type === EVENT_TYPES.FRACTIONAL_TEST) {
+            fractionalTests.push({
+              date,
+              label: evt.fraction === 0.5 ? '50%' : '75%',
+              fraction: evt.fraction,
+            })
+          }
+        }
+      }
+
+      return {
+        mockTestDate: cal.mockTestDate,
+        taperStart: cal.taperStart,
+        fractionalTests,
+      }
+    } catch {
+      return null
+    }
+  }, [demographics, targetPfaDate, decodedScodes, currentPcts])
+
   // Days to target from today
   const _now = new Date()
   const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`
@@ -971,23 +1124,48 @@ export default function ProjectTab() {
 
   // ── Blocked states ────────────────────────────────────────────────────────────
 
-  if (!demographics) {
+  // Soft nudge instead of hard gate - show what the tab does, guide toward setup
+  if (!demographics || !scodes || scodes.length === 0) {
+    const needsProfile = !demographics
+    const needsScodes = !scodes || scodes.length === 0
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <h3 className="text-lg font-bold text-yellow-900 mb-2">Profile Required</h3>
-        <p className="text-yellow-800">Create your profile in the <strong>Profile tab</strong> first.</p>
-      </div>
-    )
-  }
-
-  // GR-05: blocked until 1+ S-codes
-  if (!scodes || scodes.length === 0) {
-    return (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-bold text-blue-900 mb-2">No Self-Checks Yet</h3>
-        <p className="text-blue-800">
-          Complete at least one self-check to enable readiness projection.
-        </p>
+      <div
+        role="tabpanel"
+        id="project-panel"
+        aria-labelledby="project-tab"
+        className="space-y-4"
+      >
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Readiness Projection</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            This tab projects your trajectory to your target PFA date using your self-check history.
+            It shows per-component gap bars, weekly improvement targets, and a composite projection chart.
+          </p>
+          <div className="space-y-2">
+            {needsProfile && (
+              <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <span className="text-blue-500 font-bold text-sm flex-shrink-0">1</span>
+                <p className="text-sm text-blue-800 flex-1">
+                  <button type="button" onClick={() => setActiveTab('profile')} className="underline font-medium text-blue-700 hover:text-blue-900">
+                    Set up your profile
+                  </button>
+                  {' '}- DOB and gender (10 seconds)
+                </p>
+              </div>
+            )}
+            {needsScodes && (
+              <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <span className="text-blue-500 font-bold text-sm flex-shrink-0">{needsProfile ? '2' : '1'}</span>
+                <p className="text-sm text-blue-800 flex-1">
+                  <button type="button" onClick={() => setActiveTab('selfcheck')} className="underline font-medium text-blue-700 hover:text-blue-900">
+                    Complete a self-check
+                  </button>
+                  {' '}- enter your exercise results
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     )
   }
@@ -997,6 +1175,8 @@ export default function ProjectTab() {
   return (
     <div className="space-y-4">
 
+      {/* ── Target + Goal row ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* ── Target PFA Date ────────────────────────────────────────────────── */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -1058,6 +1238,7 @@ export default function ProjectTab() {
           }
         </p>
       </div>
+      </div>{/* close target + goal grid */}
 
       {/* ── Training exercise preferences ────────────────────────────────── */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -1205,6 +1386,9 @@ export default function ProjectTab() {
               projectedComposite={composite?.projected ?? null}
               targetDate={targetPfaDate}
               practicePredictions={practicePredictions}
+              milestones={milestones}
+              showMilestones={showMilestones}
+              onToggleMilestones={handleToggleMilestones}
             />
           )}
 
