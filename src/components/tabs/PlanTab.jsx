@@ -39,29 +39,35 @@ const DOW_HEADERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 // Dot colors for event types shown on day cells
 const EVENT_DOT = {
-  [EVENT_TYPES.TEST_DAY]:        'bg-red-500',
-  [EVENT_TYPES.MOCK_TEST]:       'bg-orange-500',
-  [EVENT_TYPES.FRACTIONAL_TEST]: 'bg-purple-500',
-  [EVENT_TYPES.PI_WORKOUT]:      'bg-blue-500',
-  [EVENT_TYPES.TAPER]:           'bg-amber-400',
-  [EVENT_TYPES.TRAINING]:        'bg-green-500',
+  [EVENT_TYPES.TEST_DAY]:           'bg-red-500',
+  [EVENT_TYPES.MOCK_TEST]:          'bg-orange-500',
+  [EVENT_TYPES.FRACTIONAL_TEST]:    'bg-purple-500',
+  [EVENT_TYPES.PI_WORKOUT]:         'bg-blue-500',
+  [EVENT_TYPES.BASELINE_PI]:        'bg-teal-500',
+  [EVENT_TYPES.FOUNDATION_CHECKIN]: 'bg-cyan-500',
+  [EVENT_TYPES.TAPER]:              'bg-amber-400',
+  [EVENT_TYPES.TRAINING]:           'bg-green-500',
 }
 
 // Full-bleed bg tints for special day cells
 const CELL_TINT = {
-  [EVENT_TYPES.TEST_DAY]:  'bg-red-100',
-  [EVENT_TYPES.MOCK_TEST]: 'bg-orange-100',
-  [EVENT_TYPES.TAPER]:     'bg-amber-50',
+  [EVENT_TYPES.TEST_DAY]:           'bg-red-100',
+  [EVENT_TYPES.MOCK_TEST]:          'bg-orange-100',
+  [EVENT_TYPES.BASELINE_PI]:        'bg-teal-50',
+  [EVENT_TYPES.FOUNDATION_CHECKIN]: 'bg-cyan-50',
+  [EVENT_TYPES.TAPER]:              'bg-amber-50',
 }
 
 // Detail-panel colors keyed by type
 const DETAIL_COLORS = {
-  [EVENT_TYPES.TEST_DAY]:        { border: 'border-red-400',    bg: 'bg-red-50',     text: 'text-red-800',    icon: '🎯' },
-  [EVENT_TYPES.MOCK_TEST]:       { border: 'border-orange-400', bg: 'bg-orange-50',  text: 'text-orange-800', icon: '📋' },
-  [EVENT_TYPES.FRACTIONAL_TEST]: { border: 'border-purple-400', bg: 'bg-purple-50',  text: 'text-purple-800', icon: '📊' },
-  [EVENT_TYPES.PI_WORKOUT]:      { border: 'border-blue-400',   bg: 'bg-blue-50',    text: 'text-blue-800',   icon: '📈' },
-  [EVENT_TYPES.TAPER]:           { border: 'border-amber-400',  bg: 'bg-amber-50',   text: 'text-amber-800',  icon: '🏖' },
-  [EVENT_TYPES.TRAINING]:        { border: 'border-green-400',  bg: 'bg-green-50',   text: 'text-green-800',  icon: '💪' },
+  [EVENT_TYPES.TEST_DAY]:           { border: 'border-red-400',    bg: 'bg-red-50',     text: 'text-red-800',    icon: '🎯' },
+  [EVENT_TYPES.MOCK_TEST]:          { border: 'border-orange-400', bg: 'bg-orange-50',  text: 'text-orange-800', icon: '📋' },
+  [EVENT_TYPES.FRACTIONAL_TEST]:    { border: 'border-purple-400', bg: 'bg-purple-50',  text: 'text-purple-800', icon: '📊' },
+  [EVENT_TYPES.PI_WORKOUT]:         { border: 'border-blue-400',   bg: 'bg-blue-50',    text: 'text-blue-800',   icon: '📈' },
+  [EVENT_TYPES.BASELINE_PI]:        { border: 'border-teal-400',   bg: 'bg-teal-50',    text: 'text-teal-800',   icon: '📍' },
+  [EVENT_TYPES.FOUNDATION_CHECKIN]: { border: 'border-cyan-400',   bg: 'bg-cyan-50',    text: 'text-cyan-800',   icon: '🔁' },
+  [EVENT_TYPES.TAPER]:              { border: 'border-amber-400',  bg: 'bg-amber-50',   text: 'text-amber-800',  icon: '🏖' },
+  [EVENT_TYPES.TRAINING]:           { border: 'border-green-400',  bg: 'bg-green-50',   text: 'text-green-800',  icon: '💪' },
 }
 
 const PHASE_BANNER_COLORS = {
@@ -193,6 +199,8 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
   const canComplete = events.some(e =>
     e.type === EVENT_TYPES.TRAINING ||
     e.type === EVENT_TYPES.PI_WORKOUT ||
+    e.type === EVENT_TYPES.BASELINE_PI ||
+    e.type === EVENT_TYPES.FOUNDATION_CHECKIN ||
     e.type === EVENT_TYPES.FRACTIONAL_TEST ||
     e.type === EVENT_TYPES.MOCK_TEST,
   )
@@ -262,6 +270,20 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
                   )}
                   {event.notes && (
                     <p className="text-xs text-gray-600 italic">{event.notes}</p>
+                  )}
+                  {(event.type === EVENT_TYPES.BASELINE_PI || event.type === EVENT_TYPES.FOUNDATION_CHECKIN) && (
+                    <div className={`border rounded-lg p-2 text-xs font-medium ${event.type === EVENT_TYPES.BASELINE_PI ? 'bg-teal-50 border-teal-200 text-teal-800' : 'bg-cyan-50 border-cyan-200 text-cyan-800'}`}>
+                      {event.type === EVENT_TYPES.BASELINE_PI
+                        ? 'Record each exercise in '
+                        : 'Record and compare in '}
+                      <button onClick={() => onNavigate('selfcheck')} className="font-bold underline hover:opacity-70 transition-opacity">
+                        Self-Check tab
+                      </button>{' '}
+                      under <strong>Practice Check - Quick Benchmark</strong>. Results appear on your{' '}
+                      <button onClick={() => onNavigate('project')} className="font-bold underline hover:opacity-70 transition-opacity">
+                        Trajectory tab
+                      </button>{event.type === EVENT_TYPES.FOUNDATION_CHECKIN ? ' - look for the delta vs Week 1' : ''}.
+                    </div>
                   )}
                   {event.type === EVENT_TYPES.PI_WORKOUT && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700">
@@ -848,7 +870,9 @@ export default function PlanTab() {
         <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-x-3 gap-y-1">
           {[
             { dot: 'bg-green-500',  label: 'Training' },
-            { dot: 'bg-blue-500',   label: 'Quick Benchmark' },
+            { dot: 'bg-teal-500',   label: 'Baseline' },
+            { dot: 'bg-cyan-500',   label: 'Check-in' },
+            { dot: 'bg-blue-500',   label: 'Benchmark' },
             { dot: 'bg-purple-500', label: 'Partial Test' },
             { dot: 'bg-orange-500', label: 'Mock' },
             { dot: 'bg-amber-400',  label: 'Taper' },

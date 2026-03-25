@@ -67,13 +67,15 @@ export function detectPhase(weeksOut, { forcePhase0 = false } = {}) {
 // ── Event types ───────────────────────────────────────────────────────────────
 
 export const EVENT_TYPES = {
-  TRAINING:        'training',
-  REST:            'rest',
-  PI_WORKOUT:      'pi_workout',
-  FRACTIONAL_TEST: 'fractional_test',
-  MOCK_TEST:       'mock_test',
-  TAPER:           'taper',
-  TEST_DAY:        'test_day',
+  TRAINING:           'training',
+  REST:               'rest',
+  PI_WORKOUT:         'pi_workout',
+  BASELINE_PI:        'baseline_pi',        // Week 1: establish Day 1 numbers
+  FOUNDATION_CHECKIN: 'foundation_checkin', // Week 4: repeat Week 1, measure delta
+  FRACTIONAL_TEST:    'fractional_test',
+  MOCK_TEST:          'mock_test',
+  TAPER:              'taper',
+  TEST_DAY:           'test_day',
 }
 
 // ── PI Workout prescriptions ──────────────────────────────────────────────────
@@ -354,12 +356,23 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 
     const phaseForWeek = detectPhase(weeksToTarget, { forcePhase0: isPhase0 })
 
-    // PI workout every other week (alternating by weekIndex parity)
-    const isPIWeek = (weekIndex % 2 === 0) && weeksToTarget > 2
+    // Week 1 baseline PI: spec requires 30-sec max push-ups, 30-sec max sit-ups, 400m run
+    // Only when plan is >= 10 weeks and user is not in Phase 0 (Phase 0 uses modified exercises)
+    const isBaselineWeek = weekIndex === 0 && totalWeeks >= 10 && !isPhase0
 
-    // Fractional test: once in Phase 2 (50%) and once in Phase 3 (75%)
-    const is50TestWeek = phaseForWeek === PHASES.PHASE_2 && weeksToTarget === 10
-    const is75TestWeek = phaseForWeek === PHASES.PHASE_3 && weeksToTarget === 6
+    // Week 4 foundation check-in: repeat Week 1 exactly, measure delta
+    // Only when plan started in Phase 1 (13+ weeks) so Week 4 is still in foundation territory
+    const isFoundationCheckin = weekIndex === 3 && totalWeeks >= 10 && startingPhase === PHASES.PHASE_1
+
+    // PI workout every other week (alternating by weekIndex parity)
+    // Suppress on baseline/check-in weeks since those replace the PI slot
+    const isPIWeek = (weekIndex % 2 === 0) && weeksToTarget > 2 && !isBaselineWeek
+
+    // Fractional tests placed at spec-defined weeks (end of Phase 2 and Phase 3):
+    //   50% test: Week 8 of 16 = 8 weeks before test (end of Building phase)
+    //   75% test: Week 12 of 16 = 4 weeks before test (end of Development phase)
+    const is50TestWeek = weeksToTarget === 8 && totalWeeks >= 10
+    const is75TestWeek = weeksToTarget === 4 && totalWeeks >= 6
 
     const trainingDays = getTrainingDaysForWeek(weekStart, preferredDays)
 
@@ -369,6 +382,58 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       // Skip taper days and days at/after test day (handled above)
       if (daysBetween(dayISO, taperStart) <= 0) return
       if (daysBetween(dayISO, targetDateISO) <= 0) return
+
+      // ── Week 1 baseline: Day 1 = strength + core, Day 2 = cardio ────────────
+      if (isBaselineWeek && idx === 0) {
+        addEvent(dayISO, {
+          type:        EVENT_TYPES.BASELINE_PI,
+          date:        dayISO,
+          label:       'Week 1 Baseline - Strength & Core',
+          description: '30-sec max push-ups, then rest 2 min, then 30-sec max sit-ups.',
+          notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Training begins immediately after.',
+          target:      '30-sec max push-ups + 30-sec max sit-ups',
+          priority:    'high',
+        })
+        return
+      }
+      if (isBaselineWeek && idx === 1) {
+        addEvent(dayISO, {
+          type:        EVENT_TYPES.BASELINE_PI,
+          date:        dayISO,
+          label:       'Week 1 Baseline - Cardio',
+          description: '400m run at comfortable effort. Record your time.',
+          notes:       'Predicts your 2-mile pace. Record in Practice Check > PI Workout > 400m Run.',
+          target:      '400m run - record time',
+          priority:    'high',
+        })
+        return
+      }
+
+      // ── Week 4 check-in: repeat Week 1 exactly, show delta ──────────────────
+      if (isFoundationCheckin && idx === 0) {
+        addEvent(dayISO, {
+          type:        EVENT_TYPES.FOUNDATION_CHECKIN,
+          date:        dayISO,
+          label:       'Phase 1 Check-in - Strength & Core',
+          description: 'Repeat exactly: 30-sec max push-ups, rest 2 min, 30-sec max sit-ups.',
+          notes:       'Compare to Week 1 numbers. This is your first visible evidence of progress. Record in Practice Check > PI Workout.',
+          target:      'Beat your Week 1 push-up and sit-up counts',
+          priority:    'medium',
+        })
+        return
+      }
+      if (isFoundationCheckin && idx === 1) {
+        addEvent(dayISO, {
+          type:        EVENT_TYPES.FOUNDATION_CHECKIN,
+          date:        dayISO,
+          label:       'Phase 1 Check-in - Cardio',
+          description: '400m run. Compare to Week 1 time.',
+          notes:       'A faster time is your first visible cardio evidence. Record in Practice Check > PI Workout > 400m Run.',
+          target:      'Beat your Week 1 400m time',
+          priority:    'medium',
+        })
+        return
+      }
 
       // First training day of the PI week -> PI workout
       if (isPIWeek && idx === 0) {
@@ -452,8 +517,10 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       weekEnd,
       daysToTarget,
       weeksToTarget,
-      phase:          phaseForWeek,
+      phase:            phaseForWeek,
       isPIWeek,
+      isBaselineWeek,
+      isFoundationCheckin,
       is50TestWeek,
       is75TestWeek,
     })
