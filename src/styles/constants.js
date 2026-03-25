@@ -59,3 +59,75 @@ export const ALERT_INFO = `${ALERT_BASE} bg-blue-50 border border-blue-200 text-
 
 // -- Layout -----------------------------------------------------------------
 export const TAB_CONTENT_SPACING = 'space-y-6'
+
+// -- Timing Constants -------------------------------------------------------
+export const TOAST_AUTO_DISMISS_MS = 5000
+export const SUCCESS_MESSAGE_CLEAR_MS = 2000
+export const NOTIFICATION_DURATION_MS = 3000
+export const UNDO_DELETE_TIMEOUT_MS = 60000
+export const DRAFT_DEBOUNCE_MS = 500
+
+// -- Validation Ranges ------------------------------------------------------
+export const USAF_MIN_AGE = 17
+export const USAF_MAX_AGE = 65
+export const MIN_HEIGHT_INCHES = 48
+export const MAX_HEIGHT_INCHES = 84
+export const MIN_WAIST_INCHES = 20
+export const MAX_WAIST_INCHES = 55
+export const MAX_RUN_TIME_SECONDS = 7200
+export const MAX_PLANK_TIME_SECONDS = 600
+export const MAX_REP_COUNT = 300
+export const HIGH_REP_WARNING_THRESHOLD = 200
+
+// -- Chart Colors (hex required for SVG/Recharts) ---------------------------
+export const CHART_COLORS = {
+  cardio: '#3b82f6',
+  strength: '#10b981',
+  core: '#f59e0b',
+  bodyComp: '#8b5cf6',
+  composite: '#6366f1',
+  projected: '#f59e0b',
+  passing: '#ef4444',
+  practice: '#9ca3af',
+  mockTest: '#f97316',
+  fractionalTest: '#8b5cf6',
+  milestone: '#fbbf24',
+  gridLine: '#f0f0f0',
+  gridLineDark: '#334155',
+  tickText: '#6b7280',
+  tickTextDark: '#94a3b8',
+  passDot: '#16a34a',
+  failDot: '#dc2626',
+}
+
+// -- Component Semantic Colors (border accents) -----------------------------
+export const COMP_BORDER_COLORS = {
+  cardio: 'border-blue-400',
+  strength: 'border-green-400',
+  core: 'border-amber-400',
+  bodyComp: 'border-purple-400',
+}
+
+// -- Shared Label Maps (single source of truth) -----------------------------
+// Keys match EXERCISES enum values from utils/scoring/constants.js
+export const EXERCISE_LABEL_MAP = {
+  '2mile_run': '2-Mile Run',
+  hamr: 'HAMR Shuttle',
+  '2km_walk': '2km Walk',
+  pushups: 'Push-ups',
+  hrpu: 'Hand-Release Push-ups',
+  situps: 'Sit-ups',
+  clrc: 'Reverse Crunches',
+  plank: 'Forearm Plank',
+  whtr: 'Waist-to-Height Ratio',
+}
+
+// Keys match COMPONENTS enum values from utils/scoring/constants.js
+export const COMPONENT_LABEL_MAP = {
+  cardio: 'Cardio',
+  strength: 'Strength',
+  core: 'Core',
+  bodyComp: 'Body Comp (WHtR)',
+}
+
+export const COMPONENT_ORDER = ['cardio', 'strength', 'core', 'bodyComp']
