@@ -157,9 +157,7 @@ export default function Stopwatch() {
   const currentLapMs = displayMs - lapBaseRef.current
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-5">
-      <h2 className="text-lg font-bold text-gray-900 mb-4">Stopwatch</h2>
-
+    <div className="mt-4">
       {/* Main timer display */}
       <div className="text-center mb-6">
         <div

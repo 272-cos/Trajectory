@@ -320,9 +320,8 @@ export default function HamrMetronome() {
   const showScorePrompt = (isPaused || isDone) && !autoScore && totalShuttles > 0
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-5">
-      <h2 className="text-lg font-bold text-gray-900 mb-1">HAMR Practice Metronome</h2>
-      <p className="text-sm text-gray-500 mb-4">
+    <div className="mt-4">
+      <p className="text-sm text-gray-500 mb-4 -mt-2">
         Leger 20m shuttle run - audio beeps guide your pace
       </p>
 

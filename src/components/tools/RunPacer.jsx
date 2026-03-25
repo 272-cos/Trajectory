@@ -219,10 +219,7 @@ export default function RunPacer() {
   const progressPct = targetTotal ? Math.min(Math.round((elapsed / targetTotal) * 100), 100) : 0
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-      <h2 className="text-lg font-bold text-gray-900 mb-1">Run Pacer</h2>
-      <p className="text-sm text-gray-500 mb-4">Audio-guided lap pacing for your 2-mile run target time</p>
-
+    <div className="mt-4">
       {/* Target time input */}
       <div className="space-y-4">
         <div>

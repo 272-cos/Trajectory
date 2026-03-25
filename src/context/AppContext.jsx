@@ -208,7 +208,7 @@ export function AppProvider({ children }) {
 
     const urlTab = params.get('tab')
     if (urlTab) {
-      const tabMap = { profile: 'profile', check: 'selfcheck', project: 'project', plan: 'plan', history: 'history', report: 'report', tools: 'tools' }
+      const tabMap = { profile: 'profile', check: 'selfcheck', project: 'project', plan: 'project', history: 'history', report: 'history', tools: 'tools' }
       if (tabMap[urlTab]) setActiveTab(tabMap[urlTab])
     }
 

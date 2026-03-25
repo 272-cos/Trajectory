@@ -1,5 +1,6 @@
 /**
  * Tab Navigation Component with swipe gesture support and ARIA keyboard pattern
+ * Consolidated from 7 tabs to 5 (Plan merged into Trajectory, Report into History)
  */
 
 import { useRef, useCallback } from 'react'
@@ -9,9 +10,7 @@ const TABS = [
   { id: 'profile', label: 'Profile' },
   { id: 'selfcheck', label: 'Self-Check' },
   { id: 'project', label: 'Trajectory' },
-  { id: 'plan', label: 'Plan' },
   { id: 'history', label: 'History' },
-  { id: 'report', label: 'Report' },
   { id: 'tools', label: 'Tools' },
 ]
 
@@ -78,7 +77,6 @@ export default function TabNavigation() {
     touchStartX.current = null
     touchStartY.current = null
 
-    // Only swipe if horizontal movement is dominant and > 50px
     if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
       navigateTab(deltaX < 0 ? 1 : -1)
     }
@@ -93,34 +91,30 @@ export default function TabNavigation() {
       style={{ touchAction: 'pan-y' }}
     >
       <div className="container mx-auto px-4 max-w-4xl lg:max-w-6xl">
-        <div className="relative">
-          <div className="flex overflow-x-auto" role="tablist" onKeyDown={handleKeyDown}>
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                ref={el => { tabRefs.current[tab.id] = el }}
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                aria-controls={`${tab.id}-panel`}
-                id={`${tab.id}-tab`}
-                tabIndex={activeTab === tab.id ? 0 : -1}
-                onClick={() => handleTabClick(tab.id)}
-                className={`
-                  px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors min-h-[44px]
-                  focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500
-                  ${
-                    activeTab === tab.id
-                      ? 'text-blue-700 border-b-2 border-blue-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:border-b-2 hover:border-gray-300'
-                  }
-                `}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          {/* Scroll overflow hint */}
-          <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent pointer-events-none" aria-hidden="true" />
+        <div className="flex" role="tablist" onKeyDown={handleKeyDown}>
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              ref={el => { tabRefs.current[tab.id] = el }}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`${tab.id}-panel`}
+              id={`${tab.id}-tab`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              onClick={() => handleTabClick(tab.id)}
+              className={`
+                flex-1 px-3 py-3 text-sm font-medium whitespace-nowrap transition-colors min-h-[44px] text-center
+                focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500
+                ${
+                  activeTab === tab.id
+                    ? 'text-blue-700 border-b-2 border-blue-700'
+                    : 'text-gray-500 hover:text-gray-900 hover:border-b-2 hover:border-gray-300'
+                }
+              `}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
     </nav>

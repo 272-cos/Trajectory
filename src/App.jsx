@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { AppProvider, useApp } from './context/AppContext.jsx'
 import Header from './components/layout/Header.jsx'
 import TabNavigation from './components/layout/TabNavigation.jsx'
@@ -39,10 +39,68 @@ function TabSkeleton() {
   )
 }
 
+/** Sub-view toggle pill used within Trajectory and History tabs */
+function SubViewToggle({ options, active, onChange }) {
+  return (
+    <div className="flex bg-gray-100 rounded-lg p-1 mb-5" role="group" aria-label="View selector">
+      {options.map(opt => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => onChange(opt.id)}
+          aria-pressed={active === opt.id}
+          className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all min-h-[36px] ${
+            active === opt.id
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Trajectory tab with Projection/Calendar sub-views */
+function TrajectoryContainer() {
+  const [subView, setSubView] = useState('projection')
+  return (
+    <>
+      <SubViewToggle
+        options={[
+          { id: 'projection', label: 'Projection' },
+          { id: 'calendar', label: 'Training Calendar' },
+        ]}
+        active={subView}
+        onChange={setSubView}
+      />
+      {subView === 'projection' ? <ProjectTab /> : <PlanTab />}
+    </>
+  )
+}
+
+/** History tab with Timeline/Report sub-views */
+function HistoryContainer() {
+  const [subView, setSubView] = useState('timeline')
+  return (
+    <>
+      <SubViewToggle
+        options={[
+          { id: 'timeline', label: 'Timeline' },
+          { id: 'report', label: 'Supervisor Report' },
+        ]}
+        active={subView}
+        onChange={setSubView}
+      />
+      {subView === 'timeline' ? <HistoryTab /> : <ReportTab />}
+    </>
+  )
+}
+
 function AppContent() {
   const { activeTab, showOnboarding, darkMode } = useApp()
 
-  // Render active tab content
   const renderTabContent = () => {
     switch (activeTab) {
       case 'profile':
@@ -50,13 +108,9 @@ function AppContent() {
       case 'selfcheck':
         return <SelfCheckTab />
       case 'project':
-        return <ProjectTab />
-      case 'plan':
-        return <PlanTab />
+        return <TrajectoryContainer />
       case 'history':
-        return <HistoryTab />
-      case 'report':
-        return <ReportTab />
+        return <HistoryContainer />
       case 'tools':
         return <ToolsTab />
       default:
