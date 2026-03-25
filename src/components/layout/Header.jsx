@@ -22,7 +22,7 @@ export default function Header() {
       <div className="container mx-auto max-w-4xl lg:max-w-6xl px-4 py-5 flex items-center justify-between">
         <div className="flex flex-col items-start">
           <img
-            src={`${BASE}icons/logo-transparent.webp`}
+            src={`${BASE}logo-transparent.png`}
             alt="Trajectory"
             width="192"
             height="128"

@@ -151,8 +151,8 @@ export default function OnboardingModal() {
 
         {/* Disclaimer - only on welcome slide */}
         {isFirst && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-            <p className="text-xs text-yellow-900 text-center">
+          <div className="bg-amber-50 border border-amber-500 rounded-lg p-3 mb-4">
+            <p className="text-xs text-amber-900 text-center">
               <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
             </p>
           </div>
