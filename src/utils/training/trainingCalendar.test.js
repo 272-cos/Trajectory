@@ -57,16 +57,23 @@ describe('detectPhase', () => {
     expect(detectPhase(0)).toBe(PHASES.PHASE_4)
   })
 
-  it('returns Phase 0 when forcePhase0 is true', () => {
+  it('returns Phase 0 when forcePhase0 is true and 13+ weeks out', () => {
     expect(detectPhase(20, { forcePhase0: true })).toBe(PHASES.PHASE_0)
+    expect(detectPhase(13, { forcePhase0: true })).toBe(PHASES.PHASE_0)
+  })
+
+  it('uses normal phase progression when forcePhase0 is true but inside 13 weeks', () => {
+    expect(detectPhase(12, { forcePhase0: true })).toBe(PHASES.PHASE_2)
+    expect(detectPhase(8, { forcePhase0: true })).toBe(PHASES.PHASE_3)
+    expect(detectPhase(4, { forcePhase0: true })).toBe(PHASES.PHASE_4)
   })
 })
 
 // ── shouldUsePhase0 ────────────────────────────────────────────────────────────
 
 describe('shouldUsePhase0', () => {
-  it('returns true when composite is null (no data)', () => {
-    expect(shouldUsePhase0(null, null)).toBe(true)
+  it('returns false when composite is null (no data - use normal phase progression)', () => {
+    expect(shouldUsePhase0(null, null)).toBe(false)
   })
 
   it('returns true when composite < 50', () => {

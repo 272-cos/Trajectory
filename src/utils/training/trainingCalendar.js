@@ -57,7 +57,7 @@ export const PHASE_DESCRIPTIONS = {
  * @returns {number} PHASES constant
  */
 export function detectPhase(weeksOut, { forcePhase0 = false } = {}) {
-  if (forcePhase0) return PHASES.PHASE_0
+  if (forcePhase0 && weeksOut >= 13) return PHASES.PHASE_0 // Phase 0 replaces Phase 1 only
   if (weeksOut >= 13) return PHASES.PHASE_1
   if (weeksOut >= 9) return PHASES.PHASE_2
   if (weeksOut >= 5) return PHASES.PHASE_3
@@ -208,7 +208,7 @@ function isSameDay(a, b) {
  * @returns {boolean}
  */
 export function shouldUsePhase0(compositeScore, piPushups) {
-  if (compositeScore == null) return true  // No S-code data
+  if (compositeScore == null) return false // No data - default to normal phase progression
   if (compositeScore < 50) return true     // Very low composite
   if (piPushups != null && piPushups < 5) return true // Cannot complete Phase 1 baseline
   return false

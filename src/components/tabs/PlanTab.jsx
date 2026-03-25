@@ -676,7 +676,7 @@ export default function PlanTab() {
 
         {/* Phase context */}
         <div className={`mt-3 rounded-lg border p-2.5 text-xs ${phaseBannerColor}`}>
-          {calendar.isPhase0 && <span className="font-semibold">Pre-Progression: </span>}
+          {calendar.startingPhase === PHASES.PHASE_0 && <span className="font-semibold">Pre-Progression: </span>}
           {PHASE_DESCRIPTIONS[calendar.startingPhase]}
         </div>
 
