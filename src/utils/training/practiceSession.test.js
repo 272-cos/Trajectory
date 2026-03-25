@@ -240,8 +240,6 @@ describe('isInTaperPeriod', () => {
 // ── hasMockTestBeenRecorded ───────────────────────────────────────────────────
 
 describe('hasMockTestBeenRecorded', () => {
-  const makeDecode = (dateISO) => () => ({ date: new Date(dateISO) })
-
   it('returns true when an S-code date is in the mock test window', () => {
     const scodes = ['S3-abc']
     const decodeFn = () => ({ date: new Date('2026-06-17') }) // 14 days before 2026-07-01
