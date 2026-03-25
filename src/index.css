@@ -27,25 +27,87 @@ body {
   color: #f1f5f9;
 }
 
-/* Surface overrides */
+/* ── Gray surfaces ── */
 .dark .bg-white        { background-color: #1e293b !important; }
 .dark .bg-gray-50      { background-color: #0f172a !important; }
 .dark .bg-gray-100     { background-color: #1e293b !important; }
+.dark .bg-gray-200     { background-color: #273549 !important; }
 
-/* Text overrides */
+/* ── Color-tinted surfaces (light -> dark equivalents) ── */
+.dark .bg-green-50     { background-color: #0a1f14 !important; }
+.dark .bg-green-100    { background-color: #0f2a1a !important; }
+.dark .bg-blue-50      { background-color: #0a1628 !important; }
+.dark .bg-blue-100     { background-color: #0f1e38 !important; }
+.dark .bg-blue-200     { background-color: #132540 !important; }
+.dark .bg-red-50       { background-color: #1f0a0a !important; }
+.dark .bg-red-100      { background-color: #2a0f0f !important; }
+.dark .bg-amber-50     { background-color: #1f1505 !important; }
+.dark .bg-amber-100    { background-color: #2a1c07 !important; }
+.dark .bg-orange-50    { background-color: #1f0e05 !important; }
+.dark .bg-orange-100   { background-color: #2a1507 !important; }
+.dark .bg-purple-50    { background-color: #150a28 !important; }
+.dark .bg-purple-100   { background-color: #1c0f38 !important; }
+.dark .bg-yellow-50    { background-color: #1f1a05 !important; }
+.dark .bg-yellow-100   { background-color: #2a2207 !important; }
+
+/* ── Hover surface overrides ── */
+.dark .hover\:bg-gray-50:hover   { background-color: #1e293b !important; }
+.dark .hover\:bg-gray-100:hover  { background-color: #273549 !important; }
+
+/* ── Gray text ── */
 .dark .text-gray-900   { color: #f1f5f9 !important; }
 .dark .text-gray-800   { color: #e2e8f0 !important; }
 .dark .text-gray-700   { color: #cbd5e1 !important; }
 .dark .text-gray-600   { color: #94a3b8 !important; }
-.dark .text-gray-500   { color: #64748b !important; }
-.dark .text-gray-400   { color: #475569 !important; }
+.dark .text-gray-500   { color: #94a3b8 !important; }
+.dark .text-gray-400   { color: #64748b !important; }
 
-/* Border overrides */
+/* ── Color text (dark text on light bg -> light text on dark bg) ── */
+.dark .text-green-800  { color: #86efac !important; }
+.dark .text-green-700  { color: #4ade80 !important; }
+.dark .text-blue-800   { color: #93c5fd !important; }
+.dark .text-blue-700   { color: #60a5fa !important; }
+.dark .text-red-800    { color: #fca5a5 !important; }
+.dark .text-red-700    { color: #f87171 !important; }
+.dark .text-amber-800  { color: #fcd34d !important; }
+.dark .text-amber-700  { color: #fbbf24 !important; }
+.dark .text-orange-800 { color: #fdba74 !important; }
+.dark .text-orange-700 { color: #fb923c !important; }
+.dark .text-purple-800 { color: #d8b4fe !important; }
+.dark .text-purple-700 { color: #c084fc !important; }
+.dark .text-yellow-800 { color: #fef08a !important; }
+.dark .text-yellow-700 { color: #fde047 !important; }
+
+/* ── Gray borders ── */
 .dark .border-gray-100 { border-color: #334155 !important; }
 .dark .border-gray-200 { border-color: #334155 !important; }
 .dark .border-gray-300 { border-color: #475569 !important; }
 
-/* Input / form overrides */
+/* ── Color borders ── */
+.dark .border-green-200  { border-color: #166534 !important; }
+.dark .border-green-300  { border-color: #15803d !important; }
+.dark .border-green-400  { border-color: #16a34a !important; }
+.dark .border-blue-200   { border-color: #1e3a5f !important; }
+.dark .border-blue-300   { border-color: #1d4ed8 !important; }
+.dark .border-blue-400   { border-color: #2563eb !important; }
+.dark .border-red-200    { border-color: #7f1d1d !important; }
+.dark .border-red-300    { border-color: #991b1b !important; }
+.dark .border-red-400    { border-color: #b91c1c !important; }
+.dark .border-amber-200  { border-color: #78350f !important; }
+.dark .border-amber-300  { border-color: #92400e !important; }
+.dark .border-amber-400  { border-color: #b45309 !important; }
+.dark .border-orange-200 { border-color: #7c2d12 !important; }
+.dark .border-orange-300 { border-color: #9a3412 !important; }
+.dark .border-orange-400 { border-color: #c2410c !important; }
+.dark .border-purple-200 { border-color: #4c1d95 !important; }
+.dark .border-purple-300 { border-color: #5b21b6 !important; }
+.dark .border-purple-400 { border-color: #6d28d9 !important; }
+
+/* ── Dividers ── */
+.dark .divide-gray-100 > * + * { border-color: #1e293b !important; }
+.dark .divide-gray-200 > * + * { border-color: #273549 !important; }
+
+/* ── Input / form overrides ── */
 .dark input,
 .dark select,
 .dark textarea {
@@ -55,18 +117,18 @@ body {
 }
 .dark input::placeholder { color: #64748b !important; }
 
-/* Nav bar */
+/* ── Nav bar ── */
 .dark nav.bg-white { background-color: #1e293b !important; }
 .dark .border-b    { border-color: #334155 !important; }
 
-/* Shadow cards */
+/* ── Shadow cards ── */
 .dark .shadow-sm   { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.5) !important; }
 .dark .shadow-md   { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5) !important; }
 .dark .shadow-lg   { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.6) !important; }
 
-/* Specific card containers */
+/* ── Specific card containers ── */
 .dark .rounded-lg.border { background-color: #1e293b; }
 
-/* Code / monospace */
+/* ── Code / monospace ── */
 .dark code,
 .dark .font-mono   { background-color: #0f172a !important; color: #7dd3fc !important; }
