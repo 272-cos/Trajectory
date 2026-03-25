@@ -4,7 +4,7 @@
 
 import { useState, useMemo } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
-import { BADGES, TIER, evaluateMilestones } from '../../utils/achievements/achievements.js'
+import { BADGES, TIER, evaluateAchievements } from '../../utils/achievements/achievements.js'
 
 const TIER_ORDER = [TIER.GOLD, TIER.SILVER, TIER.BRONZE]
 
@@ -116,7 +116,7 @@ export default function AchievementBadges() {
 
   const earnedIds = useMemo(() => {
     if (!scodes || scodes.length === 0) return []
-    return evaluateMilestones(scodes, demographics)
+    return evaluateAchievements(scodes, demographics)
   }, [scodes, demographics])
 
   const earnedSet = useMemo(() => new Set(earnedIds), [earnedIds])
