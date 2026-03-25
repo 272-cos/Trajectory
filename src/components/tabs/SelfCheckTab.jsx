@@ -9,15 +9,14 @@ import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
-import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getPracticeSessions, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
+import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
 import { getTrainingResources } from '../../utils/training/resources.js'
 import { BASE_REGISTRY } from '../../utils/codec/bitpack.js'
 import ShareModal from '../shared/ShareModal.jsx'
 import {
-  PI_EXERCISES, PI_EXERCISE_LABELS, PI_IS_TIME, PI_TO_FULL_EXERCISE,
+  PI_EXERCISES, PI_EXERCISE_LABELS, PI_IS_TIME,
   scalePIWorkout, scaleFractionalTest,
   isMockTestWindow, isInTaperPeriod, hasMockTestBeenRecorded,
-  formatSecondsMMSS,
 } from '../../utils/training/practiceSession.js'
 
 const BASE_URL = import.meta.env.BASE_URL
@@ -1149,7 +1148,7 @@ export default function SelfCheckTab() {
  * Supports PI Workout (30-sec benchmarks) and Fractional Tests (50% / 75%).
  * TR-05: saves to pfa_practice_sessions, never to S-codes.
  */
-function PracticeCheckForm({ demographics, assessmentDate, onDateChange, today }) {
+function PracticeCheckForm({ assessmentDate, today }) {
   const [practiceType, setPracticeType] = useState('pi_workout')
   const [practiceDate, setPracticeDate] = useState(assessmentDate)
 

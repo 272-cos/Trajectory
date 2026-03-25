@@ -25,7 +25,6 @@ import { calculateWHtR, calculateComponentScore, calculateCompositeScore } from 
 import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS, COMPONENT_EXERCISES } from '../../utils/scoring/strategyEngine.js'
 import { getRecommendations, generateWeeklyPlan } from '../../utils/recommendations/recommendationEngine.js'
 import { getExercisePrefs, saveExercisePrefs, getPracticeSessions, getShowMilestones, setShowMilestones } from '../../utils/storage/localStorage.js'
-import { scalePIWorkout } from '../../utils/training/practiceSession.js'
 import { generateCalendar, EVENT_TYPES } from '../../utils/training/trainingCalendar.js'
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
