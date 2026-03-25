@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon.svg', 'icons/favicon-32.png', 'icons/apple-touch-icon.png', 'icons/logo-header.png'],
+      includeAssets: ['icons/icon.svg', 'icons/favicon-32.png', 'icons/apple-touch-icon.png', 'icons/logo-transparent.webp'],
       manifest: {
         name: 'Trajectory - USAF PFA Tracker',
         short_name: 'Trajectory',
@@ -34,7 +34,7 @@ export default defineConfig({
       },
       workbox: {
         // Cache-first for all static assets - no API calls in this app
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,webp,ico,woff,woff2}', 'icons/icon-*.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'],
         // Ensure navigation fallback for SPA routing
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/Trajectory\/sw\.js$/, /^\/Trajectory\/workbox-/],

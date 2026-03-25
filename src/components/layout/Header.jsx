@@ -22,11 +22,14 @@ export default function Header() {
       <div className="container mx-auto max-w-4xl lg:max-w-6xl px-4 py-5 flex items-center justify-between">
         <div className="flex flex-col items-start">
           <img
-            src={`${BASE}icons/logo-transparent.png`}
+            src={`${BASE}icons/logo-transparent.webp`}
             alt="Trajectory"
-            className="h-20 md:h-24 block drop-shadow-[0_0_12px_rgba(32,144,255,0.7)]"
+            width="192"
+            height="128"
+            fetchpriority="high"
+            className="h-24 sm:h-28 md:h-32 w-auto block drop-shadow-[0_0_12px_rgba(32,144,255,0.7)]"
           />
-          <p className="text-xs font-bold text-amber-400 tracking-wide mt-2">
+          <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide mt-2">
             USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
           </p>
         </div>

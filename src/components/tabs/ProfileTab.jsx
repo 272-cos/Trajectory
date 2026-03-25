@@ -7,6 +7,7 @@ import { useApp } from '../../context/AppContext.jsx'
 import { encodeDCode, decodeDCode } from '../../utils/codec/dcode.js'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { GENDER, calculateAge } from '../../utils/scoring/constants.js'
+import AchievementBadges from '../shared/AchievementBadges.jsx'
 
 export default function ProfileTab() {
   const { dcode, demographics, updateDCode, targetPfaDate, updateTargetPfaDate, scodes } = useApp()
@@ -132,7 +133,10 @@ export default function ProfileTab() {
       const code = encodeDCode({ dob, gender })
       const decoded = decodeDCode(code)
       updateDCode(code, decoded)
-      setSuccess('Profile code generated successfully!')
+      setSuccess(targetDate
+        ? 'Profile saved!'
+        : 'Profile saved! Set your Target PFA Date when you know it to unlock trajectory projections.'
+      )
     } catch {
       setError('Could not generate profile code. Check your date of birth and try again.')
     }
@@ -216,10 +220,11 @@ export default function ProfileTab() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Gender
             </label>
-            <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden" role="group" aria-label="Gender">
               <button
                 type="button"
                 onClick={() => setGender(GENDER.MALE)}
+                aria-pressed={gender === GENDER.MALE}
                 className={`flex-1 py-2.5 px-4 text-sm font-medium transition-colors min-h-[44px] border-r border-gray-300 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${
                   gender === GENDER.MALE
                     ? 'bg-blue-600 text-white'
@@ -231,6 +236,7 @@ export default function ProfileTab() {
               <button
                 type="button"
                 onClick={() => setGender(GENDER.FEMALE)}
+                aria-pressed={gender === GENDER.FEMALE}
                 className={`flex-1 py-2.5 px-4 text-sm font-medium transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${
                   gender === GENDER.FEMALE
                     ? 'bg-blue-600 text-white'
@@ -275,7 +281,7 @@ export default function ProfileTab() {
           {/* Generate Button */}
           <button
             onClick={handleGenerateDCode}
-            disabled={!dob || !targetDate}
+            disabled={!dob}
             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-lg transition-colors"
           >
             Save Profile
@@ -283,14 +289,14 @@ export default function ProfileTab() {
 
           {/* Success Message */}
           {success && (
-            <div className={`p-3 border rounded-lg text-sm ${highlightTargetDate ? 'bg-amber-50 border-amber-400 text-amber-900' : 'bg-green-50 border-green-200 text-green-800'}`}>
+            <div role="status" className={`p-3 border rounded-lg text-sm ${highlightTargetDate ? 'bg-amber-50 border-amber-400 text-amber-900' : 'bg-green-50 border-green-200 text-green-800'}`}>
               {success}
             </div>
           )}
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+            <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
               {error}
             </div>
           )}
@@ -298,7 +304,7 @@ export default function ProfileTab() {
           {/* Display D-Code */}
           {dcode && (
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-1">Your Profile Code:</p>
+              <p className="text-sm font-medium text-gray-700 mb-1">Your Profile Code</p>
               <p className="text-xs text-gray-500 mb-2">A short code that stores your DOB and gender. Share it to sync your profile across devices.</p>
               <div className="flex items-center gap-2">
                 <p className="font-mono text-lg text-blue-900 flex-1">{dcode}</p>
@@ -324,7 +330,7 @@ export default function ProfileTab() {
                 type="text"
                 value={pasteCode}
                 onChange={(e) => setPasteCode(e.target.value)}
-                placeholder="D1-abc123..."
+                placeholder="Paste your profile code here"
                 aria-label="Paste your existing profile code here"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
               />
@@ -355,6 +361,9 @@ export default function ProfileTab() {
           {' '}(Change 1, 22 Jan 2026)
         </p>
       </div>
+
+      {/* Achievement Badges */}
+      <AchievementBadges />
     </div>
   )
 }

@@ -6,6 +6,8 @@ import OnboardingModal from './components/layout/OnboardingModal.jsx'
 import OfflineBanner from './components/layout/OfflineBanner.jsx'
 import InstallPrompt from './components/layout/InstallPrompt.jsx'
 import ChartUpdateBanner from './components/layout/ChartUpdateBanner.jsx'
+import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
+import PfaCountdown from './components/shared/PfaCountdown.jsx'
 
 const ProfileTab = lazy(() => import('./components/tabs/ProfileTab.jsx'))
 const SelfCheckTab = lazy(() => import('./components/tabs/SelfCheckTab.jsx'))
@@ -64,15 +66,22 @@ function AppContent() {
 
   return (
     <div className={`min-h-screen flex flex-col${darkMode ? ' dark bg-[#0a1628]' : ' bg-gray-100'}`}>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-medium">
+        Skip to main content
+      </a>
+      <h1 className="sr-only">Trajectory - USAF PFA Readiness Tracker</h1>
       <OfflineBanner />
       <Header />
       <ChartUpdateBanner />
       <TabNavigation />
+      <PfaCountdown />
 
-      <main className="flex-1 container mx-auto px-4 py-6 max-w-4xl lg:max-w-6xl">
-        <Suspense fallback={<TabSkeleton />}>
-          {renderTabContent()}
-        </Suspense>
+      <main id="main-content" className="flex-1 container mx-auto px-4 py-6 max-w-4xl lg:max-w-6xl">
+        <div role="tabpanel" id={`${activeTab}-panel`} aria-labelledby={`${activeTab}-tab`}>
+          <Suspense fallback={<TabSkeleton />}>
+            {renderTabContent()}
+          </Suspense>
+        </div>
       </main>
 
       {showOnboarding && <OnboardingModal />}
@@ -83,9 +92,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   )
 }
 

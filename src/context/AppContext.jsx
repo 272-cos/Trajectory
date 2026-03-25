@@ -24,6 +24,57 @@ import { decodeSCode } from '../utils/codec/scode.js'
 
 const AppContext = createContext(null)
 
+/** Focus-trapped modal for unsaved self-check warning */
+function UnsavedWarningModal({ onSave, onLeave, onCancel }) {
+  const dialogRef = useRef(null)
+
+  useEffect(() => {
+    dialogRef.current?.focus()
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onCancel])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      role="presentation"
+      onClick={onCancel}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="unsaved-warning-title"
+        tabIndex={-1}
+        className="bg-white rounded-xl shadow-2xl p-6 max-w-sm mx-4 w-full focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id="unsaved-warning-title" className="text-lg font-bold text-gray-900 mb-2">Results not saved</h3>
+        <p className="text-sm text-gray-600 mb-5">
+          Your self-check results have not been saved. Save your assessment before leaving.
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onSave}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
+          >
+            Save Assessment
+          </button>
+          <button
+            onClick={onLeave}
+            className="w-full bg-white hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-4 rounded-lg border border-gray-300 transition-colors"
+          >
+            Leave without saving
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AppProvider({ children }) {
   // D-code (demographics): DOB + gender
   const [dcode, setDCode] = useState(null)
@@ -323,76 +374,48 @@ export function AppProvider({ children }) {
       {children}
       {/* Self-check unsaved data warning modal */}
       {pendingTabNavigation !== null && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => {
+        <UnsavedWarningModal
+          onSave={() => {
+            const success = triggerSelfCheckGenerate()
+            if (success) {
+              setActiveTab(pendingTabNavigation)
+              setPendingTabNavigation(null)
+            } else {
+              setPendingTabNavigation(null)
+            }
+          }}
+          onLeave={() => {
             setActiveTab(pendingTabNavigation)
             setPendingTabNavigation(null)
             setSuppressSelfCheckWarning(true)
           }}
-        >
+          onCancel={() => setPendingTabNavigation(null)}
+        />
+      )}
+      {/* Toast container - always present for aria-live registration */}
+      <div role="status" aria-live="polite" className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+        {toasts.map(toast => (
           <div
-            className="bg-white rounded-xl shadow-2xl p-6 max-w-sm mx-4 w-full"
-            onClick={(e) => e.stopPropagation()}
+            key={toast.id}
+            className={`p-3 rounded-lg shadow-lg text-sm flex items-start gap-2 ${
+              toast.type === 'error'
+                ? 'bg-red-50 border border-red-200 text-red-800'
+                : toast.type === 'warning'
+                  ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+                  : 'bg-green-50 border border-green-200 text-green-800'
+            }`}
           >
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Results not saved</h3>
-            <p className="text-sm text-gray-600 mb-5">
-              Your self-check results have not been saved. Save your assessment before leaving.
-            </p>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => {
-                  const success = triggerSelfCheckGenerate()
-                  if (success) {
-                    setActiveTab(pendingTabNavigation)
-                    setPendingTabNavigation(null)
-                  } else {
-                    setPendingTabNavigation(null)
-                  }
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
-              >
-                Save Assessment
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab(pendingTabNavigation)
-                  setPendingTabNavigation(null)
-                  setSuppressSelfCheckWarning(true)
-                }}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-4 rounded-lg border border-gray-300 transition-colors"
-              >
-                Leave without saving
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Toast container - renders above all content */}
-      {toasts.length > 0 && (
-        <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
-          {toasts.map(toast => (
-            <div
-              key={toast.id}
-              className={`p-3 rounded-lg shadow-lg text-sm flex items-start gap-2 ${
-                toast.type === 'error'
-                  ? 'bg-red-50 border border-red-200 text-red-800'
-                  : toast.type === 'warning'
-                    ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
-                    : 'bg-green-50 border border-green-200 text-green-800'
-              }`}
+            <span className="flex-1">{toast.message}</span>
+            <button
+              onClick={() => dismissToast(toast.id)}
+              aria-label="Dismiss notification"
+              className="text-current opacity-60 hover:opacity-100 font-bold"
             >
-              <span className="flex-1">{toast.message}</span>
-              <button
-                onClick={() => dismissToast(toast.id)}
-                className="text-current opacity-60 hover:opacity-100 font-bold"
-              >
-                x
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+              x
+            </button>
+          </div>
+        ))}
+      </div>
     </AppContext.Provider>
   )
 }

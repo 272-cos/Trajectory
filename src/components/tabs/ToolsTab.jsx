@@ -8,6 +8,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react'
 import Stopwatch from '../tools/Stopwatch.jsx'
 import HamrMetronome from '../tools/HamrMetronome.jsx'
+import RunPacer from '../tools/RunPacer.jsx'
 import { useApp } from '../../context/AppContext.jsx'
 import { calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { generateTargetTable } from '../../utils/scoring/reverseScoring.js'
@@ -34,7 +35,7 @@ const COMP_COLORS = {
 function ScoreTargetLookup() {
   const { demographics } = useApp()
   const [target, setTarget] = useState(80)
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
 
   // Derive age bracket from profile (today's date)
   const ageBracket = useMemo(() => {
@@ -60,6 +61,7 @@ function ScoreTargetLookup() {
         onClick={() => setExpanded(e => !e)}
         className="flex items-center justify-between w-full text-left"
         aria-expanded={expanded}
+        aria-controls="score-target-content"
       >
         <div>
           <h3 className="text-sm font-semibold text-gray-700">What Score Do I Need?</h3>
@@ -71,7 +73,7 @@ function ScoreTargetLookup() {
       </button>
 
       {expanded && (
-        <div className="mt-4 space-y-4">
+        <div id="score-target-content" className="mt-4 space-y-4">
           {/* Target slider */}
           <div>
             <label className="flex items-center justify-between text-sm font-medium text-gray-700 mb-2">
@@ -218,6 +220,7 @@ function BackupRestore() {
         onClick={() => setExpanded(e => !e)}
         className="flex items-center justify-between w-full text-left"
         aria-expanded={expanded}
+        aria-controls="backup-restore-content"
       >
         <div>
           <h3 className="text-sm font-semibold text-gray-700">Backup & Restore</h3>
@@ -229,7 +232,7 @@ function BackupRestore() {
       </button>
 
       {expanded && (
-        <div className="mt-4 space-y-4">
+        <div id="backup-restore-content" className="mt-4 space-y-4">
           <p className="text-xs text-gray-500">
             Your profile, assessment codes, training progress, and preferences are exported
             as a single JSON file. No personal information beyond what you entered is included.
@@ -293,18 +296,28 @@ function BackupRestore() {
 
 export default function ToolsTab() {
   return (
-    <div
-      role="tabpanel"
-      id="tools-panel"
-      aria-labelledby="tools-tab"
-      className="space-y-4"
-    >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-8">
+      {/* Practice Timers */}
+      <section>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Practice Timers</h2>
+        <div className="space-y-4">
+          <Stopwatch />
+          <RunPacer />
+          <HamrMetronome />
+        </div>
+      </section>
+
+      {/* Score Planning */}
+      <section>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Score Planning</h2>
         <ScoreTargetLookup />
-        <HamrMetronome />
-        <Stopwatch />
+      </section>
+
+      {/* Data Management */}
+      <section>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Data Management</h2>
         <BackupRestore />
-      </div>
+      </section>
     </div>
   )
 }

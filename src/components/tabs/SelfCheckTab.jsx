@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { encodeSCode, decodeSCode } from '../../utils/codec/scode.js'
-import { EXERCISES, COMPONENTS } from '../../utils/scoring/constants.js'
+import { EXERCISES, COMPONENTS, GENDER, AGE_BRACKETS } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
@@ -44,7 +44,7 @@ export default function SelfCheckTab() {
   // IV-01: Assessment date - picker with max = today (local date, not UTC)
   const _now = new Date()
   const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`
-  const [assessmentDate, setAssessmentDate] = useState('')
+  const [assessmentDate, setAssessmentDate] = useState(today)
 
   // Cardio
   const [cardioExercise, setCardioExercise] = useState(EXERCISES.RUN_2MILE)
@@ -179,8 +179,8 @@ export default function SelfCheckTab() {
   const hasDemographics = demographics && demographics.dob && demographics.gender
 
   // Default bracket for exploration mode (25-29 Male - middle of the road)
-  const DEFAULT_GENDER = 'male'
-  const DEFAULT_AGE_BRACKET = '25_29'
+  const DEFAULT_GENDER = GENDER.MALE
+  const DEFAULT_AGE_BRACKET = AGE_BRACKETS.AGE_25_29
 
   // Calculate scores whenever inputs change
   useEffect(() => {
@@ -712,17 +712,27 @@ export default function SelfCheckTab() {
                 )}
               </div>
               {!scores.composite.pass && (
-                <ul className="text-xs text-red-700 mt-1 space-y-0.5">
-                  {!scores.composite.compositePass && (
-                    <li>Composite {scores.composite.composite.toFixed(1)} below 75.0 minimum</li>
-                  )}
-                  {scores.composite.failedComponents.map((fc, i) => (
-                    <li key={i}>{fc.type.charAt(0).toUpperCase() + fc.type.slice(1)} below {fc.minimum}% minimum ({fc.percentage.toFixed(1)}%)</li>
-                  ))}
-                  {scores.composite.walkComponents?.some(w => w.pass === false) && (
-                    <li>2km Walk not passed - overall PFA failure</li>
-                  )}
-                </ul>
+                <>
+                  <ul className="text-xs text-red-700 mt-1 space-y-0.5">
+                    {!scores.composite.compositePass && (
+                      <li>{(75.0 - scores.composite.composite).toFixed(1)} points below passing (75.0)</li>
+                    )}
+                    {scores.composite.failedComponents.map((fc, i) => (
+                      <li key={i}>{fc.type.charAt(0).toUpperCase() + fc.type.slice(1)} below {fc.minimum}% minimum ({fc.percentage.toFixed(1)}%)</li>
+                    ))}
+                    {scores.composite.walkComponents?.some(w => w.pass === false) && (
+                      <li>2km Walk not passed - overall PFA failure</li>
+                    )}
+                  </ul>
+                  <p className="text-xs text-gray-600 mt-2">
+                    Check the Training Focus section on the Trajectory tab for your fastest path to passing.
+                  </p>
+                </>
+              )}
+              {scores.composite.pass && (
+                <p className="text-xs text-gray-600 mt-2">
+                  Passing. See the Trajectory tab for your margin and where to gain more points.
+                </p>
               )}
             </div>
             <div className="text-right">
@@ -763,7 +773,7 @@ export default function SelfCheckTab() {
             {/* UX-10: Diagnostic period badge inline with date */}
             {isDiagnostic && (
               <span id="diag-badge" className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                Familiarization period - practice only
+                Diagnostic period (Mar - Aug 2026) - does not count
               </span>
             )}
           </div>
@@ -810,7 +820,7 @@ export default function SelfCheckTab() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
               {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !isTimeIncomplete(cardioValue) && (
-                <p className="text-xs mt-1" style={{ color: parseTime(cardioValue) != null && parseTime(cardioValue) > 0 && parseTime(cardioValue) <= 7200 ? '#6b7280' : '#ef4444' }}>
+                <p className={`text-xs mt-1 ${parseTime(cardioValue) != null && parseTime(cardioValue) > 0 && parseTime(cardioValue) <= 7200 ? 'text-gray-500' : 'text-red-500'}`}>
                   {parseTime(cardioValue) != null
                     ? (() => {
                         const t = parseTime(cardioValue)
@@ -822,7 +832,7 @@ export default function SelfCheckTab() {
                 </p>
               )}
               {cardioExercise === EXERCISES.HAMR && cardioValue && cardioValue.includes(':') && !isTimeIncomplete(cardioValue) && (
-                <p className="text-xs mt-1" style={{ color: hamrTimeToShuttles(cardioValue) != null ? '#6b7280' : '#ef4444' }}>
+                <p className={`text-xs mt-1 ${hamrTimeToShuttles(cardioValue) != null ? 'text-gray-500' : 'text-red-500'}`}>
                   {hamrTimeToShuttles(cardioValue) != null
                     ? `Converted: ${hamrTimeToShuttles(cardioValue)} shuttles`
                     : 'Invalid time format'}
@@ -932,7 +942,7 @@ export default function SelfCheckTab() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
             />
             {coreExercise === EXERCISES.PLANK && coreValue && !coreExempt && !isTimeIncomplete(coreValue) && (
-              <p className="text-xs mt-1" style={{ color: parseTime(coreValue) != null ? '#6b7280' : '#ef4444' }}>
+              <p className={`text-xs mt-1 ${parseTime(coreValue) != null ? 'text-gray-500' : 'text-red-500'}`}>
                 {parseTime(coreValue) != null
                   ? (() => {
                       const t = parseTime(coreValue)
@@ -1561,7 +1571,7 @@ function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, wal
               )}
             </div>
             {walkTime && !isTimeIncomplete(walkTime) && (
-              <p className="text-xs mt-1" style={{ color: parseTime(walkTime) != null ? '#6b7280' : '#ef4444' }}>
+              <p className={`text-xs mt-1 ${parseTime(walkTime) != null ? 'text-gray-500' : 'text-red-500'}`}>
                 {parseTime(walkTime) != null
                   ? (() => {
                       const t = parseTime(walkTime)

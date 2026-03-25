@@ -8,11 +8,12 @@
  * hydrates automatically when the link is opened.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import QRCode from 'qrcode'
 
 export default function ShareModal({ url, title = 'Share Assessment', onClose }) {
   const canvasRef = useRef(null)
+  const dialogRef = useRef(null)
   const [copied, setCopied] = useState(false)
   const [qrError, setQrError] = useState(false)
 
@@ -26,7 +27,17 @@ export default function ShareModal({ url, title = 'Share Assessment', onClose })
     }).catch(() => setQrError(true))
   }, [url])
 
-  const handleCopyUrl = async () => {
+  // Focus dialog on mount and handle Escape
+  useEffect(() => {
+    dialogRef.current?.focus()
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  const handleCopyUrl = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
@@ -35,16 +46,16 @@ export default function ShareModal({ url, title = 'Share Assessment', onClose })
       // Clipboard API unavailable - prompt user to copy manually
       setCopied(false)
     }
-  }
+  }, [url])
 
-  const handleWebShare = async () => {
+  const handleWebShare = useCallback(async () => {
     if (!navigator.share) return
     try {
       await navigator.share({ title: 'Trajectory PFA', url })
     } catch {
       // User cancelled or share failed - no-op
     }
-  }
+  }, [url])
 
   // Close on backdrop click
   const handleBackdrop = (e) => {
@@ -57,18 +68,24 @@ export default function ShareModal({ url, title = 'Share Assessment', onClose })
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
       onClick={handleBackdrop}
+      role="presentation"
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full space-y-4"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="share-modal-title"
+        tabIndex={-1}
+        className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full space-y-4 focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900">{title}</h2>
+          <h2 id="share-modal-title" className="text-base font-bold text-gray-900">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Close share dialog"
             className="text-gray-400 hover:text-gray-700 text-xl font-bold leading-none"
           >
             &times;
@@ -88,7 +105,7 @@ export default function ShareModal({ url, title = 'Share Assessment', onClose })
               QR code unavailable. Use the copy button below.
             </div>
           ) : (
-            <canvas ref={canvasRef} className="rounded-lg border border-gray-200" />
+            <canvas ref={canvasRef} className="rounded-lg border border-gray-200" aria-label="QR code for sharing" role="img" />
           )}
         </div>
 
