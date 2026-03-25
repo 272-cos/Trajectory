@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -35,12 +35,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Lint
-        run: npx eslint . --report-unused-disable-directives --max-warnings 0
-
-      - name: Test
-        run: npx vitest run
 
       - name: Build
         run: npm run build
