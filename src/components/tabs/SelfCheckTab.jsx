@@ -33,8 +33,11 @@ function formatTimeInput(rawValue) {
     const secs = parts.slice(1).join('').replace(/\D/g, '').slice(0, 2)
     return mins + ':' + secs
   }
+  // Strip non-digits, cap at 4
   const digits = rawValue.replace(/\D/g, '').slice(0, 4)
-  if (digits.length <= 3) return digits
+  if (digits.length <= 2) return digits
+  // 3+ digits: last 2 are always seconds, rest are minutes
+  // "930" -> "9:30", "1630" -> "16:30", "130" -> "1:30"
   return digits.slice(0, digits.length - 2) + ':' + digits.slice(-2)
 }
 
@@ -807,7 +810,7 @@ export default function SelfCheckTab() {
           {!cardioExempt && (
             <div>
               <label htmlFor="sc-cardio-value" className="block text-sm font-medium text-gray-700 mb-2">
-                {cardioExercise === EXERCISES.RUN_2MILE ? 'Time (mm:ss)' : 'Shuttles'}
+                {cardioExercise === EXERCISES.RUN_2MILE ? 'Time (type digits, colon added automatically)' : 'Shuttles'}
               </label>
               <input
                 id="sc-cardio-value"
@@ -817,7 +820,7 @@ export default function SelfCheckTab() {
                 onChange={(e) => setCardioValue(
                   cardioExercise === EXERCISES.RUN_2MILE ? formatTimeInput(e.target.value) : e.target.value
                 )}
-                placeholder={cardioExercise === EXERCISES.RUN_2MILE ? '13:30' : '94'}
+                placeholder={cardioExercise === EXERCISES.RUN_2MILE ? '1330' : '94'}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
               {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !isTimeIncomplete(cardioValue) && (
@@ -924,7 +927,7 @@ export default function SelfCheckTab() {
           </div>
           <div>
             <label htmlFor="sc-core-value" className="block text-sm font-medium text-gray-700 mb-2">
-              {coreExercise === EXERCISES.PLANK ? 'Time (mm:ss)' : 'Reps'}
+              {coreExercise === EXERCISES.PLANK ? 'Time (type digits, colon added automatically)' : 'Reps'}
             </label>
             <input
               id="sc-core-value"
@@ -941,7 +944,7 @@ export default function SelfCheckTab() {
                 }
               }}
               disabled={coreExempt}
-              placeholder={coreExercise === EXERCISES.PLANK ? '2:30' : '42'}
+              placeholder={coreExercise === EXERCISES.PLANK ? '230' : '42'}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
             />
             {coreExercise === EXERCISES.PLANK && coreValue && !coreExempt && !isTimeIncomplete(coreValue) && (
@@ -1330,7 +1333,7 @@ function PracticeCheckForm({ assessmentDate, today }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {PI_IS_TIME[piExercise] ? 'Time (mm:ss)' : 'Reps'}
+                {PI_IS_TIME[piExercise] ? 'Time (type digits, colon added automatically)' : 'Reps'}
               </label>
               <input
                 type="text"
@@ -1455,7 +1458,7 @@ function PracticeCheckForm({ assessmentDate, today }) {
                 inputMode="numeric"
                 value={fracCoreValue}
                 onChange={e => setFracCoreValue(fracCoreExercise === EXERCISES.PLANK ? formatTimeInput(e.target.value) : e.target.value.replace(/\D/g, ''))}
-                placeholder={fracCoreExercise === EXERCISES.PLANK ? '1:15' : '21'}
+                placeholder={fracCoreExercise === EXERCISES.PLANK ? '115' : '21'}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
               {fracScaled.core && (
@@ -1556,14 +1559,15 @@ function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, wal
             </p>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Walk Time (mm:ss)</label>
+            <label htmlFor="sc-walk-time" className="block text-sm font-medium text-gray-700 mb-2">Walk Time (type digits, colon added automatically)</label>
             <div className="flex items-center gap-3">
               <input
+                id="sc-walk-time"
                 type="text"
                 inputMode="numeric"
                 value={walkTime}
                 onChange={(e) => handleWalkTimeChange(e.target.value)}
-                placeholder={walkTimeLimitStr || '16:30'}
+                placeholder={(walkTimeLimitStr || '16:30').replace(':', '')}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
               />
               {hasResult && (
