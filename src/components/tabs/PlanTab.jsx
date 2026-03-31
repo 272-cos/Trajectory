@@ -8,8 +8,8 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode } from '../../utils/codec/scode.js'
-import { calculateCompositeScore, calculateComponentScore } from '../../utils/scoring/scoringEngine.js'
-import { COMPONENTS, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
+import { calculateCompositeScore, calculateComponentScore, calculateWHtR } from '../../utils/scoring/scoringEngine.js'
+import { COMPONENTS, EXERCISES, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import {
   getPracticeSessions,
   getCompletedDays,
@@ -457,8 +457,8 @@ export default function PlanTab() {
     for (const code of scodes) {
       try {
         const decoded = decodeSCode(code)
-        const d = decoded.date instanceof Date ? decoded.date : new Date(decoded.date)
-        if (!bestDate || d > bestDate) { bestDate = d; best = decoded }
+        const iso = String(decoded.date).split('T')[0]
+        if (!bestDate || iso > bestDate) { bestDate = iso; best = decoded }
       } catch { /* skip */ }
     }
     if (!best) return null
@@ -468,17 +468,67 @@ export default function PlanTab() {
     const { gender } = demographics
     const compScores = {}
 
-    for (const comp of (best.components || [])) {
-      if (comp.exempt || !comp.tested) continue
-      const result = calculateComponentScore(comp, gender, ageBracket)
-      compScores[comp.type] = result?.percentage ?? null
+    // Build scored components from individual decoded properties
+    const components = []
+
+    if (best.cardio) {
+      if (best.cardio.exempt) {
+        components.push({ type: COMPONENTS.CARDIO, exempt: true, tested: false, pass: true })
+      } else if (best.cardio.value != null) {
+        const result = calculateComponentScore(
+          { type: COMPONENTS.CARDIO, exercise: best.cardio.exercise, value: best.cardio.value, exempt: false, walkPass: best.cardio.walkPass },
+          gender, ageBracket
+        )
+        components.push({ ...result, type: COMPONENTS.CARDIO })
+        compScores[COMPONENTS.CARDIO] = result?.percentage ?? null
+      }
+    }
+
+    if (best.strength) {
+      if (best.strength.exempt) {
+        components.push({ type: COMPONENTS.STRENGTH, exempt: true, tested: false, pass: true })
+      } else if (best.strength.value != null) {
+        const result = calculateComponentScore(
+          { type: COMPONENTS.STRENGTH, exercise: best.strength.exercise, value: best.strength.value, exempt: false },
+          gender, ageBracket
+        )
+        components.push({ ...result, type: COMPONENTS.STRENGTH })
+        compScores[COMPONENTS.STRENGTH] = result?.percentage ?? null
+      }
+    }
+
+    if (best.core) {
+      if (best.core.exempt) {
+        components.push({ type: COMPONENTS.CORE, exempt: true, tested: false, pass: true })
+      } else if (best.core.value != null) {
+        const result = calculateComponentScore(
+          { type: COMPONENTS.CORE, exercise: best.core.exercise, value: best.core.value, exempt: false },
+          gender, ageBracket
+        )
+        components.push({ ...result, type: COMPONENTS.CORE })
+        compScores[COMPONENTS.CORE] = result?.percentage ?? null
+      }
+    }
+
+    if (best.bodyComp) {
+      if (best.bodyComp.exempt) {
+        components.push({ type: COMPONENTS.BODY_COMP, exempt: true, tested: false, pass: true })
+      } else if (best.bodyComp.heightInches && best.bodyComp.waistInches) {
+        const whtr = calculateWHtR(best.bodyComp.waistInches, best.bodyComp.heightInches)
+        const result = calculateComponentScore(
+          { type: COMPONENTS.BODY_COMP, exercise: EXERCISES.WHTR, value: whtr, exempt: false },
+          gender, ageBracket
+        )
+        components.push({ ...result, type: COMPONENTS.BODY_COMP })
+        compScores[COMPONENTS.BODY_COMP] = result?.percentage ?? null
+      }
     }
 
     let composite = null
     const allComps = [COMPONENTS.CARDIO, COMPONENTS.STRENGTH, COMPONENTS.CORE, COMPONENTS.BODY_COMP]
-    if (allComps.every(c => compScores[c] != null || (best.components || []).some(x => x.type === c && x.exempt))) {
+    if (allComps.every(c => compScores[c] != null || components.some(x => x.type === c && x.exempt))) {
       try {
-        const result = calculateCompositeScore(best.components || [], gender, ageBracket)
+        const result = calculateCompositeScore(components)
         composite = result?.composite ?? null
       } catch { /* ignore */ }
     }

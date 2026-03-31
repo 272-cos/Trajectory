@@ -3,7 +3,7 @@
  * Manages D-code, S-codes, current tab, onboarding state, and toast notifications
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   getDCode,
   saveDCode,
@@ -18,6 +18,7 @@ import {
   saveDarkMode,
   getPersonalGoal,
   savePersonalGoal,
+  onStorageError,
 } from '../utils/storage/localStorage.js'
 import { decodeDCode } from '../utils/codec/dcode.js'
 import { decodeSCode } from '../utils/codec/scode.js'
@@ -132,6 +133,11 @@ export function AppProvider({ children }) {
 
   // Load data from localStorage on mount, then hydrate from URL params
   useEffect(() => {
+    // Wire up storage error notifications to toast system
+    onStorageError((msg) => {
+      setToasts(prev => [...prev, { id: Date.now() + Math.random(), message: msg, type: 'error' }])
+    })
+
     // 1. Load from localStorage
     const storedDCode = getDCode()
     if (storedDCode) {
@@ -236,13 +242,20 @@ export function AppProvider({ children }) {
       }, 8000)
     }
 
-    // Load dark mode: user preference overrides system; if no preference saved, match system
-    const storedDark = getDarkMode()
+    // Load dark mode: saved preference wins; otherwise default dark, then
+    // try system preference (light scheme flips to light). If matchMedia
+    // is unavailable or throws, stay dark - user can toggle manually.
     const hasStoredPref = localStorage.getItem('pfa_dark_mode') !== null
     if (hasStoredPref) {
-      setDarkModeState(storedDark)
+      setDarkModeState(getDarkMode())
     } else {
-      setDarkModeState(true)
+      let useDark = true
+      try {
+        if (window.matchMedia?.('(prefers-color-scheme: light)')?.matches) {
+          useDark = false
+        }
+      } catch { /* matchMedia unavailable - keep dark */ }
+      setDarkModeState(useDark)
     }
 
     // Load personal goal
@@ -270,59 +283,61 @@ export function AppProvider({ children }) {
   }, [])
 
   // Save D-code to localStorage when it changes
-  const updateDCode = (newDCode, decodedData = null) => {
+  const updateDCode = useCallback((newDCode, decodedData = null) => {
     setDCode(newDCode)
     setDemographics(decodedData)
     if (newDCode) {
       saveDCode(newDCode)
     }
-  }
+  }, [])
 
-  // Add S-code to list
-  const addSCode = (scode) => {
-    if (scode && !scodes.includes(scode)) {
-      const updated = [...scodes, scode]
-      setSCodes(updated)
+  // Add S-code to list (functional updater avoids stale closure on scodes)
+  const addSCode = useCallback((scode) => {
+    if (!scode) return
+    setSCodes(prev => {
+      if (prev.includes(scode)) return prev
       addSCodeToStorage(scode)
-    }
-  }
+      return [...prev, scode]
+    })
+  }, [])
 
   // Remove S-code from list
-  const removeSCode = (scode) => {
-    const updated = scodes.filter(s => s !== scode)
-    setSCodes(updated)
+  const removeSCode = useCallback((scode) => {
+    setSCodes(prev => prev.filter(s => s !== scode))
     removeSCodeFromStorage(scode)
-  }
+  }, [])
 
   // Update target PFA date
-  const updateTargetPfaDate = (date) => {
+  const updateTargetPfaDate = useCallback((date) => {
     setTargetPfaDate(date)
     if (date) {
       saveTargetDate(date)
     }
-  }
+  }, [])
 
   // Complete onboarding
-  const completeOnboarding = () => {
+  const completeOnboarding = useCallback(() => {
     setShowOnboarding(false)
     setOnboarded()
-  }
+  }, [])
 
   // Toggle dark mode
-  const toggleDarkMode = () => {
-    const next = !darkMode
-    setDarkModeState(next)
-    saveDarkMode(next)
-  }
+  const toggleDarkMode = useCallback(() => {
+    setDarkModeState(prev => {
+      const next = !prev
+      saveDarkMode(next)
+      return next
+    })
+  }, [])
 
   // Update personal goal
-  const updatePersonalGoal = (goal) => {
+  const updatePersonalGoal = useCallback((goal) => {
     const clamped = Math.max(75.0, Math.min(100.0, goal))
     setPersonalGoalState(clamped)
     savePersonalGoal(clamped)
-  }
+  }, [])
 
-  const value = {
+  const value = useMemo(() => ({
     // D-code
     dcode,
     demographics,
@@ -367,7 +382,18 @@ export function AppProvider({ children }) {
     setSuppressSelfCheckWarning,
     registerSelfCheckGenerator,
     triggerSelfCheckGenerate,
-  }
+  }), [
+    dcode, demographics, updateDCode,
+    scodes, addSCode, removeSCode,
+    targetPfaDate, updateTargetPfaDate,
+    activeTab,
+    showOnboarding, completeOnboarding,
+    toasts, addToast, dismissToast,
+    darkMode, toggleDarkMode,
+    personalGoal, updatePersonalGoal,
+    selfCheckDirty, pendingTabNavigation, suppressSelfCheckWarning,
+    registerSelfCheckGenerator, triggerSelfCheckGenerate,
+  ])
 
   return (
     <AppContext.Provider value={value}>

@@ -251,8 +251,7 @@ export function hasMockTestBeenRecorded(scodes, decodeFn, targetDateISO) {
   return scodes.some(code => {
     try {
       const decoded = decodeFn(code)
-      const d = decoded.date instanceof Date ? decoded.date : new Date(decoded.date)
-      const dateISO = d.toISOString().split('T')[0]
+      const dateISO = decoded.date instanceof Date ? decoded.date.toISOString().split('T')[0] : String(decoded.date).split('T')[0]
       return isMockTestWindow(targetDateISO, dateISO)
     } catch {
       return false

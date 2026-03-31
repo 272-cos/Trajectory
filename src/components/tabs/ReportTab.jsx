@@ -108,9 +108,10 @@ function decodeAndScore(code, demographics) {
   }
 }
 
-/** Format a date for display */
+/** Format a date for display (noon UTC avoids timezone day shift) */
 function formatDate(date) {
-  return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const iso = date instanceof Date ? date.toISOString().split('T')[0] : String(date).split('T')[0]
+  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 /** Format exercise value for display */
@@ -256,8 +257,9 @@ export default function ReportTab() {
         {/* RP-01: Member info */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Rank</label>
+            <label htmlFor="report-rank" className="block text-sm font-medium text-gray-700 mb-1">Rank</label>
             <input
+              id="report-rank"
               type="text"
               value={rank}
               onChange={e => setRank(e.target.value)}
@@ -266,8 +268,9 @@ export default function ReportTab() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label htmlFor="report-name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
             <input
+              id="report-name"
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
@@ -276,8 +279,9 @@ export default function ReportTab() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+            <label htmlFor="report-unit" className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
             <input
+              id="report-unit"
               type="text"
               value={unit}
               onChange={e => setUnit(e.target.value)}
@@ -332,7 +336,7 @@ export default function ReportTab() {
             <p className="text-xs text-gray-500">
               {!demographics || !targetPfaDate
                 ? 'Requires profile and target PFA date to be set.'
-                : `Projection to ${new Date(targetPfaDate).toLocaleDateString()}`}
+                : `Projection to ${new Date(targetPfaDate + 'T12:00:00').toLocaleDateString()}`}
             </p>
           </div>
           <button
@@ -583,7 +587,7 @@ function AssessmentSection({ entry, index, total }) {
 function ProjectionSection({ projectionData, targetPfaDate }) {
   const { components, composite } = projectionData
   const daysToTarget = Math.max(0, Math.round((new Date(targetPfaDate) - new Date()) / 86400000))
-  const targetDateStr = new Date(targetPfaDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const targetDateStr = new Date(targetPfaDate + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
   return (
     <section className="border border-blue-200 rounded-lg overflow-hidden">
@@ -716,7 +720,7 @@ function buildPlainText({ rank, name, unit, dcode, reportEntries, allExempt, inc
   }
 
   if (includeProjection && projectionData && targetPfaDate) {
-    const targetStr = new Date(targetPfaDate).toLocaleDateString()
+    const targetStr = new Date(targetPfaDate + 'T12:00:00').toLocaleDateString()
     const { components, composite } = projectionData
     const daysToTarget = Math.max(0, Math.round((new Date(targetPfaDate) - new Date()) / 86400000))
     lines.push('READINESS PROJECTION')
@@ -832,7 +836,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
 
   const projHtml = (includeProjection && projectionData && targetPfaDate)
     ? (() => {
-        const targetStr = new Date(targetPfaDate).toLocaleDateString()
+        const targetStr = new Date(targetPfaDate + 'T12:00:00').toLocaleDateString()
         const { components, composite } = projectionData
         const daysToTarget = Math.max(0, Math.round((new Date(targetPfaDate) - new Date()) / 86400000))
         const compRows = components ? Object.entries(components).map(([compType, proj]) => {

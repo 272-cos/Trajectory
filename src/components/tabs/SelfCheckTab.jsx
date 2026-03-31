@@ -806,10 +806,11 @@ export default function SelfCheckTab() {
           {/* Non-exempt: show exercise input */}
           {!cardioExempt && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="sc-cardio-value" className="block text-sm font-medium text-gray-700 mb-2">
                 {cardioExercise === EXERCISES.RUN_2MILE ? 'Time (mm:ss)' : 'Shuttles'}
               </label>
               <input
+                id="sc-cardio-value"
                 type="text"
                 inputMode="numeric"
                 value={cardioValue}
@@ -878,8 +879,9 @@ export default function SelfCheckTab() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Reps</label>
+            <label htmlFor="sc-strength-value" className="block text-sm font-medium text-gray-700 mb-2">Reps</label>
             <input
+              id="sc-strength-value"
               type="text"
               inputMode="numeric"
               value={strengthValue}
@@ -921,10 +923,11 @@ export default function SelfCheckTab() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="sc-core-value" className="block text-sm font-medium text-gray-700 mb-2">
               {coreExercise === EXERCISES.PLANK ? 'Time (mm:ss)' : 'Reps'}
             </label>
             <input
+              id="sc-core-value"
               type="text"
               inputMode="numeric"
               value={coreValue}
@@ -965,8 +968,9 @@ export default function SelfCheckTab() {
         >
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Height (inches)</label>
+              <label htmlFor="sc-height" className="block text-sm font-medium text-gray-700 mb-2">Height (inches)</label>
               <input
+                id="sc-height"
                 type="text"
                 inputMode="decimal"
                 value={heightInches}
@@ -985,8 +989,9 @@ export default function SelfCheckTab() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Waist (inches)</label>
+              <label htmlFor="sc-waist" className="block text-sm font-medium text-gray-700 mb-2">Waist (inches)</label>
               <input
+                id="sc-waist"
                 type="text"
                 inputMode="decimal"
                 value={waistInches}

@@ -55,7 +55,7 @@ function dateToDays(date) {
 }
 
 function daysToDate(days) {
-  return new Date(DATE_EPOCH.getTime() + days * 24 * 60 * 60 * 1000)
+  return new Date(DATE_EPOCH.getTime() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 }
 
 // ─── V3 encoder ──────────────────────────────────────────────────────────────
