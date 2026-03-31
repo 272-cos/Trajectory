@@ -27,6 +27,14 @@ import { getRecommendations, generateWeeklyPlan } from '../../utils/recommendati
 import { getExercisePrefs, saveExercisePrefs, getPracticeSessions, getShowMilestones, setShowMilestones } from '../../utils/storage/localStorage.js'
 import { generateCalendar, EVENT_TYPES } from '../../utils/training/trainingCalendar.js'
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Format a date string for chart labels (noon UTC avoids timezone day shift) */
+function formatDateLabel(date, opts = { month: 'short', day: 'numeric' }) {
+  const iso = date instanceof Date ? date.toISOString().split('T')[0] : String(date).split('T')[0]
+  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', opts)
+}
+
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
 const COMP_LABELS = {
@@ -117,7 +125,7 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
 
   // Build chart data: historical points + projected endpoint
   const chartData = historicalScores.map(h => ({
-    date: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: formatDateLabel(h.date),
     rawDate: h.date,
     actual: h.composite,
     projected: null,
@@ -133,7 +141,7 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
     }
     // Projected target point
     chartData.push({
-      date: new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: formatDateLabel(targetDate),
       rawDate: targetDate,
       actual: null,
       projected: projectedComposite,
@@ -146,7 +154,7 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
   if (hasPracticeData) {
     practicePredictions.forEach(p => {
       if (p.date && p.predictedComposite != null) {
-        const dateLabel = new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        const dateLabel = formatDateLabel(p.date)
         // Find existing chart entry for this date or insert a new one
         const existing = chartData.find(d => d.rawDate === p.date)
         if (existing) {
@@ -169,10 +177,10 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
   // Build milestone reference data when overlay is active
   const hasMilestones = showMilestones && milestones
   const taperStartLabel = hasMilestones && milestones.taperStart
-    ? new Date(milestones.taperStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    ? formatDateLabel(milestones.taperStart)
     : null
   const targetLabel = targetDate
-    ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    ? formatDateLabel(targetDate)
     : null
 
   // Ensure milestone dates are represented in chart data so reference lines align
@@ -181,7 +189,7 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
       if (!dateISO) return
       if (chartData.find(d => d.rawDate === dateISO)) return
       chartData.push({
-        date: new Date(dateISO).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: formatDateLabel(dateISO),
         rawDate: dateISO,
         actual: null,
         projected: null,
@@ -260,7 +268,7 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
             {/* Mock test vertical reference line */}
             {hasMilestones && milestones.mockTestDate && (
               <ReferenceLine
-                x={new Date(milestones.mockTestDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                x={formatDateLabel(milestones.mockTestDate)}
                 stroke="#f97316"
                 strokeDasharray="6 2"
                 strokeWidth={1.5}
@@ -272,7 +280,7 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
             {hasMilestones && milestones.fractionalTests?.map(ft => (
               <ReferenceLine
                 key={ft.date}
-                x={new Date(ft.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                x={formatDateLabel(ft.date)}
                 stroke="#8b5cf6"
                 strokeDasharray="4 4"
                 strokeWidth={1}
@@ -757,7 +765,7 @@ export default function ProjectTab() {
     return scodes.flatMap(code => {
       try {
         const dec = decodeSCode(code)
-        return [{ ...dec, date: dec.date instanceof Date ? dec.date.toISOString().split('T')[0] : dec.date }]
+        return [{ ...dec, date: String(dec.date).split('T')[0] }]
       } catch {
         return []
       }

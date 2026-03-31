@@ -30,6 +30,16 @@ export function lookupScore(exercise, value, gender, ageBracket) {
     return null
   }
 
+  // Zero time/ratio is physically impossible for lower-is-better exercises
+  // (0-second run, 0 WHtR). Zero reps are valid per SL-10 (chart minimum).
+  if (value === 0 && (
+    exercise === EXERCISES.RUN_2MILE ||
+    exercise === EXERCISES.WALK_2KM ||
+    exercise === EXERCISES.WHTR
+  )) {
+    return null
+  }
+
   const table = getScoringTable(gender, ageBracket, exercise)
   if (!table || table.length === 0) {
     console.error(`No scoring table found for ${exercise}`)

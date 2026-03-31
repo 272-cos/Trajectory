@@ -21,7 +21,7 @@ class ErrorBoundary extends Component {
   handleClearAndReset = () => {
     try {
       localStorage.clear()
-    } catch (_) {
+    } catch {
       // localStorage may be unavailable
     }
     window.location.reload()

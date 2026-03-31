@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, Component } from 'react'
 import { AppProvider, useApp } from './context/AppContext.jsx'
 import Header from './components/layout/Header.jsx'
 import TabNavigation from './components/layout/TabNavigation.jsx'
@@ -16,6 +16,40 @@ const PlanTab = lazy(() => import('./components/tabs/PlanTab.jsx'))
 const HistoryTab = lazy(() => import('./components/tabs/HistoryTab.jsx'))
 const ReportTab = lazy(() => import('./components/tabs/ReportTab.jsx'))
 const ToolsTab = lazy(() => import('./components/tabs/ToolsTab.jsx'))
+
+class TabErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Tab error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-white rounded-xl shadow-md p-6 text-center space-y-3">
+          <p className="text-gray-900 font-semibold">This section hit an error</p>
+          <p className="text-gray-500 text-sm">Your other tabs and saved data are fine.</p>
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors min-h-[44px]"
+          >
+            Try Again
+          </button>
+          <p className="text-xs text-gray-400">UNOFFICIAL ESTIMATE - Not for official use</p>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 function TabSkeleton() {
   return (
@@ -133,7 +167,9 @@ function AppContent() {
       <main id="main-content" className="flex-1 container mx-auto px-4 py-6 max-w-4xl lg:max-w-6xl">
         <div role="tabpanel" id={`${activeTab}-panel`} aria-labelledby={`${activeTab}-tab`}>
           <Suspense fallback={<TabSkeleton />}>
-            {renderTabContent()}
+            <TabErrorBoundary key={activeTab}>
+              {renderTabContent()}
+            </TabErrorBoundary>
           </Suspense>
         </div>
       </main>

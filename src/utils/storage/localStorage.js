@@ -3,6 +3,35 @@
  * Primary storage for D-code, S-codes, and user preferences
  */
 
+// ── Storage error notification ──────────────────────────────────────────────
+// Callback for surfacing write failures to the UI (connected by AppContext).
+let _onStorageError = null
+
+/**
+ * Register a callback for storage write failures (quota exceeded, etc.).
+ * @param {function} cb - Called with (message: string) when a write fails
+ */
+export function onStorageError(cb) { _onStorageError = cb }
+
+/**
+ * Attempt a localStorage.setItem, catching QuotaExceededError and notifying.
+ * @returns {boolean} true if the write succeeded
+ */
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value)
+    return true
+  } catch (error) {
+    if (error?.name === 'QuotaExceededError' || error?.code === 22) {
+      _onStorageError?.('Storage is full. Your data was not saved. Export a backup from the Tools tab and clear old data.')
+    } else {
+      _onStorageError?.('Could not save data to browser storage.')
+    }
+    console.error('localStorage write failed:', error)
+    return false
+  }
+}
+
 const STORAGE_KEYS = {
   DCODE: 'pfa_dcode',
   SCODES: 'pfa_scodes',
@@ -30,11 +59,7 @@ export function getDCode() {
  * @param {string} dcode - D-code string
  */
 export function saveDCode(dcode) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.DCODE, dcode)
-  } catch (error) {
-    console.error('Error saving D-code to localStorage:', error)
-  }
+  safeSetItem(STORAGE_KEYS.DCODE, dcode)
 }
 
 /**
@@ -58,15 +83,10 @@ export function getSCodes() {
  * @param {string} scode - S-code string to add
  */
 export function addSCode(scode) {
-  try {
-    const scodes = getSCodes()
-    // Avoid duplicates
-    if (!scodes.includes(scode)) {
-      scodes.push(scode)
-      localStorage.setItem(STORAGE_KEYS.SCODES, JSON.stringify(scodes))
-    }
-  } catch (error) {
-    console.error('Error saving S-code to localStorage:', error)
+  const scodes = getSCodes()
+  if (!scodes.includes(scode)) {
+    scodes.push(scode)
+    safeSetItem(STORAGE_KEYS.SCODES, JSON.stringify(scodes))
   }
 }
 
@@ -75,13 +95,9 @@ export function addSCode(scode) {
  * @param {string} scode - S-code string to remove
  */
 export function removeSCode(scode) {
-  try {
-    const scodes = getSCodes()
-    const filtered = scodes.filter(s => s !== scode)
-    localStorage.setItem(STORAGE_KEYS.SCODES, JSON.stringify(filtered))
-  } catch (error) {
-    console.error('Error removing S-code from localStorage:', error)
-  }
+  const scodes = getSCodes()
+  const filtered = scodes.filter(s => s !== scode)
+  safeSetItem(STORAGE_KEYS.SCODES, JSON.stringify(filtered))
 }
 
 /**
@@ -102,11 +118,7 @@ export function getTargetDate() {
  * @param {string} date - ISO date string
  */
 export function saveTargetDate(date) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.TARGET_DATE, date)
-  } catch (error) {
-    console.error('Error saving target date to localStorage:', error)
-  }
+  safeSetItem(STORAGE_KEYS.TARGET_DATE, date)
 }
 
 /**
@@ -126,11 +138,7 @@ export function isOnboarded() {
  * Mark user as onboarded
  */
 export function setOnboarded() {
-  try {
-    localStorage.setItem(STORAGE_KEYS.ONBOARDED, 'true')
-  } catch (error) {
-    console.error('Error saving onboarding status to localStorage:', error)
-  }
+  safeSetItem(STORAGE_KEYS.ONBOARDED, 'true')
 }
 
 // ── Dark mode ────────────────────────────────────────────────────────────────
@@ -144,11 +152,7 @@ export function getDarkMode() {
 }
 
 export function saveDarkMode(enabled) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(enabled))
-  } catch {
-    // ignore
-  }
+  safeSetItem(STORAGE_KEYS.DARK_MODE, String(enabled))
 }
 
 // ── Personal score goal ──────────────────────────────────────────────────────
@@ -164,11 +168,7 @@ export function getPersonalGoal() {
 }
 
 export function savePersonalGoal(goal) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.PERSONAL_GOAL, String(goal))
-  } catch {
-    // ignore
-  }
+  safeSetItem(STORAGE_KEYS.PERSONAL_GOAL, String(goal))
 }
 
 // ── Draft autosave ───────────────────────────────────────────────────────────
@@ -180,11 +180,7 @@ const DRAFT_KEY = 'pfa_draft'
  * @param {object} draft - Form state snapshot
  */
 export function saveDraft(draft) {
-  try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...draft, _ts: Date.now() }))
-  } catch (error) {
-    console.error('Error saving draft:', error)
-  }
+  safeSetItem(DRAFT_KEY, JSON.stringify({ ...draft, _ts: Date.now() }))
 }
 
 /**
@@ -272,11 +268,7 @@ export function getExercisePrefs() {
  * @param {object} prefs - Preferences map e.g. { cardio: 'hamr', strength: 'hrpu' }
  */
 export function saveExercisePrefs(prefs) {
-  try {
-    localStorage.setItem('pfa_exercise_prefs', JSON.stringify(prefs))
-  } catch (error) {
-    console.error('Error saving exercise preferences:', error)
-  }
+  safeSetItem('pfa_exercise_prefs', JSON.stringify(prefs))
 }
 
 // ── Practice sessions ────────────────────────────────────────────────────────
@@ -304,13 +296,9 @@ export function getPracticeSessions() {
  * @param {object} session - Practice session object
  */
 export function savePracticeSession(session) {
-  try {
-    const sessions = getPracticeSessions()
-    sessions.push(session)
-    localStorage.setItem(PRACTICE_SESSIONS_KEY, JSON.stringify(sessions))
-  } catch (error) {
-    console.error('Error saving practice session:', error)
-  }
+  const sessions = getPracticeSessions()
+  sessions.push(session)
+  safeSetItem(PRACTICE_SESSIONS_KEY, JSON.stringify(sessions))
 }
 
 /**
@@ -318,12 +306,8 @@ export function savePracticeSession(session) {
  * @param {number|string} id - Session id
  */
 export function removePracticeSession(id) {
-  try {
-    const sessions = getPracticeSessions().filter(s => s.id !== id)
-    localStorage.setItem(PRACTICE_SESSIONS_KEY, JSON.stringify(sessions))
-  } catch (error) {
-    console.error('Error removing practice session:', error)
-  }
+  const sessions = getPracticeSessions().filter(s => s.id !== id)
+  safeSetItem(PRACTICE_SESSIONS_KEY, JSON.stringify(sessions))
 }
 
 /**
@@ -363,11 +347,7 @@ export function getPreferredDays() {
  * @param {number[]} days - Array of DOW ints (0=Sun ... 6=Sat)
  */
 export function savePreferredDays(days) {
-  try {
-    localStorage.setItem(PREFERRED_DAYS_KEY, JSON.stringify(days))
-  } catch {
-    // ignore
-  }
+  safeSetItem(PREFERRED_DAYS_KEY, JSON.stringify(days))
 }
 
 // ── Completed training days ───────────────────────────────────────────────────
@@ -398,18 +378,14 @@ export function getCompletedDays() {
  * @returns {boolean}
  */
 export function toggleCompletedDay(dateISO) {
-  try {
-    const days = getCompletedDays()
-    if (days.has(dateISO)) {
-      days.delete(dateISO)
-    } else {
-      days.add(dateISO)
-    }
-    localStorage.setItem(COMPLETED_DAYS_KEY, JSON.stringify([...days]))
-    return days.has(dateISO)
-  } catch {
-    return false
+  const days = getCompletedDays()
+  if (days.has(dateISO)) {
+    days.delete(dateISO)
+  } else {
+    days.add(dateISO)
   }
+  safeSetItem(COMPLETED_DAYS_KEY, JSON.stringify([...days]))
+  return days.has(dateISO)
 }
 
 // ── Milestone overlay toggle ─────────────────────────────────────────────────
@@ -433,9 +409,7 @@ export function getShowMilestones() {
  * @param {boolean} show
  */
 export function setShowMilestones(show) {
-  try {
-    localStorage.setItem(SHOW_MILESTONES_KEY, show ? 'true' : 'false')
-  } catch { /* ignore */ }
+  safeSetItem(SHOW_MILESTONES_KEY, show ? 'true' : 'false')
 }
 
 // ── Backup / Restore ────────────────────────────────────────────────────────
@@ -487,7 +461,7 @@ export function importBackup(jsonString) {
   let count = 0
   for (const [key, val] of Object.entries(parsed.data)) {
     if (allowedSet.has(key) && typeof val === 'string') {
-      localStorage.setItem(key, val)
+      safeSetItem(key, val)
       count++
     }
   }
@@ -517,9 +491,7 @@ export function getSelectedBase() {
  * @param {number} baseId - 0-7
  */
 export function saveSelectedBase(baseId) {
-  try {
-    localStorage.setItem(SELECTED_BASE_KEY, String(baseId))
-  } catch { /* ignore */ }
+  safeSetItem(SELECTED_BASE_KEY, String(baseId))
 }
 
 /**
@@ -528,15 +500,11 @@ export function saveSelectedBase(baseId) {
  * @returns {boolean} True if the code is NOW an outlier, false if unflagged
  */
 export function toggleOutlier(scode) {
-  try {
-    const outliers = getOutliers()
-    const isOutlier = outliers.includes(scode)
-    const updated = isOutlier
-      ? outliers.filter(s => s !== scode)
-      : [...outliers, scode]
-    localStorage.setItem('pfa_outliers', JSON.stringify(updated))
-    return !isOutlier
-  } catch {
-    return false
-  }
+  const outliers = getOutliers()
+  const isOutlier = outliers.includes(scode)
+  const updated = isOutlier
+    ? outliers.filter(s => s !== scode)
+    : [...outliers, scode]
+  safeSetItem('pfa_outliers', JSON.stringify(updated))
+  return !isOutlier
 }

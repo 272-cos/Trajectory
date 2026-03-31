@@ -69,23 +69,24 @@ export default function ProfileTab() {
     today.setHours(0, 0, 0, 0)
 
     // IV-02: must be after most recent self-check date
-    let mostRecentSCodeDate = null
+    let mostRecentSCodeISO = null
     if (scodes && scodes.length > 0) {
       for (const code of scodes) {
         try {
           const decoded = decodeSCode(code)
-          const d = new Date(decoded.date)
-          d.setHours(0, 0, 0, 0)
-          if (!mostRecentSCodeDate || d > mostRecentSCodeDate) mostRecentSCodeDate = d
+          const iso = decoded.date instanceof Date ? decoded.date.toISOString().split('T')[0] : String(decoded.date).split('T')[0]
+          if (!mostRecentSCodeISO || iso > mostRecentSCodeISO) mostRecentSCodeISO = iso
         } catch { /* skip invalid */ }
       }
     }
 
-    const lowerBound = mostRecentSCodeDate && mostRecentSCodeDate > today ? mostRecentSCodeDate : today
+    const todayISO = today.toISOString().split('T')[0]
+    const targetISO = target.toISOString().split('T')[0]
+    const lowerBoundISO = mostRecentSCodeISO && mostRecentSCodeISO > todayISO ? mostRecentSCodeISO : todayISO
 
-    if (target <= lowerBound) {
-      if (mostRecentSCodeDate && mostRecentSCodeDate >= today) {
-        const dateStr = mostRecentSCodeDate.toLocaleDateString()
+    if (targetISO <= lowerBoundISO) {
+      if (mostRecentSCodeISO && mostRecentSCodeISO >= todayISO) {
+        const dateStr = new Date(mostRecentSCodeISO + 'T12:00:00').toLocaleDateString()
         setTargetDateError(`Target date must be after your last self-check (${dateStr}).`)
       } else {
         setTargetDateError('Target PFA date must be in the future.')

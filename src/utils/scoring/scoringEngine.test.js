@@ -166,6 +166,20 @@ describe('SL-10 - 0 reps → chart minimum points (not 0, not null)', () => {
   })
 })
 
+describe('C3 - 0 time/ratio on lower-is-better exercises → null', () => {
+  it('2-mile run: 0 seconds → null (physically impossible)', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 0, M, U25)).toBeNull()
+  })
+
+  it('2km walk: 0 seconds → null (physically impossible)', () => {
+    expect(lookupScore(EXERCISES.WALK_2KM, 0, M, U25)).toBeNull()
+  })
+
+  it('WHtR: 0 ratio → null (physically impossible)', () => {
+    expect(lookupScore(EXERCISES.WHTR, 0, M, U25)).toBeNull()
+  })
+})
+
 describe('EC-10 - 0 reps on non-exempt component → always pass:false', () => {
   it('strength: 0 pushups → tested=true, pass=false', () => {
     const result = calculateComponentScore(
@@ -1116,5 +1130,151 @@ describe('hamrTimeToShuttles', () => {
 
   it('known reference: "15:00" produces more shuttles than "9:00"', () => {
     expect(hamrTimeToShuttles('15:00')).toBeGreaterThan(hamrTimeToShuttles('9:00'))
+  })
+})
+
+// ─── Female scoring table coverage ───────────────────────────────────────────
+// Reality Checker flagged: 147 tests all used MALE/UNDER_25.
+// These tests verify female tables across 5 age brackets and all 7 exercises.
+
+const F = GENDER.FEMALE
+
+describe('Female <25 scoring tables', () => {
+  const bracket = AGE_BRACKETS.UNDER_25
+
+  it('run: best time 930s (15:30) = 50.0 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 930, F, bracket).points).toBe(50)
+  })
+  it('run: worst time 1365s (22:45) = 29.5 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 1365, F, bracket).points).toBe(29.5)
+  })
+  it('run: mid-range 1118s = 42.9 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 1118, F, bracket).points).toBe(42.9)
+  })
+  it('pushups: best 47 reps = 15.0 pts', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, 47, F, bracket).points).toBe(15)
+  })
+  it('pushups: worst 15 reps = 0.8 pts', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, 15, F, bracket).points).toBe(0.8)
+  })
+  it('situps: best 54 reps = 15.0 pts', () => {
+    expect(lookupScore(EXERCISES.SITUPS, 54, F, bracket).points).toBe(15)
+  })
+  it('HAMR: best 83 shuttles = 50.0 pts', () => {
+    expect(lookupScore(EXERCISES.HAMR, 83, F, bracket).points).toBe(50)
+  })
+  it('plank: best 210s = 15.0 pts', () => {
+    expect(lookupScore(EXERCISES.PLANK, 210, F, bracket).points).toBe(15)
+  })
+})
+
+describe('Female 25-29 scoring tables', () => {
+  const bracket = AGE_BRACKETS.AGE_25_29
+
+  it('run: 930s = 50.0 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 930, F, bracket).points).toBe(50)
+  })
+  it('pushups: 14 reps = 0.8 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, 14, F, bracket).points).toBe(0.8)
+  })
+  it('HRPU: best 31 reps = 15.0 pts', () => {
+    expect(lookupScore(EXERCISES.HRPU, 31, F, bracket).points).toBe(15)
+  })
+  it('CLRC: best 45 reps = 15.0 pts', () => {
+    expect(lookupScore(EXERCISES.CLRC, 45, F, bracket).points).toBe(15)
+  })
+  it('plank: 50s (worst) = 7.5 pts', () => {
+    expect(lookupScore(EXERCISES.PLANK, 50, F, bracket).points).toBe(7.5)
+  })
+})
+
+describe('Female 30-34 scoring tables', () => {
+  const bracket = AGE_BRACKETS.AGE_30_34
+
+  it('run: best 948s = 50.0 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 948, F, bracket).points).toBe(50)
+  })
+  it('pushups: 11 reps = 0.8 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, 11, F, bracket).points).toBe(0.8)
+  })
+  it('situps: 26 reps = 2.3 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.SITUPS, 26, F, bracket).points).toBe(2.3)
+  })
+  it('HAMR: 19 shuttles = 29.5 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 19, F, bracket).points).toBe(29.5)
+  })
+})
+
+describe('Female 40-44 scoring tables', () => {
+  const bracket = AGE_BRACKETS.AGE_40_44
+
+  it('run: best 960s = 50.0 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 960, F, bracket).points).toBe(50)
+  })
+  it('pushups: 8 reps = 0.8 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, 8, F, bracket).points).toBe(0.8)
+  })
+  it('HRPU: best 28 reps = 15.0 pts', () => {
+    expect(lookupScore(EXERCISES.HRPU, 28, F, bracket).points).toBe(15)
+  })
+  it('plank: 35s (worst) = 7.5 pts', () => {
+    expect(lookupScore(EXERCISES.PLANK, 35, F, bracket).points).toBe(7.5)
+  })
+  it('CLRC: 6 reps = 7.5 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.CLRC, 6, F, bracket).points).toBe(7.5)
+  })
+})
+
+describe('Female 60+ scoring tables', () => {
+  const bracket = AGE_BRACKETS.AGE_60_PLUS
+
+  it('run: best 1038s = 50.0 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 1038, F, bracket).points).toBe(50)
+  })
+  it('run: worst 1500s = 29.5 pts', () => {
+    expect(lookupScore(EXERCISES.RUN_2MILE, 1500, F, bracket).points).toBe(29.5)
+  })
+  it('pushups: 4 reps = 0.8 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, 4, F, bracket).points).toBe(0.8)
+  })
+  it('pushups: best 21 reps = 15.0 pts', () => {
+    expect(lookupScore(EXERCISES.PUSHUPS, 21, F, bracket).points).toBe(15)
+  })
+  it('HRPU: 1 rep = 7.5 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.HRPU, 1, F, bracket).points).toBe(7.5)
+  })
+  it('situps: 8 reps = 2.3 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.SITUPS, 8, F, bracket).points).toBe(2.3)
+  })
+  it('HAMR: 2 shuttles = 29.5 pts (chart min)', () => {
+    expect(lookupScore(EXERCISES.HAMR, 2, F, bracket).points).toBe(29.5)
+  })
+  it('plank: 15s (worst) = 7.5 pts', () => {
+    expect(lookupScore(EXERCISES.PLANK, 15, F, bracket).points).toBe(7.5)
+  })
+})
+
+describe('Female composite - full assessment pass/fail', () => {
+  it('F <25: strong performer passes composite', () => {
+    const comps = [
+      calculateComponentScore({ type: 'cardio', exercise: EXERCISES.RUN_2MILE, value: 1000 }, F, AGE_BRACKETS.UNDER_25),
+      calculateComponentScore({ type: 'bodyComp', exercise: EXERCISES.WHTR, value: 0.45 }, F, AGE_BRACKETS.UNDER_25),
+      calculateComponentScore({ type: 'strength', exercise: EXERCISES.PUSHUPS, value: 35 }, F, AGE_BRACKETS.UNDER_25),
+      calculateComponentScore({ type: 'core', exercise: EXERCISES.SITUPS, value: 45 }, F, AGE_BRACKETS.UNDER_25),
+    ]
+    const result = calculateCompositeScore(comps)
+    expect(result.composite).toBeGreaterThanOrEqual(75)
+    expect(result.pass).toBe(true)
+  })
+
+  it('F 40-44: failing performer fails composite', () => {
+    const comps = [
+      calculateComponentScore({ type: 'cardio', exercise: EXERCISES.RUN_2MILE, value: 1395 }, F, AGE_BRACKETS.AGE_40_44),
+      calculateComponentScore({ type: 'bodyComp', exercise: EXERCISES.WHTR, value: 0.55 }, F, AGE_BRACKETS.AGE_40_44),
+      calculateComponentScore({ type: 'strength', exercise: EXERCISES.PUSHUPS, value: 8 }, F, AGE_BRACKETS.AGE_40_44),
+      calculateComponentScore({ type: 'core', exercise: EXERCISES.SITUPS, value: 21 }, F, AGE_BRACKETS.AGE_40_44),
+    ]
+    const result = calculateCompositeScore(comps)
+    expect(result.pass).toBe(false)
   })
 })

@@ -67,9 +67,10 @@ function getComponentPct(components, type) {
   return comp.percentage ?? null
 }
 
-/** Format a date for chart X-axis labels */
+/** Format a date for chart X-axis labels (noon UTC avoids timezone day shift) */
 function formatChartDate(date) {
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const iso = date instanceof Date ? date.toISOString().split('T')[0] : String(date).split('T')[0]
+  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 // Custom dot for composite chart - colored by pass/fail
@@ -100,9 +101,7 @@ export default function HistoryTab() {
   // Edit: convert decoded S-code to draft and navigate to Self-Check
   const handleEditAssessment = (decoded) => {
     const draft = {
-      assessmentDate: decoded.date instanceof Date
-        ? decoded.date.toISOString().split('T')[0]
-        : new Date(decoded.date).toISOString().split('T')[0],
+      assessmentDate: String(decoded.date).split('T')[0],
     }
     if (decoded.cardio) {
       draft.cardioExercise = decoded.cardio.exercise
@@ -214,13 +213,13 @@ export default function HistoryTab() {
     const dateCounts = {}
     decodedEntries.forEach(e => {
       if (!e.error && e.decoded?.date) {
-        const key = new Date(e.decoded.date).toDateString()
+        const key = String(e.decoded.date).split('T')[0]
         dateCounts[key] = (dateCounts[key] || 0) + 1
       }
     })
     return new Set(
       decodedEntries
-        .filter(e => !e.error && e.decoded?.date && dateCounts[new Date(e.decoded.date).toDateString()] > 1)
+        .filter(e => !e.error && e.decoded?.date && dateCounts[String(e.decoded.date).split('T')[0]] > 1)
         .map(e => e.code)
     )
   }, [decodedEntries])
@@ -655,7 +654,7 @@ export default function HistoryTab() {
 // Practice session card - gray border to distinguish from S-code assessment cards
 function PracticeSessionCard({ session, onRemove }) {
   const [confirmRemove, setConfirmRemove] = useState(false)
-  const dateStr = new Date(session.date).toLocaleDateString()
+  const dateStr = new Date(String(session.date).split('T')[0] + 'T12:00:00').toLocaleDateString()
 
   const renderContent = () => {
     if (session.type === 'pi_workout') {
@@ -884,9 +883,8 @@ function AssessmentCard({
     )
   }
 
-  const dateStr = decoded.date instanceof Date
-    ? decoded.date.toLocaleDateString()
-    : new Date(decoded.date).toLocaleDateString()
+  const iso = decoded.date instanceof Date ? decoded.date.toISOString().split('T')[0] : String(decoded.date).split('T')[0]
+  const dateStr = new Date(iso + 'T12:00:00').toLocaleDateString()
   const isDiag = decoded.isDiagnostic
   const composite = scores?.composite
   const hasComposite = composite && composite.composite != null
