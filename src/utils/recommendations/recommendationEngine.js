@@ -5,8 +5,8 @@
 
 import { COMPONENTS, EXERCISES, COMPONENT_MINIMUMS } from '../scoring/constants.js'
 import {
-  getPhase,
-  weekNumberFromWeeksOut,
+  getProgressionRatio,
+  getPhaseFromRatio,
   phaseConfig,
   PHASE_DISPLAY,
   getRepInstruction,
@@ -555,10 +555,10 @@ export function generateWeeklyPlan(componentData, targetDate, totalPlanWeeks) {
   else if (weeksToTarget <= 12) urgency = URGENCY.STANDARD
   else urgency = URGENCY.LONG_TERM
 
-  // Phase engine integration
-  const planTotal = totalPlanWeeks || Math.min(weeksToTarget, 16)
-  const planWeekNum = weekNumberFromWeeksOut(weeksToTarget, planTotal)
-  const phase = getPhase(planWeekNum)
+  // Phase engine integration (dynamic - no 16-week clamping)
+  const planTotal = totalPlanWeeks || weeksToTarget
+  const ratio = getProgressionRatio(weeksToTarget, planTotal)
+  const phase = getPhaseFromRatio(ratio, planTotal)
   const config = phaseConfig[phase]
   const repInstruction = getRepInstruction(phase)
 
@@ -630,7 +630,7 @@ export function generateWeeklyPlan(componentData, targetDate, totalPlanWeeks) {
     repInstruction,
     maxEffortAllowed: config.maxEffortAllowed,
     sessionsPerWeekCap: config.sessionsPerWeek,
-    planWeekNum,
+    planWeekNum: Math.max(1, Math.min(16, Math.round(ratio * 15) + 1)),
     planItems,
     schedule,
     bodyCompHabits,

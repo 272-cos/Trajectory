@@ -29,7 +29,8 @@ import {
   hasConsecutiveDays,
   PHASE_DISPLAY,
   weekNumberFromWeeksOut,
-  getPhase,
+  getProgressionRatio,
+  getPhaseFromRatio,
   phaseConfig,
 } from '../../utils/training/trainingCalendar.js'
 import { isMockTestWindow, isInTaperPeriod } from '../../utils/training/practiceSession.js'
@@ -664,12 +665,11 @@ export default function PlanTab() {
   // ── Current phase info for header ─────────────────────────────────────────
   const currentPhaseInfo = useMemo(() => {
     if (!calendar || !calendar.totalWeeks) return null
-    // weeksToTarget = how many weeks remain from TODAY to the test date
     const currentWeeksOut = Math.max(0, Math.ceil(daysBetween(TODAY, calendar.targetDate) / 7))
-    const planWeek = weekNumberFromWeeksOut(currentWeeksOut, calendar.totalWeeks)
-    const phase = getPhase(planWeek)
+    const ratio = getProgressionRatio(currentWeeksOut, calendar.totalWeeks)
+    const phase = getPhaseFromRatio(ratio, calendar.totalWeeks)
     return {
-      weekNum: planWeek,
+      weekNum: weekNumberFromWeeksOut(currentWeeksOut, calendar.totalWeeks),
       phase,
       phaseLabel: PHASE_DISPLAY[phase],
       config: phaseConfig[phase],

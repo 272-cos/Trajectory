@@ -21,14 +21,17 @@
 
 import { EXERCISES, COMPONENTS } from '../scoring/constants.js'
 import {
-  getPhase,
   weekNumberFromWeeksOut,
+  getProgressionRatio,
+  getPhaseFromRatio,
+  computePhaseBoundaries,
+  getSpecialEventMilestones,
+  getSpecialWeekInfoFromRatio,
   PHASE_NAMES,
   PHASE_DISPLAY,
   EFFORT_LABELS,
   capIntensity,
   getRepInstruction,
-  getSpecialWeekInfo,
   WEEKLY_TEMPLATES,
 } from './phaseEngine.js'
 
@@ -60,19 +63,35 @@ export const PHASE_DESCRIPTIONS = {
 
 /**
  * Detect the appropriate training phase based on weeks remaining.
+ * Uses the dynamic ratio-based system to scale phases to any plan duration.
  * TR-07: Phase 0 is returned when composite < 50 or PI push-ups < 5.
  *
  * @param {number} weeksOut - Weeks until target PFA date (from today)
  * @param {object} [options]
  * @param {boolean} [options.forcePhase0] - Force Phase 0 (deconditioning path)
+ * @param {number} [options.totalWeeks] - Total plan duration (defaults to weeksOut)
  * @returns {number} PHASES constant
  */
-export function detectPhase(weeksOut, { forcePhase0 = false } = {}) {
-  if (forcePhase0 && weeksOut >= 13) return PHASES.PHASE_0 // Phase 0 replaces Phase 1 only
-  if (weeksOut >= 13) return PHASES.PHASE_1
-  if (weeksOut >= 9) return PHASES.PHASE_2
-  if (weeksOut >= 5) return PHASES.PHASE_3
-  return PHASES.PHASE_4
+export function detectPhase(weeksOut, { forcePhase0 = false, totalWeeks = null } = {}) {
+  const total = totalWeeks || Math.max(weeksOut, 1)
+
+  // Phase 0 only applies when there is enough time for pre-progression
+  if (forcePhase0) {
+    const { phases } = computePhaseBoundaries(total)
+    const baseWeeks = phases[0].weeks
+    if (weeksOut >= baseWeeks + 1) return PHASES.PHASE_0
+  }
+
+  const ratio = getProgressionRatio(weeksOut, total)
+  const phaseName = getPhaseFromRatio(ratio, total)
+
+  const nameToNumber = {
+    [PHASE_NAMES.BASE]: PHASES.PHASE_1,
+    [PHASE_NAMES.BUILD]: PHASES.PHASE_2,
+    [PHASE_NAMES.BUILD_PLUS]: PHASES.PHASE_3,
+    [PHASE_NAMES.SHARPEN]: PHASES.PHASE_4,
+  }
+  return nameToNumber[phaseName] ?? PHASES.PHASE_4
 }
 
 // ── Event types ───────────────────────────────────────────────────────────────
@@ -297,11 +316,22 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 
   const composite = currentScores?.composite ?? null
   const isPhase0 = shouldUsePhase0(composite, piPushups)
-  const startingPhase = detectPhase(totalWeeks, { forcePhase0: isPhase0 })
+  const startingPhase = detectPhase(totalWeeks, { forcePhase0: isPhase0, totalWeeks })
 
   const cardioScore   = currentScores?.cardio   ?? null
   const strengthScore = currentScores?.strength  ?? null
   const coreScore     = currentScores?.core      ?? null
+
+  // Precompute phase boundaries and milestone ratios for the dynamic plan
+  const boundaries = computePhaseBoundaries(totalWeeks)
+  const milestones = totalWeeks >= 6 ? getSpecialEventMilestones(totalWeeks) : { piRatios: [], fractional50Ratio: -1, fractional75Ratio: -1 }
+  const milestoneTolerance = 0.5 / Math.max(totalWeeks, 1)
+  const baseEndWeekIndex = Math.min(3, boundaries.phases[0].weeks - 1)
+
+  // Track which milestones have been placed (each fires once)
+  let placed50 = false
+  let placed75 = false
+  const placedPI = new Set()
 
   // Build a flat event map: date -> event[]
   const eventsByDate = {}
@@ -339,8 +369,8 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
   for (let i = 0; i <= 13; i++) {
     const d = addDays(taperStart, i)
     if (daysBetween(todayISO, d) < 0) continue
-    if (isSameDay(d, mockTestDate)) continue // mock test day already has its event
-    if (isSameDay(d, targetDateISO)) continue // test day already set
+    if (isSameDay(d, mockTestDate)) continue
+    if (isSameDay(d, targetDateISO)) continue
     addEvent(d, {
       type:        EVENT_TYPES.TAPER,
       date:        d,
@@ -353,44 +383,54 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 
   // ── Build week-by-week schedule ───────────────────────────────────────────
 
-  // Walk week by week from today to target, skip taper weeks (already covered)
   const firstMonday = getMondayOfWeek(todayISO)
   const weeks = []
 
   let weekStart = firstMonday
   let weekIndex = 0
+  let piCycleIndex = 0 // tracks which PI component to cycle to next
 
   while (daysBetween(weekStart, targetDateISO) > 0) {
     const weekEnd      = addDays(weekStart, 6)
     const daysToTarget = daysBetween(weekStart, targetDateISO)
     const weeksToTarget = Math.ceil(daysToTarget / 7)
 
-    const phaseForWeek = detectPhase(weeksToTarget, { forcePhase0: isPhase0 })
+    // Dynamic phase detection using progression ratio
+    const weekRatio = getProgressionRatio(weeksToTarget, totalWeeks)
+    const phaseForWeek = detectPhase(weeksToTarget, { forcePhase0: isPhase0, totalWeeks })
+    const phaseName = isPhase0 ? null : getPhaseFromRatio(weekRatio, totalWeeks)
 
-    // Week 1 baseline PI: spec requires 30-sec max push-ups, 30-sec max sit-ups, 400m run
-    // Only when plan is >= 10 weeks and user is not in Phase 0 (Phase 0 uses modified exercises)
+    // Week 1 baseline PI
     const isBaselineWeek = weekIndex === 0 && totalWeeks >= 10 && !isPhase0
 
-    // Week 4 foundation check-in: repeat Week 1 exactly, measure delta
-    // Only when plan started in Phase 1 (13+ weeks) so Week 4 is still in foundation territory
-    const isFoundationCheckin = weekIndex === 3 && totalWeeks >= 10 && startingPhase === PHASES.PHASE_1
+    // Foundation check-in: at end of BASE phase (capped at weekIndex 3)
+    const isFoundationCheckin = weekIndex === baseEndWeekIndex
+      && weekIndex > 0 && totalWeeks >= 10
+      && (startingPhase === PHASES.PHASE_1 || startingPhase === PHASES.PHASE_0)
 
-    // PI workout every other week (alternating by weekIndex parity)
-    // Suppress on baseline/check-in weeks since those replace the PI slot
-    const isPIWeek = (weekIndex % 2 === 0) && weeksToTarget > 2 && !isBaselineWeek
+    // PI workout: check if this week's ratio matches any PI milestone
+    let isPIWeek = false
+    if (!isBaselineWeek && !isFoundationCheckin && weeksToTarget > 2) {
+      for (const piR of milestones.piRatios) {
+        if (!placedPI.has(piR) && Math.abs(weekRatio - piR) <= milestoneTolerance) {
+          isPIWeek = true
+          break
+        }
+      }
+    }
 
-    // Fractional tests placed at spec-defined weeks (end of Phase 2 and Phase 3):
-    //   50% test: Week 8 of 16 = 8 weeks before test (end of Building phase)
-    //   75% test: Week 12 of 16 = 4 weeks before test (end of Development phase)
-    const is50TestWeek = weeksToTarget === 8 && totalWeeks >= 10
-    const is75TestWeek = weeksToTarget === 4 && totalWeeks >= 6
+    // Fractional tests: match against ratio milestones (fire once each)
+    const is50TestWeek = !placed50 && totalWeeks >= 10
+      && Math.abs(weekRatio - milestones.fractional50Ratio) <= milestoneTolerance
+    const is75TestWeek = !placed75 && totalWeeks >= 6
+      && Math.abs(weekRatio - milestones.fractional75Ratio) <= milestoneTolerance
 
     const trainingDays = getTrainingDaysForWeek(weekStart, preferredDays)
 
     trainingDays.forEach((dayISO, idx) => {
       // Skip days before today
       if (daysBetween(todayISO, dayISO) < 0) return
-      // Skip taper days and days at/after test day (handled above)
+      // Skip taper days and days at/after test day
       if (daysBetween(dayISO, taperStart) <= 0) return
       if (daysBetween(dayISO, targetDateISO) <= 0) return
 
@@ -420,7 +460,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         return
       }
 
-      // ── Week 4 check-in: repeat Week 1 exactly, show delta ──────────────────
+      // ── Foundation check-in: repeat Week 1, measure delta ──────────────────
       if (isFoundationCheckin && idx === 0) {
         addEvent(dayISO, {
           type:        EVENT_TYPES.FOUNDATION_CHECKIN,
@@ -446,15 +486,55 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         return
       }
 
-      // First training day of the PI week -> PI workout
+      // ── 50% fractional test (ratio-based) ─────────────────────────────────
+      if (is50TestWeek && idx === 1 && !placed50) {
+        placed50 = true
+        addEvent(dayISO, {
+          type:        EVENT_TYPES.FRACTIONAL_TEST,
+          date:        dayISO,
+          label:       '50% Partial Test',
+          description: 'Run a 50% effort test across all components.',
+          notes:       'Label all results as "50% test estimates". Record actual reps/times.',
+          fraction:    0.5,
+          priority:    'high',
+          completed:   !!(practiceSessionMap[dayISO]),
+        })
+        return
+      }
+
+      // ── 75% fractional test (ratio-based) ─────────────────────────────────
+      if (is75TestWeek && idx === 1 && !placed75) {
+        placed75 = true
+        addEvent(dayISO, {
+          type:        EVENT_TYPES.FRACTIONAL_TEST,
+          date:        dayISO,
+          label:       '75% Partial Test',
+          description: 'Run a 75% effort test across all components.',
+          notes:       'Label all results as "75% test estimates". You should be well above passing at this point.',
+          fraction:    0.75,
+          priority:    'high',
+          completed:   !!(practiceSessionMap[dayISO]),
+        })
+        return
+      }
+
+      // ── PI workout (ratio-based) ──────────────────────────────────────────
       if (isPIWeek && idx === 0) {
-        // Cycle through: cardio PI, strength PI, core PI
+        // Mark the matching PI ratio as placed
+        for (const piR of milestones.piRatios) {
+          if (!placedPI.has(piR) && Math.abs(weekRatio - piR) <= milestoneTolerance) {
+            placedPI.add(piR)
+            break
+          }
+        }
+
         const piCycle = [
           { component: COMPONENTS.CARDIO,   exercise: EXERCISES.RUN_2MILE, fitnessLevel: getFitnessLevel(cardioScore) },
           { component: COMPONENTS.STRENGTH,  exercise: EXERCISES.PUSHUPS,   fitnessLevel: getFitnessLevel(strengthScore) },
           { component: COMPONENTS.CORE,      exercise: EXERCISES.SITUPS,    fitnessLevel: getFitnessLevel(coreScore) },
         ]
-        const piItem = piCycle[Math.floor(weekIndex / 2) % 3]
+        const piItem = piCycle[piCycleIndex % 3]
+        piCycleIndex++
         const rx = prescribePIWorkout(piItem.exercise, piItem.fitnessLevel)
 
         addEvent(dayISO, {
@@ -472,54 +552,23 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         return
       }
 
-      // 50% fractional test week
-      if (is50TestWeek && idx === 1) {
-        addEvent(dayISO, {
-          type:        EVENT_TYPES.FRACTIONAL_TEST,
-          date:        dayISO,
-          label:       '50% Partial Test',
-          description: 'Run a 50% effort test across all components.',
-          notes:       'Label all results as "50% test estimates". Record actual reps/times.',
-          fraction:    0.5,
-          priority:    'high',
-          completed:   !!(practiceSessionMap[dayISO]),
-        })
-        return
-      }
-
-      // 75% fractional test week
-      if (is75TestWeek && idx === 1) {
-        addEvent(dayISO, {
-          type:        EVENT_TYPES.FRACTIONAL_TEST,
-          date:        dayISO,
-          label:       '75% Partial Test',
-          description: 'Run a 75% effort test across all components.',
-          notes:       'Label all results as "75% test estimates". You should be well above passing at this point.',
-          fraction:    0.75,
-          priority:    'high',
-          completed:   !!(practiceSessionMap[dayISO]),
-        })
-        return
-      }
-
-      // Regular training day - use phase engine for prescription
-      const planWeekNum = weekNumberFromWeeksOut(weeksToTarget, totalWeeks)
-      const phaseName = phaseForWeek === PHASES.PHASE_0 ? null : getPhase(planWeekNum)
+      // ── Regular training day ──────────────────────────────────────────────
       const phaseLabel = phaseName ? PHASE_DISPLAY[phaseName] : null
-      const specialInfo = phaseName ? getSpecialWeekInfo(planWeekNum) : { isSpecial: false }
+      const specialInfo = phaseName
+        ? getSpecialWeekInfoFromRatio(weekRatio, totalWeeks)
+        : { isSpecial: false }
 
       const dayLabel = phaseForWeek === PHASES.PHASE_0
         ? 'Pre-Progression Training'
         : `${phaseLabel} Phase Training`
 
       // Get phase-governed session prescription
-      let sessionTemplate = null
       let effortLabel = null
       let intensity = null
       let stress = null
       if (phaseName) {
         const phaseTemplates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
-        sessionTemplate = phaseTemplates[idx % phaseTemplates.length]
+        const sessionTemplate = phaseTemplates[idx % phaseTemplates.length]
         intensity = capIntensity(sessionTemplate.intensity, phaseName)
         effortLabel = EFFORT_LABELS[intensity]
         stress = sessionTemplate.stress || 3
@@ -529,15 +578,16 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         type:        EVENT_TYPES.TRAINING,
         date:        dayISO,
         label:       dayLabel,
-        description: getTrainingDayDescription(phaseForWeek, idx),
-        notes:       getTrainingDayNotes(phaseForWeek, idx),
+        description: getTrainingDayDescription(phaseName, phaseForWeek, idx),
+        notes:       getTrainingDayNotes(phaseName, phaseForWeek, idx),
         phase:       phaseForWeek,
         phaseName,
         phaseLabel,
         intensity,
         effortLabel,
         stress,
-        weekNum:     planWeekNum,
+        weekNum:     weekNumberFromWeeksOut(weeksToTarget, totalWeeks),
+        progressionRatio: weekRatio,
         repInstruction: phaseName ? getRepInstruction(phaseName) : null,
         isSpecialWeek: specialInfo.isSpecial,
         specialWeekType: specialInfo.type || null,
@@ -545,22 +595,22 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       })
     })
 
-    // Rest days in the week (not tracked as events - absence of events = rest day)
-
-    const planWeekForMeta = weekNumberFromWeeksOut(weeksToTarget, totalWeeks)
-    const phaseNameForMeta = isPhase0 ? null : getPhase(planWeekForMeta)
-    const specialWeekMeta = phaseNameForMeta ? getSpecialWeekInfo(planWeekForMeta) : { isSpecial: false }
+    // Week metadata
+    const specialWeekMeta = phaseName
+      ? getSpecialWeekInfoFromRatio(weekRatio, totalWeeks)
+      : { isSpecial: false }
 
     weeks.push({
       weekNumber:     weekIndex + 1,
-      planWeekNum:    planWeekForMeta,
+      planWeekNum:    weekNumberFromWeeksOut(weeksToTarget, totalWeeks),
+      progressionRatio: weekRatio,
       weekStart,
       weekEnd,
       daysToTarget,
       weeksToTarget,
       phase:            phaseForWeek,
-      phaseName:        phaseNameForMeta,
-      phaseLabel:       phaseNameForMeta ? PHASE_DISPLAY[phaseNameForMeta] : null,
+      phaseName,
+      phaseLabel:       phaseName ? PHASE_DISPLAY[phaseName] : null,
       isPIWeek,
       isBaselineWeek,
       isFoundationCheckin,
@@ -582,8 +632,9 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
     totalWeeks,
     startingPhase,
     isPhase0,
+    phaseBoundaries: boundaries,
     mockTestDate:   daysBetween(todayISO, mockTestDate) >= 0 ? mockTestDate : null,
-    taperStart:     daysBetween(todayISO, taperStart) >= 0 ? taperStart : taperStart, // always include
+    taperStart,
     weeks,
     eventsByDate,
   }
@@ -591,9 +642,9 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 
 // ── Training day copy helpers ─────────────────────────────────────────────────
 
-function getTrainingDayDescription(phase, sessionIndex) {
+function getTrainingDayDescription(phaseName, phaseNumber, sessionIndex) {
   // Phase 0 retains its own pre-progression descriptions
-  if (phase === PHASES.PHASE_0) {
+  if (phaseNumber === PHASES.PHASE_0 || !phaseName) {
     const phase0Sessions = [
       'Wall push-ups: 3x10, Chair-assisted sit-ups: 3x8, 10-min brisk walk',
       'Incline push-ups: 3x8, Glute bridges: 3x12, 15-min light walk',
@@ -602,36 +653,19 @@ function getTrainingDayDescription(phase, sessionIndex) {
     return phase0Sessions[sessionIndex % phase0Sessions.length]
   }
 
-  // Map legacy phase numbers to phase engine names for template lookup
-  const phaseNameMap = {
-    [PHASES.PHASE_1]: PHASE_NAMES.BASE,
-    [PHASES.PHASE_2]: PHASE_NAMES.BUILD,
-    [PHASES.PHASE_3]: PHASE_NAMES.BUILD_PLUS,
-    [PHASES.PHASE_4]: PHASE_NAMES.SHARPEN,
-  }
-  const phaseName = phaseNameMap[phase] || PHASE_NAMES.BASE
   const templates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
   const template = templates[sessionIndex % templates.length]
-
   return template.description
 }
 
-function getTrainingDayNotes(phase, sessionIndex) {
-  if (phase === PHASES.PHASE_0) {
+function getTrainingDayNotes(phaseName, phaseNumber, sessionIndex) {
+  if (phaseNumber === PHASES.PHASE_0 || !phaseName) {
     return 'Pre-progression: Rest 60-90s between sets. Stop a rep or two short of failure - form matters more than count right now.'
   }
 
-  const phaseNameMap = {
-    [PHASES.PHASE_1]: PHASE_NAMES.BASE,
-    [PHASES.PHASE_2]: PHASE_NAMES.BUILD,
-    [PHASES.PHASE_3]: PHASE_NAMES.BUILD_PLUS,
-    [PHASES.PHASE_4]: PHASE_NAMES.SHARPEN,
-  }
-  const phaseName = phaseNameMap[phase] || PHASE_NAMES.BASE
   const templates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
   const template = templates[sessionIndex % templates.length]
   const repInstruction = getRepInstruction(phaseName)
-
   return `${template.notes} ${repInstruction}`
 }
 
@@ -647,6 +681,10 @@ export {
   EFFORT_LABELS,
   getPhase,
   weekNumberFromWeeksOut,
+  getProgressionRatio,
+  getPhaseFromRatio,
+  computePhaseBoundaries,
+  getSpecialEventMilestones,
   phaseConfig,
   getRepInstruction,
   getSpecialWeekInfo,

@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Trajectory - USAF PFA Readiness Tracker
 
 A mobile-first web app for USAF Airmen to self-assess fitness performance against 2026 PFA scoring standards, project future readiness, and generate supervisor reports. Zero backend - all data stays in the browser.
@@ -17,82 +21,75 @@ A mobile-first web app for USAF Airmen to self-assess fitness performance agains
 ## Development Commands
 
 ```bash
+npm install       # Install dependencies (required before first run)
 npm run dev       # Local dev server with HMR (Vite)
 npm run build     # Production build
-npm run lint      # ESLint (zero warnings enforced)
-npm test          # Vitest unit tests
+npm run lint      # ESLint (zero warnings enforced, flat config)
+npm test          # Vitest unit tests (watch mode)
+npm test -- --run # Vitest single run (CI-friendly)
 npm run test:ui   # Vitest with browser UI
 ```
 
-## Architecture
-
-```
-src/
-├── App.jsx                         # Root: AppProvider + Header + TabNavigation
-├── context/
-│   └── AppContext.jsx               # Global state: dcode, scodes, targetPfaDate, activeTab
-├── components/
-│   ├── layout/
-│   │   ├── Header.jsx               # Persistent banner with unofficial disclaimer
-│   │   ├── TabNavigation.jsx        # 5-tab switcher
-│   │   └── OnboardingModal.jsx      # First-visit modal (branching flow)
-│   └── tabs/
-│       ├── ProfileTab.jsx           # DOB+gender input, D-code, target PFA date
-│       ├── SelfCheckTab.jsx         # Exercise inputs, live scoring, S-code gen
-│       ├── ProjectTab.jsx           # Readiness projection to target PFA date
-│       ├── HistoryTab.jsx           # S-code paste, decode, timeline display
-│       └── ReportTab.jsx            # Supervisor report generation (planned)
-└── utils/
-    ├── scoring/
-    │   ├── scoringEngine.js         # Pure functions: lookupScore(), calculateComposite()
-    │   ├── scoringTables.js         # All 18 AFPC brackets (9 age x 2 gender)
-    │   └── constants.js             # Weights (50-20-15-15), exercise enums, age brackets
-    ├── codec/
-    │   ├── dcode.js                 # D-code encode/decode (DOB + gender - ~9 chars)
-    │   ├── scode.js                 # S-code V3 encode/decode (assessment data - ~22 chars)
-    │   ├── bitpack.js               # BitWriter/BitReader for sub-byte packing
-    │   ├── base64url.js             # RFC 4648 base64url (URL-safe, no padding)
-    │   ├── crc8.js                  # CRC-8 integrity verification
-    │   └── scode_v1_backup.js       # Legacy JSON format reference (V1 ~301 chars)
-    ├── recommendations/
-    │   └── recommendationEngine.js  # Tiered tips: FAILING(<75) / MARGINAL(75-80) / STRONG(>80)
-    └── storage/
-        └── localStorage.js          # Keys: pfa_dcode, pfa_scodes, pfa_target_date, pfa_onboarded
+To run a single test file:
+```bash
+npx vitest --run src/utils/scoring/scoringEngine.test.js
 ```
 
-## Data Model
+Tests use Vitest with jsdom environment and `globals: true` (no need to import describe/it/expect). Test files are co-located with source: `foo.js` -> `foo.test.js`.
 
-### D-Code (Demographics, permanent)
-- **Format:** `D1-[base64url][CRC-8]` (~9 chars)
-- **Payload:** schema version (4b), gender (1b), DOB days since 1950 (16b)
-- **Usage:** One per profile; reused across all self-checks
+## Architecture Overview
 
-### S-Code V3 (Self-Check, one per session)
-- **Format:** `S3-[base64url bit-packed][CRC-8]` (~22 chars)
-- **Compression:** 93.7% reduction vs V1 JSON format (22 vs 301 chars)
-- **Bit layout (~110 bits total):**
+**Stack:** React 18 + Vite + Tailwind CSS + Recharts. PWA via vite-plugin-pwa (Workbox, cache-first).
 
-  | Block       | Bits | Details                                      |
-  |-------------|------|----------------------------------------------|
-  | Header      | 24   | version:4, chart:4, date:15, diag:1          |
-  | Flags       | 4    | component presence (4x1 bit)                 |
-  | Cardio      | 14+  | exercise:2, exempt:1, value:11, [walk_pass:1]|
-  | Strength    | 9    | exercise:1, exempt:1, value:7                |
-  | Core        | 14   | exercise:2, exempt:1, value:11               |
-  | Body Comp   | 25   | exempt:1, height:11, waist:10, offset:3      |
-  | Reserved    | 20   | base_id:3 (altitude), reserved:17                                    |
+**State management:** Single React context (`AppContext.jsx`) provides all global state via `useApp()` hook. State includes demographics (dcode), assessment history (scodes array), target PFA date, dark mode, personal goal, and UI state (activeTab, toasts, selfCheckDirty flag). URL hydration loads D-codes and S-codes from query params (`?d=...&s=...`).
 
-- **Backward compat:** S2-prefixed codes decoded via V2 path
-
-### localStorage Keys
-```javascript
-{
-  'pfa_dcode':       'D1-abc123ef',         // demographics code
-  'pfa_scodes':      ['S3-xyz...', ...],    // JSON array of assessment codes
-  'pfa_target_date': '2026-07-01',          // ISO date for trajectory tab
-  'pfa_onboarded':   'true'                 // first-visit modal flag
-}
+**Data flow:**
 ```
+User input -> encode to D-code/S-code -> localStorage
+                                      -> AppContext state
+                                      -> decode on read -> scoring engine -> UI
+```
+
+**Key directories:**
+- `src/components/tabs/` - 8 tab views (Profile, SelfCheck, Project, History, Report, Tools, Plan, ExerciseComparison)
+- `src/components/layout/` - Header, TabNavigation, OnboardingModal, PWA banners
+- `src/components/shared/` - Reusable: ErrorBoundary, ShareModal, AchievementBadges, PfaCountdown
+- `src/components/tools/` - Stopwatch, HamrMetronome, RunPacer
+- `src/utils/scoring/` - Scoring engine, tables, constants, strategy engine, reverse scoring
+- `src/utils/codec/` - D-code/S-code encode/decode with bit-packing and CRC-8
+- `src/utils/training/` - Phase engine (16-week periodization), practice sessions, calendar, ICS export
+- `src/utils/projection/` - Readiness forecasting (linear/logarithmic/least-squares models)
+
+## Scoring Engine (Critical Path)
+
+The scoring pipeline flows: `constants.js` (rules/brackets) -> `scoringTables.js` (18 lookup tables) -> `scoringEngine.js` (pure functions).
+
+- **lookupScore()** - Threshold-based points lookup. Values above/below chart bounds clamp to max/min points (EC-01), never return 0.
+- **calculateComponentScore()** - Single component scoring with exemption handling.
+- **calculateCompositeScore()** - Weighted aggregate: `round((earned/possible)*1000)/10`. Pass requires 75.0 composite + per-component minimums (60% cardio/strength/core, 50% body comp).
+- **strategyEngine.js** - ROI analysis: finds the next scoring threshold per exercise, computes effort-weeks to reach it.
+- **reverseScoring.js** - Reverse lookup: "what performance do I need for X points?"
+
+Key scoring rules:
+- 2km walk contributes 0/0 to composite (pass/fail only); walk failure = overall failure (EC-05)
+- WHtR rounded to 2 decimals before lookup (SL-05)
+- 0 reps clamps to chart minimum points but component still fails (SL-10)
+- Exempt components contribute 0 earned and 0 possible to composite
+
+## Codec System
+
+Compact codes encode user data for sharing/storage without PII:
+
+- **D-code** (`D1-[base64url][CRC-8]`, ~9 chars) - Demographics: schema(4b) + gender(1b) + DOB-days-since-1950(16b)
+- **S-code** (`S3-[base64url][CRC-8]`, ~22 chars) - Assessment: ~110 bits covering all 4 components + metadata
+- **Backward compat** - S2-prefixed codes decoded via V2 path
+- Built on `bitpack.js` (BitWriter/BitReader), `base64url.js` (RFC 4648), `crc8.js`
+
+## Training System
+
+- **phaseEngine.js** - 16-week periodization: BASE(4) -> BUILD(4) -> BUILD+(4) -> SHARPEN(4) with intensity governors
+- **practiceSession.js** - PI (Performance Indicator) workouts: 30-sec intervals predicting full-test results; fractional tests at 50%/75%
+- **trainingCalendar.js** - Weekly schedule generation with phase-appropriate workouts
 
 ## Scoring Model (2026 per DAFMAN 36-2905)
 
@@ -114,21 +111,6 @@ Users can test any subset of components. Rules:
 - Composite score shown **only** when all 4 components are recorded
 - Exempt components contribute 0 earned and 0 possible to composite
 
-## Sprint Status
-
-| Sprint | Status      | Scope                                                    |
-|--------|-------------|----------------------------------------------------------|
-| 1      | Complete    | Core tabs, scoring, codecs, recommendations, localStorage |
-| 2      | Complete    | S-code V3 (feedback block), all 18 AFPC scoring brackets, History tab |
-| 3      | Complete    | URL hydration, Web Share API, 2km walk, HAMR conversion, input validation, Projection engine, Report tab |
-| 4      | Complete    | Projection engine + Project tab |
-| 5      | Complete    | History tab with trend chart |
-| 6      | Complete    | Report generation |
-| 7      | Complete    | PWA + accessibility + chart update banner |
-| 8      | Complete    | Strategy engine, stopwatch, HAMR metronome, exercise comparison |
-| 9      | Complete    | Curated training resource links, personalized training plans |
-| 10     | Complete    | Practice mode, training plan calendar tab, milestone overlays |
-
 ## Documentation
 
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) - Implementation decisions and UX rationale
@@ -143,10 +125,11 @@ Specialized subagents for domain-specific development tasks live in [`.claude/ag
 
 - **[scoring-agent](.claude/agents/scoring-agent.md)** - Scoring tables, engine logic, age/gender bracket expansion
 - **[codec-agent](.claude/agents/codec-agent.md)** - S-code/D-code encoding, bit-packing, compression
+- **[fitness-coach](.claude/agents/fitness-coach.md)** - PFA scoring, workout programming, fitness code generation
 
 ## Deployment
 
 - **Hosting:** GitHub Pages at `https://272-cos.github.io/Trajectory/`
-- **Trigger:** Push to `main` - GitHub Actions builds and deploys
+- **CI:** `.github/workflows/deploy.yml` - push to main triggers build (Node 22) and deploy
 - **Base path:** `/Trajectory/` (configured in `vite.config.js`)
 - **SPA routing:** `public/404.html` redirects to `index.html` for client-side routing
