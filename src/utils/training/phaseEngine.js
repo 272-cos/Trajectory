@@ -50,18 +50,35 @@ export function getPhase(week) {
 
 /**
  * Convert weeks-to-target into a plan week number (1-16 scale).
- * If more than 16 weeks remain, caps at week 1 (extended BASE).
- * If fewer than 1 week, returns 16.
+ *
+ * The plan is always mapped onto a 16-week window that ENDS at the test date.
+ * Weeks beyond 16 are clamped to week 1 (extended BASE); fewer than 1 week
+ * returns 16.
+ *
+ * The key insight: week number = how many weeks into the plan we are,
+ * NOT how many weeks remain.  With N weeks to go out of a 16-week window,
+ * the current week is (16 - N + 1), but we must also account for plans
+ * shorter than 16 weeks.
  *
  * @param {number} weeksToTarget - Weeks until PFA test date
- * @param {number} totalWeeks - Total weeks in the training plan
+ * @param {number} totalWeeks - Total weeks in the training plan (from start to test)
  * @returns {number} Week number 1-16
  */
 export function weekNumberFromWeeksOut(weeksToTarget, totalWeeks) {
   if (totalWeeks <= 0) return 16
-  // Map to a 16-week scale
+
+  // For plans longer than 16 weeks, the 16-week countdown starts at week
+  // (totalWeeks - 16).  Before that point we're in extended BASE (week 1).
+  // For plans <= 16 weeks, week 1 starts immediately.
   const planLength = Math.min(totalWeeks, 16)
-  const weekNum = planLength - weeksToTarget + 1
+
+  // weeksElapsed = how many weeks have passed since the plan started
+  const weeksElapsed = totalWeeks - weeksToTarget
+
+  // Map elapsed weeks onto the 16-week scale
+  // For plans > 16 weeks: the first (totalWeeks - 16) weeks all map to week 1
+  const weekNum = weeksElapsed - (totalWeeks - planLength) + 1
+
   return Math.max(1, Math.min(16, weekNum))
 }
 

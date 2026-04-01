@@ -664,8 +664,9 @@ export default function PlanTab() {
   // ── Current phase info for header ─────────────────────────────────────────
   const currentPhaseInfo = useMemo(() => {
     if (!calendar || !calendar.totalWeeks) return null
-    const weeksOut = calendar.totalWeeks
-    const planWeek = weekNumberFromWeeksOut(weeksOut, Math.min(calendar.totalWeeks, 16))
+    // weeksToTarget = how many weeks remain from TODAY to the test date
+    const currentWeeksOut = Math.max(0, Math.ceil(daysBetween(TODAY, calendar.targetDate) / 7))
+    const planWeek = weekNumberFromWeeksOut(currentWeeksOut, calendar.totalWeeks)
     const phase = getPhase(planWeek)
     return {
       weekNum: planWeek,
