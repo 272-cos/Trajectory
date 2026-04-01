@@ -29,7 +29,7 @@ export default function Header() {
             fetchpriority="high"
             className="h-24 sm:h-28 md:h-32 w-auto block drop-shadow-[0_0_12px_rgba(32,144,255,0.7)]"
           />
-          <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide mt-2">
+          <p className="text-xs sm:text-sm font-bold text-sky-300 tracking-wide mt-2">
             USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
           </p>
         </div>

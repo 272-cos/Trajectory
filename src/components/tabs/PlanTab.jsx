@@ -225,7 +225,7 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
               'flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-all',
               isCompleted
                 ? 'bg-green-500 border-green-600 text-white'
-                : 'bg-white border-gray-300 text-gray-700 hover:border-green-400 hover:text-green-700',
+                : 'bg-gray-100 border-gray-300 text-gray-700 hover:border-green-400 hover:text-green-700',
             ].join(' ')}
           >
             <span>{isCompleted ? '✓' : '○'}</span>
@@ -261,7 +261,7 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
                     <p className={`text-sm ${ec.text}`}>{event.description}</p>
                   )}
                   {event.target && (
-                    <div className="bg-white rounded-lg p-2.5 border border-gray-100">
+                    <div className="bg-gray-100 rounded-lg p-2.5 border border-gray-200">
                       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">
                         Target
                       </div>
@@ -310,7 +310,7 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
                   )}
                   {event.type === EVENT_TYPES.MOCK_TEST && (
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 text-xs text-orange-700 font-medium">
-                      TR-01: Do this exactly once. After today, shift to taper - cut volume 50%,
+                      Do this exactly once. After today, shift to taper - cut volume 50%,
                       maintain intensity, rest more.
                     </div>
                   )}
@@ -869,12 +869,12 @@ export default function PlanTab() {
       {/* Status banners */}
       {inTaper && !inMockWindow && (
         <div className="bg-amber-100 border border-amber-400 rounded-xl px-4 py-3 text-sm text-amber-800">
-          <strong>Taper Active</strong> - Volume -50%, intensity maintained. Rest and recover. TR-10.
+          <strong>Taper Active</strong> - Volume -50%, intensity maintained. Rest and recover.
         </div>
       )}
       {inMockWindow && (
         <div className="bg-orange-100 border border-orange-400 rounded-xl px-4 py-3 text-sm text-orange-800">
-          <strong>Mock Test Window</strong> - {daysToTest} days out. One full mock test now, then taper. TR-09.
+          <strong>Mock Test Window</strong> - {daysToTest} days out. One full mock test now, then taper.
         </div>
       )}
 
@@ -970,7 +970,7 @@ export default function PlanTab() {
       {/* Disclaimer */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
         UNOFFICIAL ESTIMATE. For self-assessment only. Not a substitute for official AF fitness
-        guidance. All predictions approximate. TR-06.
+        guidance. All predictions approximate.
       </div>
 
       <div className="h-4" />
