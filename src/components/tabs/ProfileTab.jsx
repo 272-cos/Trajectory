@@ -290,7 +290,7 @@ export default function ProfileTab() {
 
           {/* Success Message */}
           {success && (
-            <div role="status" className={`p-3 border rounded-lg text-sm ${highlightTargetDate ? 'bg-amber-50 border-amber-400 text-amber-900' : 'bg-green-50 border-green-200 text-green-800'}`}>
+            <div role="status" className={`p-3 border rounded-lg text-sm ${highlightTargetDate ? 'bg-gray-100 border-gray-400 text-amber-900' : 'bg-green-50 border-green-200 text-green-800'}`}>
               {success}
             </div>
           )}
