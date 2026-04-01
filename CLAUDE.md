@@ -12,6 +12,7 @@ A mobile-first web app for USAF Airmen to self-assess fitness performance agains
 6. **Zero-dependency scoring** - pure JS functions, no external scoring APIs
 7. **Regulatory basis** - DAFMAN 36-2905 (Change 1, 22 Jan 2026) + AFPC 50-20-15-15 model
 8. **No em dashes or en dashes** - use only hyphens (-) throughout the codebase and docs
+9. **No internal tracking codes in UI** - Internal references (TR-XX, PG-XX, CS-XX, IV-XX, RP-XX, etc.) must NEVER appear in user-facing text, labels, disclaimers, or rendered output. They belong only in code comments and documentation.
 
 ## Development Commands
 

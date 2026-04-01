@@ -49,6 +49,10 @@ body {
 .dark .bg-purple-100   { background-color: #1c0f38 !important; }
 .dark .bg-yellow-50    { background-color: #1f1a05 !important; }
 .dark .bg-yellow-100   { background-color: #2a2207 !important; }
+.dark .bg-teal-50      { background-color: #0a1f1a !important; }
+.dark .bg-teal-100     { background-color: #0f2a22 !important; }
+.dark .bg-cyan-50      { background-color: #0a1a1f !important; }
+.dark .bg-cyan-100     { background-color: #0f222a !important; }
 .dark .bg-indigo-50    { background-color: #0f0a28 !important; }
 .dark .bg-indigo-100   { background-color: #1a0f38 !important; }
 
@@ -84,6 +88,12 @@ body {
 .dark .text-red-700    { color: #f87171 !important; }
 .dark .text-red-600    { color: #fca5a5 !important; }
 .dark .text-red-500    { color: #fca5a5 !important; }
+.dark .text-teal-800   { color: #5eead4 !important; }
+.dark .text-teal-700   { color: #2dd4bf !important; }
+.dark .text-teal-600   { color: #5eead4 !important; }
+.dark .text-cyan-800   { color: #67e8f9 !important; }
+.dark .text-cyan-700   { color: #22d3ee !important; }
+.dark .text-cyan-600   { color: #67e8f9 !important; }
 .dark .text-amber-800  { color: #fcd34d !important; }
 .dark .text-amber-700  { color: #fbbf24 !important; }
 .dark .text-amber-600  { color: #fcd34d !important; }
@@ -121,6 +131,13 @@ body {
 .dark .border-red-200    { border-color: #7f1d1d !important; }
 .dark .border-red-300    { border-color: #991b1b !important; }
 .dark .border-red-400    { border-color: #b91c1c !important; }
+.dark .border-teal-200   { border-color: #134e4a !important; }
+.dark .border-teal-300   { border-color: #115e59 !important; }
+.dark .border-teal-400   { border-color: #0d9488 !important; }
+.dark .border-teal-500   { border-color: #14b8a6 !important; }
+.dark .border-cyan-200   { border-color: #164e63 !important; }
+.dark .border-cyan-300   { border-color: #155e75 !important; }
+.dark .border-cyan-400   { border-color: #0891b2 !important; }
 .dark .border-amber-200  { border-color: #78350f !important; }
 .dark .border-amber-300  { border-color: #92400e !important; }
 .dark .border-amber-400  { border-color: #b45309 !important; }
