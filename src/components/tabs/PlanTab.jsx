@@ -27,9 +27,20 @@ import {
   getFitnessLevel,
   daysBetween,
   hasConsecutiveDays,
+  PHASE_DISPLAY,
+  weekNumberFromWeeksOut,
+  getPhase,
+  phaseConfig,
 } from '../../utils/training/trainingCalendar.js'
 import { isMockTestWindow, isInTaperPeriod } from '../../utils/training/practiceSession.js'
 import { downloadSingleEvent } from '../../utils/training/icsExport.js'
+import {
+  RPE_SHORT_LABELS,
+  recordRPE,
+  getRPEForDate,
+  detectAdaptationState,
+  ADAPTATION_STATES,
+} from '../../utils/training/adaptiveFeedback.js'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -189,7 +200,48 @@ function DayCell({ dateISO, events, isCompleted, isSelected, isToday, inPlanRang
 
 // ── Day Detail Panel ──────────────────────────────────────────────────────────
 
-function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate }) {
+function RPEPrompt({ dateISO, weekNum, phase, onRecorded }) {
+  const [selected, setSelected] = useState(() => getRPEForDate(dateISO))
+
+  const handleSelect = (rpe) => {
+    setSelected(rpe)
+    recordRPE(dateISO, rpe, weekNum || 0, phase || '')
+    if (onRecorded) onRecorded()
+  }
+
+  return (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mt-2">
+      <div className="text-xs font-semibold text-gray-600 mb-2">How hard was this workout?</div>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map(rpe => (
+          <button
+            key={rpe}
+            onClick={() => handleSelect(rpe)}
+            className={[
+              'flex-1 py-2 rounded text-xs font-bold transition-all border',
+              selected === rpe
+                ? rpe <= 2 ? 'bg-green-500 border-green-600 text-white'
+                  : rpe <= 3 ? 'bg-blue-500 border-blue-600 text-white'
+                  : rpe <= 4 ? 'bg-amber-500 border-amber-600 text-white'
+                  : 'bg-red-500 border-red-600 text-white'
+                : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400',
+            ].join(' ')}
+            aria-label={`RPE ${rpe}: ${RPE_SHORT_LABELS[rpe]}`}
+          >
+            {rpe}
+          </button>
+        ))}
+      </div>
+      {selected && (
+        <div className="text-xs text-gray-500 mt-1.5 text-center">
+          {RPE_SHORT_LABELS[selected]}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate, onRPERecorded }) {
   const [expanded, setExpanded] = useState(null)
 
   const primaryEvent = events[0]
@@ -257,8 +309,31 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
 
               {isOpen && (
                 <div className={`px-4 pb-4 space-y-2 ${ec.bg}`}>
+                  {/* Phase + effort label for training events */}
+                  {event.type === EVENT_TYPES.TRAINING && event.phaseLabel && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                        Week {event.weekNum || '?'} - {event.phaseLabel} Phase
+                      </span>
+                      {event.effortLabel && (
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          event.intensity === 'high' ? 'bg-red-100 text-red-700' :
+                          event.intensity === 'moderate' ? 'bg-amber-100 text-amber-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {event.effortLabel}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {event.description && (
                     <p className={`text-sm ${ec.text}`}>{event.description}</p>
+                  )}
+                  {/* Rep instruction for training events */}
+                  {event.type === EVENT_TYPES.TRAINING && event.repInstruction && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700 font-medium">
+                      {event.repInstruction}
+                    </div>
                   )}
                   {event.target && (
                     <div className="bg-gray-100 rounded-lg p-2.5 border border-gray-200">
@@ -312,6 +387,22 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 text-xs text-orange-700 font-medium">
                       Do this exactly once. After today, shift to taper - cut volume 50%,
                       maintain intensity, rest more.
+                    </div>
+                  )}
+                  {/* RPE feedback - show for completed training days */}
+                  {isCompleted && event.type === EVENT_TYPES.TRAINING && (
+                    <RPEPrompt
+                      dateISO={dateISO}
+                      weekNum={event.weekNum}
+                      phase={event.phaseName}
+                      onRecorded={onRPERecorded}
+                    />
+                  )}
+                  {/* Special week indicator */}
+                  {event.isSpecialWeek && event.specialWeekType && (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-xs text-indigo-700">
+                      <strong>Special week:</strong> Reduced training load around this benchmark/test.
+                      Rest before and after for best results.
                     </div>
                   )}
                   {event.type === EVENT_TYPES.TEST_DAY && (
@@ -564,6 +655,26 @@ export default function PlanTab() {
     )
   }, [demographics, targetPfaDate, currentScores, practiceSessionMap, preferredDays, calendarKey])
 
+  // ── Adaptation state from RPE feedback ─────────────────────────────────────
+  const [adaptationState, setAdaptationState] = useState(() => detectAdaptationState())
+  const handleRPERecorded = useCallback(() => {
+    setAdaptationState(detectAdaptationState())
+  }, [])
+
+  // ── Current phase info for header ─────────────────────────────────────────
+  const currentPhaseInfo = useMemo(() => {
+    if (!calendar || !calendar.totalWeeks) return null
+    const weeksOut = calendar.totalWeeks
+    const planWeek = weekNumberFromWeeksOut(weeksOut, Math.min(calendar.totalWeeks, 16))
+    const phase = getPhase(planWeek)
+    return {
+      weekNum: planWeek,
+      phase,
+      phaseLabel: PHASE_DISPLAY[phase],
+      config: phaseConfig[phase],
+    }
+  }, [calendar])
+
   // ── Status banners ─────────────────────────────────────────────────────────
   const inMockWindow = targetPfaDate ? isMockTestWindow(targetPfaDate, TODAY) : false
   const inTaper      = targetPfaDate ? isInTaperPeriod(targetPfaDate, TODAY) : false
@@ -730,9 +841,11 @@ export default function PlanTab() {
           </div>
           <div className="text-center">
             <div className={`text-xs font-bold px-2 py-1 rounded border ${phaseBannerColor}`}>
-              {PHASE_LABELS[calendar.startingPhase]}
+              {currentPhaseInfo ? currentPhaseInfo.phaseLabel : PHASE_LABELS[calendar.startingPhase]}
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">phase</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              {currentPhaseInfo ? `wk ${currentPhaseInfo.weekNum}` : 'phase'}
+            </div>
           </div>
         </div>
 
@@ -746,11 +859,37 @@ export default function PlanTab() {
           </div>
         )}
 
-        {/* Phase context */}
+        {/* Phase context - enhanced with phase engine info */}
         <div className={`mt-3 rounded-lg border p-2.5 text-xs ${phaseBannerColor}`}>
           {calendar.startingPhase === PHASES.PHASE_0 && <span className="font-semibold">Pre-Progression: </span>}
-          {PHASE_DESCRIPTIONS[calendar.startingPhase]}
+          {currentPhaseInfo && calendar.startingPhase !== PHASES.PHASE_0 && (
+            <span className="font-semibold">Week {currentPhaseInfo.weekNum} - {currentPhaseInfo.phaseLabel} Phase: </span>
+          )}
+          {currentPhaseInfo && currentPhaseInfo.config
+            ? currentPhaseInfo.config.description
+            : PHASE_DESCRIPTIONS[calendar.startingPhase]
+          }
+          {currentPhaseInfo && currentPhaseInfo.config && (
+            <div className="mt-1 opacity-75">
+              Effort: {currentPhaseInfo.config.effortLabel}
+            </div>
+          )}
         </div>
+
+        {/* Adaptation state banner */}
+        {adaptationState.state !== ADAPTATION_STATES.NORMAL && adaptationState.avgRPE > 0 && (
+          <div className={`mt-2 rounded-lg border p-2.5 text-xs ${
+            adaptationState.state === ADAPTATION_STATES.FATIGUED
+              ? 'bg-red-50 border-red-200 text-red-700'
+              : 'bg-blue-50 border-blue-200 text-blue-700'
+          }`}>
+            <strong>
+              {adaptationState.state === ADAPTATION_STATES.FATIGUED ? 'Fatigue Detected' : 'Undertraining Detected'}
+            </strong>
+            {' - '}{adaptationState.recommendation}
+            <span className="opacity-60"> (Avg RPE: {adaptationState.avgRPE})</span>
+          </div>
+        )}
 
         {/* Preferred training days picker */}
         {(() => {
@@ -950,6 +1089,7 @@ export default function PlanTab() {
             isCompleted={completedDays.has(selectedDate)}
             onToggleComplete={() => handleToggleComplete(selectedDate)}
             onNavigate={setActiveTab}
+            onRPERecorded={handleRPERecorded}
           />
         )}
 

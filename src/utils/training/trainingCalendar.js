@@ -20,6 +20,17 @@
  */
 
 import { EXERCISES, COMPONENTS } from '../scoring/constants.js'
+import {
+  getPhase,
+  weekNumberFromWeeksOut,
+  PHASE_NAMES,
+  PHASE_DISPLAY,
+  EFFORT_LABELS,
+  capIntensity,
+  getRepInstruction,
+  getSpecialWeekInfo,
+  WEEKLY_TEMPLATES,
+} from './phaseEngine.js'
 
 // ── Phase detection ───────────────────────────────────────────────────────────
 
@@ -491,38 +502,73 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         return
       }
 
-      // Regular training day
+      // Regular training day - use phase engine for prescription
+      const planWeekNum = weekNumberFromWeeksOut(weeksToTarget, totalWeeks)
+      const phaseName = phaseForWeek === PHASES.PHASE_0 ? null : getPhase(planWeekNum)
+      const phaseLabel = phaseName ? PHASE_DISPLAY[phaseName] : null
+      const specialInfo = phaseName ? getSpecialWeekInfo(planWeekNum) : { isSpecial: false }
+
       const dayLabel = phaseForWeek === PHASES.PHASE_0
         ? 'Pre-Progression Training'
-        : phaseForWeek === PHASES.PHASE_4
-          ? 'Taper-Prep Training'
-          : `Phase ${phaseForWeek} Training`
+        : `${phaseLabel} Phase Training`
+
+      // Get phase-governed session prescription
+      let sessionTemplate = null
+      let effortLabel = null
+      let intensity = null
+      let stress = null
+      if (phaseName) {
+        const phaseTemplates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
+        sessionTemplate = phaseTemplates[idx % phaseTemplates.length]
+        intensity = capIntensity(sessionTemplate.intensity, phaseName)
+        effortLabel = EFFORT_LABELS[intensity]
+        stress = sessionTemplate.stress || 3
+      }
 
       addEvent(dayISO, {
         type:        EVENT_TYPES.TRAINING,
         date:        dayISO,
         label:       dayLabel,
         description: getTrainingDayDescription(phaseForWeek, idx),
-        notes:       getTrainingDayNotes(phaseForWeek),
+        notes:       getTrainingDayNotes(phaseForWeek, idx),
         phase:       phaseForWeek,
+        phaseName,
+        phaseLabel,
+        intensity,
+        effortLabel,
+        stress,
+        weekNum:     planWeekNum,
+        repInstruction: phaseName ? getRepInstruction(phaseName) : null,
+        isSpecialWeek: specialInfo.isSpecial,
+        specialWeekType: specialInfo.type || null,
         priority:    'normal',
       })
     })
 
     // Rest days in the week (not tracked as events - absence of events = rest day)
 
+    const planWeekForMeta = weekNumberFromWeeksOut(weeksToTarget, totalWeeks)
+    const phaseNameForMeta = isPhase0 ? null : getPhase(planWeekForMeta)
+    const specialWeekMeta = phaseNameForMeta ? getSpecialWeekInfo(planWeekForMeta) : { isSpecial: false }
+
     weeks.push({
       weekNumber:     weekIndex + 1,
+      planWeekNum:    planWeekForMeta,
       weekStart,
       weekEnd,
       daysToTarget,
       weeksToTarget,
       phase:            phaseForWeek,
+      phaseName:        phaseNameForMeta,
+      phaseLabel:       phaseNameForMeta ? PHASE_DISPLAY[phaseNameForMeta] : null,
       isPIWeek,
       isBaselineWeek,
       isFoundationCheckin,
       is50TestWeek,
       is75TestWeek,
+      isSpecialWeek:    specialWeekMeta.isSpecial,
+      specialWeekType:  specialWeekMeta.type,
+      specialWeekLabel: specialWeekMeta.label,
     })
 
     weekStart = addDays(weekStart, 7)
@@ -546,49 +592,63 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 // ── Training day copy helpers ─────────────────────────────────────────────────
 
 function getTrainingDayDescription(phase, sessionIndex) {
-  const sessions = {
-    [PHASES.PHASE_0]: [
+  // Phase 0 retains its own pre-progression descriptions
+  if (phase === PHASES.PHASE_0) {
+    const phase0Sessions = [
       'Wall push-ups: 3x10, Chair-assisted sit-ups: 3x8, 10-min brisk walk',
       'Incline push-ups: 3x8, Glute bridges: 3x12, 15-min light walk',
       'Knee push-ups: 3x6, Modified crunches: 3x10, 20-min easy walk or bike',
-    ],
-    [PHASES.PHASE_1]: [
-      'Cardio base: 20-30 min conversational-pace run/walk',
-      'Strength + Core: 3x max push-ups, 3x max sit-ups with 90s rest',
-      'Cardio variation: 20 min easy run, or 8x2-min run/walk intervals with 1-min walk rest',
-    ],
-    [PHASES.PHASE_2]: [
-      'Cardio build: 30 min with 2x5-min goal-pace inserts',
-      'Strength + Core: 4x max push-ups, 4x max sit-ups; reduce rest to 60s',
-      'Cardio endurance: 30-35 min sustained at a pace you could hold a short conversation',
-    ],
-    [PHASES.PHASE_3]: [
-      'Cardio intensity: Tempo run 20 min @ 80% max heart rate',
-      'Strength + Core: 4x max push-ups, 4x max sit-ups; 45s rest (race simulation)',
-      'Cardio speed: 6x400m @ faster than goal pace, 2 min rest between',
-    ],
-    [PHASES.PHASE_4]: [
-      'Cardio maintenance: 20 min easy run - no hard efforts',
-      'Strength + Core: 2x10 push-ups, 2x10 sit-ups - feel sharp, not spent',
-      'Movement prep: Light jog, dynamic stretching, no hard efforts',
-    ],
+    ]
+    return phase0Sessions[sessionIndex % phase0Sessions.length]
   }
 
-  const phaseSessions = sessions[phase] || sessions[PHASES.PHASE_1]
-  return phaseSessions[sessionIndex % phaseSessions.length]
+  // Map legacy phase numbers to phase engine names for template lookup
+  const phaseNameMap = {
+    [PHASES.PHASE_1]: PHASE_NAMES.BASE,
+    [PHASES.PHASE_2]: PHASE_NAMES.BUILD,
+    [PHASES.PHASE_3]: PHASE_NAMES.BUILD_PLUS,
+    [PHASES.PHASE_4]: PHASE_NAMES.SHARPEN,
+  }
+  const phaseName = phaseNameMap[phase] || PHASE_NAMES.BASE
+  const templates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
+  const template = templates[sessionIndex % templates.length]
+
+  return template.description
 }
 
-function getTrainingDayNotes(phase) {
-  const notes = {
-    [PHASES.PHASE_0]: 'Pre-progression: Rest 60-90s between sets. Stop a rep or two short of failure - form matters more than count right now.',
-    [PHASES.PHASE_1]: 'Goal is to build confidence and habits. Effort should feel sustainable.',
-    [PHASES.PHASE_2]: 'Add effort gradually. If something hurts, back off immediately.',
-    [PHASES.PHASE_3]: 'This is the hardest phase. One hard day between recovery days.',
-    [PHASES.PHASE_4]: 'Taper-prep: less is more. Show up to test day rested, not exhausted.',
+function getTrainingDayNotes(phase, sessionIndex) {
+  if (phase === PHASES.PHASE_0) {
+    return 'Pre-progression: Rest 60-90s between sets. Stop a rep or two short of failure - form matters more than count right now.'
   }
-  return notes[phase] || notes[PHASES.PHASE_1]
+
+  const phaseNameMap = {
+    [PHASES.PHASE_1]: PHASE_NAMES.BASE,
+    [PHASES.PHASE_2]: PHASE_NAMES.BUILD,
+    [PHASES.PHASE_3]: PHASE_NAMES.BUILD_PLUS,
+    [PHASES.PHASE_4]: PHASE_NAMES.SHARPEN,
+  }
+  const phaseName = phaseNameMap[phase] || PHASE_NAMES.BASE
+  const templates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
+  const template = templates[sessionIndex % templates.length]
+  const repInstruction = getRepInstruction(phaseName)
+
+  return `${template.notes} ${repInstruction}`
 }
 
 // ── Utility re-exports ────────────────────────────────────────────────────────
 
 export { daysBetween, weeksBetween, addDays, getFitnessLevel, FITNESS_LEVELS }
+
+// Re-export phase engine types for consumers
+export {
+  PHASE_NAMES,
+  PHASE_DISPLAY,
+  INTENSITY,
+  EFFORT_LABELS,
+  getPhase,
+  weekNumberFromWeeksOut,
+  phaseConfig,
+  getRepInstruction,
+  getSpecialWeekInfo,
+  PI_WEEKS,
+} from './phaseEngine.js'
