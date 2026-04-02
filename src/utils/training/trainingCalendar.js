@@ -20,7 +20,7 @@
  */
 
 import { EXERCISES, COMPONENTS } from '../scoring/constants.js'
-import { PI_EXERCISES, formatSecondsMMSS } from './practiceSession.js'
+import { PI_EXERCISES, PI_IS_TIME, formatSecondsMMSS } from './practiceSession.js'
 import {
   weekNumberFromWeeksOut,
   getProgressionRatio,
@@ -566,13 +566,15 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         piCycleIndex++
         const rx = prescribePIWorkout(piItem.exercise, piItem.fitnessLevel)
 
+        const piTarget = buildBeatTarget(piItem.exercise, baselineScores, rx.target)
+
         addEvent(dayISO, {
           type:        EVENT_TYPES.PI_WORKOUT,
           date:        dayISO,
           label:       `Quick Benchmark - ${rx.description}`,
           description: rx.description,
           notes:       rx.notes,
-          target:      rx.target,
+          target:      piTarget,
           component:   piItem.component,
           exercise:    piItem.exercise,
           priority:    'medium',
@@ -672,14 +674,39 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
   }
 }
 
-// ── Baseline score extraction ────────────────────────────────────────────────
+// ── PI score history extraction ──────────────────────────────────────────────
+
+// Reverse map: full-test EXERCISES constant -> preferred PI exercise key
+// When multiple PI exercises map to the same full exercise (e.g. run_400m and
+// run_1mile both map to RUN_2MILE), prefer the shorter benchmark variant.
+const EXERCISE_TO_PI = {
+  [EXERCISES.PUSHUPS]:   PI_EXERCISES.PUSHUPS_30S,
+  [EXERCISES.SITUPS]:    PI_EXERCISES.SITUPS_30S,
+  [EXERCISES.CLRC]:      PI_EXERCISES.CLRC_30S,
+  [EXERCISES.RUN_2MILE]: PI_EXERCISES.RUN_400M,
+  [EXERCISES.PLANK]:     PI_EXERCISES.PLANK_HALF,
+  [EXERCISES.HAMR]:      PI_EXERCISES.HAMR_INTERVAL,
+}
 
 /**
- * Scan practice sessions for the earliest PI recording per exercise.
- * Returns an object with formatted display values for check-in comparisons.
+ * Format a raw PI value for display.
+ * @param {string} piExercise - PI_EXERCISES key
+ * @param {number} value - Raw value (reps or seconds)
+ * @returns {string}
+ */
+function formatPIValue(piExercise, value) {
+  if (PI_IS_TIME[piExercise]) return formatSecondsMMSS(value)
+  return String(value)
+}
+
+/**
+ * Scan practice sessions for earliest and most recent PI recordings per exercise.
+ * Used for check-in comparisons (earliest = baseline) and PI workout targets
+ * (latest = score to beat).
  */
 function extractBaselineScores(practiceSessionMap) {
   const earliest = {}
+  const latest = {}
   const sessions = Object.values(practiceSessionMap)
     .filter(s => s.type === 'pi_workout' && s.piExercise && s.piValue != null)
     .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
@@ -688,6 +715,7 @@ function extractBaselineScores(practiceSessionMap) {
     if (!earliest[s.piExercise]) {
       earliest[s.piExercise] = s.piValue
     }
+    latest[s.piExercise] = s.piValue
   }
 
   const pushups = earliest[PI_EXERCISES.PUSHUPS_30S]
@@ -703,7 +731,30 @@ function extractBaselineScores(practiceSessionMap) {
     hasRun400:  run400 != null,
     hasStrengthCore: pushups != null || situps != null,
     hasCardio: run400 != null,
+    latest,
   }
+}
+
+/**
+ * Build a "beat your last score" target string for a PI workout exercise.
+ * @param {string} exercise - EXERCISES constant (e.g. EXERCISES.PUSHUPS)
+ * @param {object} baselineScores - Result from extractBaselineScores()
+ * @param {string} fallbackTarget - Default target from prescribePIWorkout()
+ * @returns {string}
+ */
+function buildBeatTarget(exercise, baselineScores, fallbackTarget) {
+  const piKey = EXERCISE_TO_PI[exercise]
+  if (!piKey) return fallbackTarget
+
+  const lastValue = baselineScores.latest[piKey]
+  if (lastValue == null) return fallbackTarget
+
+  const isTime = PI_IS_TIME[piKey]
+  const formatted = formatPIValue(piKey, lastValue)
+  const verb = isTime ? 'Beat' : 'Beat'
+  const unit = isTime ? '' : ' reps'
+
+  return `${verb} your last: ${formatted}${unit}`
 }
 
 // ── Training day copy helpers ─────────────────────────────────────────────────
