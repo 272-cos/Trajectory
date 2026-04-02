@@ -20,6 +20,7 @@
  */
 
 import { EXERCISES, COMPONENTS } from '../scoring/constants.js'
+import { PI_EXERCISES, PI_IS_TIME, formatSecondsMMSS } from './practiceSession.js'
 import {
   weekNumberFromWeeksOut,
   getProgressionRatio,
@@ -314,6 +315,9 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
   const totalDays = daysBetween(todayISO, targetDateISO)
   const totalWeeks = weeksBetween(todayISO, targetDateISO)
 
+  // Extract earliest PI recordings per exercise for check-in comparisons
+  const baselineScores = extractBaselineScores(practiceSessionMap)
+
   const composite = currentScores?.composite ?? null
   const isPhase0 = shouldUsePhase0(composite, piPushups)
   const startingPhase = detectPhase(totalWeeks, { forcePhase0: isPhase0, totalWeeks })
@@ -481,25 +485,31 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 
       // ── Foundation check-in: repeat Week 1, measure delta ──────────────────
       if (isFoundationCheckin && idx === 0) {
+        const scTarget = baselineScores.hasStrengthCore
+          ? `Beat your Week 1 scores: ${[baselineScores.pushups, baselineScores.situps].filter(Boolean).join(', ')}`
+          : 'Beat your Week 1 push-up and sit-up counts'
         addEvent(dayISO, {
           type:        EVENT_TYPES.FOUNDATION_CHECKIN,
           date:        dayISO,
           label:       'Phase 1 Check-in - Strength & Core',
           description: 'Repeat exactly: 30-sec max push-ups, rest 2 min, 30-sec max sit-ups.',
           notes:       'Compare to Week 1 numbers. This is your first visible evidence of progress. Record in Practice Check > PI Workout.',
-          target:      'Beat your Week 1 push-up and sit-up counts',
+          target:      scTarget,
           priority:    'medium',
         })
         return
       }
       if (isFoundationCheckin && idx === 1) {
+        const cardioTarget = baselineScores.hasCardio
+          ? `Beat your Week 1 time: ${baselineScores.run400}`
+          : 'Beat your Week 1 400m time'
         addEvent(dayISO, {
           type:        EVENT_TYPES.FOUNDATION_CHECKIN,
           date:        dayISO,
           label:       'Phase 1 Check-in - Cardio',
           description: '400m run. Compare to Week 1 time.',
           notes:       'A faster time is your first visible cardio evidence. Record in Practice Check > PI Workout > 400m Run.',
-          target:      'Beat your Week 1 400m time',
+          target:      cardioTarget,
           priority:    'medium',
         })
         return
@@ -556,13 +566,15 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         piCycleIndex++
         const rx = prescribePIWorkout(piItem.exercise, piItem.fitnessLevel)
 
+        const piTarget = buildBeatTarget(piItem.exercise, baselineScores, rx.target)
+
         addEvent(dayISO, {
           type:        EVENT_TYPES.PI_WORKOUT,
           date:        dayISO,
           label:       `Quick Benchmark - ${rx.description}`,
           description: rx.description,
           notes:       rx.notes,
-          target:      rx.target,
+          target:      piTarget,
           component:   piItem.component,
           exercise:    piItem.exercise,
           priority:    'medium',
@@ -660,6 +672,89 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
     weeks,
     eventsByDate,
   }
+}
+
+// ── PI score history extraction ──────────────────────────────────────────────
+
+// Reverse map: full-test EXERCISES constant -> preferred PI exercise key
+// When multiple PI exercises map to the same full exercise (e.g. run_400m and
+// run_1mile both map to RUN_2MILE), prefer the shorter benchmark variant.
+const EXERCISE_TO_PI = {
+  [EXERCISES.PUSHUPS]:   PI_EXERCISES.PUSHUPS_30S,
+  [EXERCISES.SITUPS]:    PI_EXERCISES.SITUPS_30S,
+  [EXERCISES.CLRC]:      PI_EXERCISES.CLRC_30S,
+  [EXERCISES.RUN_2MILE]: PI_EXERCISES.RUN_400M,
+  [EXERCISES.PLANK]:     PI_EXERCISES.PLANK_HALF,
+  [EXERCISES.HAMR]:      PI_EXERCISES.HAMR_INTERVAL,
+}
+
+/**
+ * Format a raw PI value for display.
+ * @param {string} piExercise - PI_EXERCISES key
+ * @param {number} value - Raw value (reps or seconds)
+ * @returns {string}
+ */
+function formatPIValue(piExercise, value) {
+  if (PI_IS_TIME[piExercise]) return formatSecondsMMSS(value)
+  return String(value)
+}
+
+/**
+ * Scan practice sessions for earliest and most recent PI recordings per exercise.
+ * Used for check-in comparisons (earliest = baseline) and PI workout targets
+ * (latest = score to beat).
+ */
+function extractBaselineScores(practiceSessionMap) {
+  const earliest = {}
+  const latest = {}
+  const sessions = Object.values(practiceSessionMap)
+    .filter(s => s.type === 'pi_workout' && s.piExercise && s.piValue != null)
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+
+  for (const s of sessions) {
+    if (!earliest[s.piExercise]) {
+      earliest[s.piExercise] = s.piValue
+    }
+    latest[s.piExercise] = s.piValue
+  }
+
+  const pushups = earliest[PI_EXERCISES.PUSHUPS_30S]
+  const situps  = earliest[PI_EXERCISES.SITUPS_30S]
+  const run400  = earliest[PI_EXERCISES.RUN_400M]
+
+  return {
+    pushups: pushups != null ? `${pushups} push-ups in 30 sec` : null,
+    situps:  situps != null  ? `${situps} sit-ups in 30 sec`   : null,
+    run400:  run400 != null  ? `${formatSecondsMMSS(run400)} for 400m` : null,
+    hasPushups: pushups != null,
+    hasSitups:  situps != null,
+    hasRun400:  run400 != null,
+    hasStrengthCore: pushups != null || situps != null,
+    hasCardio: run400 != null,
+    latest,
+  }
+}
+
+/**
+ * Build a "beat your last score" target string for a PI workout exercise.
+ * @param {string} exercise - EXERCISES constant (e.g. EXERCISES.PUSHUPS)
+ * @param {object} baselineScores - Result from extractBaselineScores()
+ * @param {string} fallbackTarget - Default target from prescribePIWorkout()
+ * @returns {string}
+ */
+function buildBeatTarget(exercise, baselineScores, fallbackTarget) {
+  const piKey = EXERCISE_TO_PI[exercise]
+  if (!piKey) return fallbackTarget
+
+  const lastValue = baselineScores.latest[piKey]
+  if (lastValue == null) return fallbackTarget
+
+  const isTime = PI_IS_TIME[piKey]
+  const formatted = formatPIValue(piKey, lastValue)
+  const verb = isTime ? 'Beat' : 'Beat'
+  const unit = isTime ? '' : ' reps'
+
+  return `${verb} your last: ${formatted}${unit}`
 }
 
 // ── Training day copy helpers ─────────────────────────────────────────────────
