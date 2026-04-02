@@ -587,6 +587,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         effortLabel,
         stress,
         weekNum:     weekNumberFromWeeksOut(weeksToTarget, totalWeeks),
+        displayWeekNum: weekIndex + 1,
         progressionRatio: weekRatio,
         repInstruction: phaseName ? getRepInstruction(phaseName) : null,
         isSpecialWeek: specialInfo.isSpecial,

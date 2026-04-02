@@ -314,7 +314,7 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate,
                   {event.type === EVENT_TYPES.TRAINING && event.phaseLabel && (
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                        Week {event.weekNum || '?'} - {event.phaseLabel} Phase
+                        Week {event.displayWeekNum || event.weekNum || '?'} - {event.phaseLabel} Phase
                       </span>
                       {event.effortLabel && (
                         <span className={`text-xs px-2 py-0.5 rounded ${
@@ -668,8 +668,10 @@ export default function PlanTab() {
     const currentWeeksOut = Math.max(0, Math.ceil(daysBetween(TODAY, calendar.targetDate) / 7))
     const ratio = getProgressionRatio(currentWeeksOut, calendar.totalWeeks)
     const phase = getPhaseFromRatio(ratio, calendar.totalWeeks)
+    const displayWeekNum = Math.max(1, Math.min(calendar.totalWeeks, calendar.totalWeeks - currentWeeksOut + 1))
     return {
       weekNum: weekNumberFromWeeksOut(currentWeeksOut, calendar.totalWeeks),
+      displayWeekNum,
       phase,
       phaseLabel: PHASE_DISPLAY[phase],
       config: phaseConfig[phase],
@@ -845,7 +847,7 @@ export default function PlanTab() {
               {currentPhaseInfo ? currentPhaseInfo.phaseLabel : PHASE_LABELS[calendar.startingPhase]}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">
-              {currentPhaseInfo ? `wk ${currentPhaseInfo.weekNum}` : 'phase'}
+              {currentPhaseInfo ? `wk ${currentPhaseInfo.displayWeekNum}` : 'phase'}
             </div>
           </div>
         </div>
@@ -864,7 +866,7 @@ export default function PlanTab() {
         <div className={`mt-3 rounded-lg border p-2.5 text-xs ${phaseBannerColor}`}>
           {calendar.startingPhase === PHASES.PHASE_0 && <span className="font-semibold">Pre-Progression: </span>}
           {currentPhaseInfo && calendar.startingPhase !== PHASES.PHASE_0 && (
-            <span className="font-semibold">Week {currentPhaseInfo.weekNum} - {currentPhaseInfo.phaseLabel} Phase: </span>
+            <span className="font-semibold">Week {currentPhaseInfo.displayWeekNum} - {currentPhaseInfo.phaseLabel} Phase: </span>
           )}
           {currentPhaseInfo && currentPhaseInfo.config
             ? currentPhaseInfo.config.description
