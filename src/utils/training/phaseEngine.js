@@ -367,7 +367,7 @@ export function getRepInstruction(phase) {
     case PHASE_NAMES.BUILD:
       return 'Stop 2-3 reps before failure. Controlled tempo.'
     case PHASE_NAMES.BUILD_PLUS:
-      return 'Stop 1-2 reps before failure. Push the pace.'
+      return 'Stop 1-2 reps before failure. Maintain a brisk, controlled tempo.'
     case PHASE_NAMES.SHARPEN:
       return 'Near-max effort. Simulate test conditions.'
     default:
@@ -397,7 +397,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'strength_core',
       intensity: INTENSITY.LOW,
       stress: 4,
-      description: 'Push-ups: 3 sets, stop 3-4 reps before failure (90s rest). Sit-ups/Plank: 3 sets, same rule.',
+      description: 'Push-ups: 3 sets, stop 3-4 reps before failure (90s rest). Sit-ups: 3 sets, stop 3-4 reps before failure (90s rest). Plank: 3 holds, maintain for maximum controlled effort (90s rest).',
       notes: 'No grinding reps. If form breaks down, the set is over.',
     },
     {
@@ -405,7 +405,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'cardio',
       intensity: INTENSITY.LOW,
       stress: 3,
-      description: '20 min easy run/walk, OR 8x2-min run/walk intervals with 1-min walk rest.',
+      description: '20 min at an easy, conversational pace (run/walk as needed), OR 8x2-min running intervals with 1-min walk recovery between each.',
       notes: 'Keep heart rate in Zone 2. This builds your base without adding fatigue.',
     },
   ],
@@ -423,7 +423,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'strength_core',
       intensity: INTENSITY.MODERATE,
       stress: 5,
-      description: 'Push-ups: 4 sets, stop 2-3 reps before failure (60s rest). Core: 4 sets same approach.',
+      description: 'Push-ups: 4 sets, stop 2-3 reps before failure (60s rest). Core: 4 sets, as many quality reps as possible while maintaining perfect form (60s rest).',
       notes: 'Controlled tempo: 2 seconds down, 1 second up. Rest is shorter but effort stays submaximal.',
     },
     {
@@ -441,7 +441,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'cardio',
       intensity: INTENSITY.HIGH,
       stress: 7,
-      description: '6x400m at faster than goal pace (2 min rest), OR tempo run 20 min at 80% max HR.',
+      description: '6x400m at faster than goal pace (2 min rest between intervals), OR 20 min at a hard but sustainable effort (RPE 7-8).',
       notes: 'This is the hardest cardio session of the week. One hard day, then recover.',
     },
     {
@@ -449,7 +449,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'strength_core',
       intensity: INTENSITY.MODERATE,
       stress: 6,
-      description: 'Push-ups: 4 sets, stop 1-2 reps before failure (45s rest). Core: 4 sets, push the pace.',
+      description: 'Push-ups: 4 sets, stop 1-2 reps before failure (45s rest). Core: 4 sets, perform at a brisk but controlled pace for the full duration (45s rest).',
       notes: 'Shorter rest periods build muscular endurance. Maintain form throughout.',
     },
     {
@@ -457,7 +457,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'cardio',
       intensity: INTENSITY.MODERATE,
       stress: 5,
-      description: '25-30 min at moderate effort. Include 4x1-min pickups at goal pace.',
+      description: '25-30 min of running at moderate effort (RPE 5-6). Include 4x1-min pickups at goal pace with easy running between.',
       notes: 'Not a hard day. Stay controlled and build confidence at race pace.',
     },
     {
@@ -465,7 +465,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'strength_core',
       intensity: INTENSITY.HIGH,
       stress: 6,
-      description: 'Push-ups: timed 30-sec max sets x4 (2 min rest). Core: timed sets matching test format.',
+      description: 'Push-ups: 4 timed 30-sec sets, leaving 1-2 reps in reserve (2 min rest). Core: timed sets matching test format - maximum controlled effort for the full duration (2 min rest).',
       notes: 'Practice test-specific movements at near-test intensity. Stop 1 rep before failure.',
     },
   ],
@@ -475,7 +475,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'cardio',
       intensity: INTENSITY.HIGH,
       stress: 7,
-      description: 'Full test-distance run at goal pace. Record splits.',
+      description: 'Full test-distance run at goal pace. Record splits at each half-mile or lap.',
       notes: 'Simulate test conditions. This is your dress rehearsal.',
     },
     {
@@ -483,7 +483,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'strength_core',
       intensity: INTENSITY.HIGH,
       stress: 5,
-      description: 'Push-ups: 2 sets at near-max (2 min rest). Core: 2 sets at near-max. Reduced volume.',
+      description: 'Push-ups: 2 sets, stop 1 rep before failure (2 min rest). Core: 2 sets, maximum controlled effort for the full duration (2 min rest). Reduced volume to stay sharp.',
       notes: 'Fewer sets, higher intensity. Stay sharp without accumulating fatigue.',
     },
     {
@@ -491,7 +491,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'cardio',
       intensity: INTENSITY.LOW,
       stress: 3,
-      description: '20 min easy jog. Movement prep and dynamic stretching.',
+      description: 'Easy recovery run - 20 min at conversational pace (RPE 4-5). Include dynamic stretching before and after.',
       notes: 'Active recovery. Keep the engine running without adding stress.',
     },
     {
