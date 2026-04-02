@@ -386,8 +386,8 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate,
                   )}
                   {event.type === EVENT_TYPES.MOCK_TEST && (
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 text-xs text-orange-700 font-medium">
-                      Do this exactly once. After today, shift to taper - cut volume 50%,
-                      maintain intensity, rest more.
+                      Do this exactly once. After today, follow the daily taper plan on
+                      your calendar - it tells you exactly what to do each day until test day.
                     </div>
                   )}
                   {/* RPE feedback - show for completed training days */}
