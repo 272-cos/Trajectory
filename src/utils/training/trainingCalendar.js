@@ -359,25 +359,44 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       date:        mockTestDate,
       label:       'Full Mock Test',
       description: 'One full practice test, 14 days before your actual assessment.',
-      notes:       'Simulate test conditions. After this, shift to taper. Reduce training volume by 50%.',
+      notes:       'Simulate test conditions as closely as possible. After today, your calendar switches to a structured 2-week taper with specific daily guidance.',
       priority:    'high',
     })
   }
 
   // ── Taper period: -14 to -1 days (TR-10) ─────────────────────────────────
+  // Structured 14-day taper with specific daily guidance.
+  // Week 1 (days -14 to -8): reduced training with short, sharp sessions.
+  // Week 2 (days -7 to -1): minimal activity, full recovery focus.
+  const TAPER_SCHEDULE = [
+    // Day 0 = mock test day (skipped below)
+    { day: 1,  label: 'Taper - Easy Recovery',      description: 'Light 15-min walk or easy bike. Gentle dynamic stretching for 10 min.',                                              notes: 'Active recovery from yesterday\'s mock test. Keep moving but stay well below training effort.' },
+    { day: 2,  label: 'Taper - Short Strength',      description: 'Push-ups: 2 sets of 10-15 at an easy pace (90s rest). Core: 2 sets of 10-15 at an easy pace (90s rest).',             notes: 'Half your normal sets and reps. Focus on smooth form, not max effort.' },
+    { day: 3,  label: 'Taper - Rest Day',             description: 'Full rest. No training.',                                                                                            notes: 'Walk if you feel restless, but no structured exercise. Hydrate well.' },
+    { day: 4,  label: 'Taper - Light Cardio',         description: '15-min easy run at conversational pace. You should be able to speak full sentences comfortably.',                     notes: 'Keep the pace relaxed. This is about maintaining your aerobic base, not building it.' },
+    { day: 5,  label: 'Taper - Short Strength',       description: 'Push-ups: 2 sets of 8-12, stopping well before failure (90s rest). Core: 2 sets of 8-12 with controlled form (90s rest).', notes: 'Last strength session of the taper. Crisp reps, perfect form, no grinding.' },
+    { day: 6,  label: 'Taper - Rest Day',             description: 'Full rest. No training.',                                                                                            notes: 'Recovery is the priority now. Sleep 7-9 hours tonight.' },
+    { day: 7,  label: 'Taper - Easy Movement',        description: '10-min easy walk and 10 min of dynamic stretching (leg swings, arm circles, hip openers).',                          notes: 'Stay loose without adding fatigue. This is the start of your final rest week.' },
+    { day: 8,  label: 'Taper - Rest Day',             description: 'Full rest. No training.',                                                                                            notes: 'Trust your preparation. Fitness gains are already locked in.' },
+    { day: 9,  label: 'Taper - Light Shakeout',       description: '10-min easy jog at a very relaxed pace, followed by 5 min of dynamic stretching.',                                   notes: 'Just enough movement to stay loose. Effort should feel effortless.' },
+    { day: 10, label: 'Taper - Rest Day',             description: 'Full rest. No training.',                                                                                            notes: 'Continue hydrating well and eating balanced meals.' },
+    { day: 11, label: 'Taper - Light Activation',     description: '5 push-ups, 5 sit-ups, 5-min easy walk. Just enough to wake up the muscles.',                                        notes: 'This is not a workout. It is a brief reminder to your body of what test day feels like.' },
+    { day: 12, label: 'Taper - Rest Day',             description: 'Full rest. No training.',                                                                                            notes: 'Two days out. Lay out your test-day gear and review your pacing plan.' },
+    { day: 13, label: 'Taper - Day Before Test',      description: 'Full rest. Optional 5-min walk if you feel antsy.',                                                                  notes: 'Eat a normal dinner, hydrate, and get to bed early. You are ready.' },
+  ]
+
   const taperStart = addDays(targetDateISO, -14)
-  for (let i = 0; i <= 13; i++) {
-    const d = addDays(taperStart, i)
+  for (const entry of TAPER_SCHEDULE) {
+    const d = addDays(taperStart, entry.day)
     if (daysBetween(todayISO, d) < 0) continue
-    if (isSameDay(d, mockTestDate)) continue
     if (isSameDay(d, targetDateISO)) continue
     addEvent(d, {
       type:        EVENT_TYPES.TAPER,
       date:        d,
-      label:       'Taper Period',
-      description: 'Reduce volume 50%. Maintain intensity, cut frequency.',
-      notes:       'Do not add new training stress. Sleep, hydrate, and recover.',
-      priority:    'medium',
+      label:       entry.label,
+      description: entry.description,
+      notes:       entry.notes,
+      priority:    entry.day >= 7 ? 'high' : 'medium',
     })
   }
 
