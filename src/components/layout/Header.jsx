@@ -91,7 +91,7 @@ export default function Header() {
           </button>
         </div>
         {/* Subtitle centered between lower wave and banner bottom */}
-        <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide pt-6 sm:pt-8 pb-3 sm:pb-4">
+        <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide pt-10 sm:pt-14 pb-3 sm:pb-4">
           USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
         </p>
       </div>
