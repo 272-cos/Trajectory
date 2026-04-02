@@ -66,9 +66,9 @@ export default function Header() {
         backgroundPosition: 'center 45%',
       }}
     >
-      <div className="container mx-auto max-w-4xl lg:max-w-6xl px-4 flex flex-col relative" style={{ minHeight: '120px' }}>
+      <div className="container mx-auto max-w-4xl lg:max-w-6xl px-4 relative">
         {/* Logo + wordmark aligned with the wave crossing point */}
-        <div className="flex items-center justify-between flex-1 pt-8 sm:pt-10 pb-2 sm:pb-3">
+        <div className="flex items-center justify-between pt-8 sm:pt-10">
           <div className="flex items-center gap-3 sm:gap-4">
             <img
               src={`${BASE}icons/icon-512.png`}
@@ -91,7 +91,7 @@ export default function Header() {
           </button>
         </div>
         {/* Subtitle centered between lower wave and banner bottom */}
-        <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide pb-4 sm:pb-5 mt-2 sm:mt-3">
+        <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide pt-6 sm:pt-8 pb-3 sm:pb-4">
           USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
         </p>
       </div>
