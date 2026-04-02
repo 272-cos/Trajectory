@@ -330,7 +330,7 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate,
                   {event.description && (
                     <p className={`text-sm ${ec.text}`}>{event.description}</p>
                   )}
-                  {/* Rep instruction for training events */}
+                  {/* Effort instruction for training events */}
                   {event.type === EVENT_TYPES.TRAINING && event.repInstruction && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700 font-medium">
                       {event.repInstruction}

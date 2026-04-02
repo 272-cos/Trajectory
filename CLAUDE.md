@@ -17,6 +17,7 @@ A mobile-first web app for USAF Airmen to self-assess fitness performance agains
 7. **Regulatory basis** - DAFMAN 36-2905 (Change 1, 22 Jan 2026) + AFPC 50-20-15-15 model
 8. **No em dashes or en dashes** - use only hyphens (-) throughout the codebase and docs
 9. **No internal tracking codes in UI** - Internal references (TR-XX, PG-XX, CS-XX, IV-XX, RP-XX, etc.) must NEVER appear in user-facing text, labels, disclaimers, or rendered output. They belong only in code comments and documentation.
+10. **Exercise-type-appropriate language** - Never use rep-based language ("reps before failure", "sets of X reps") for cardio/running sessions. Cardio descriptions must use time, distance, or effort-based cues only (e.g., "20 min at conversational pace", "hard but sustainable effort"). Similarly, never use cardio language (pace, distance, heart rate zones) for strength exercises. The `getRepInstruction()` function in `phaseEngine.js` accepts a `sessionType` parameter to enforce this.
 
 ## Development Commands
 
