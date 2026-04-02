@@ -90,8 +90,8 @@ export default function Header() {
             {darkMode ? '☀' : '☽'}
           </button>
         </div>
-        {/* Subtitle pinned below the wave lines */}
-        <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide pb-3">
+        {/* Subtitle centered between lower wave and banner bottom */}
+        <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide pb-4 sm:pb-5 mt-2 sm:mt-3">
           USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
         </p>
       </div>
