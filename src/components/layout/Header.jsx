@@ -70,12 +70,12 @@ export default function Header() {
         <div className="flex flex-col items-start gap-1">
           <div className="flex items-center gap-3 sm:gap-4">
             <img
-              src={`${BASE}icons/logo-transparent.png`}
+              src={`${BASE}icons/icon-512.png`}
               alt="Trajectory logo"
-              width="192"
-              height="128"
+              width="512"
+              height="512"
               fetchpriority="high"
-              className="h-16 sm:h-20 md:h-24 w-auto block drop-shadow-[0_0_12px_rgba(32,144,255,0.7)]"
+              className="h-12 sm:h-14 md:h-16 w-auto block drop-shadow-[0_0_12px_rgba(32,144,255,0.7)]"
             />
             <TrajectoryWordmark />
           </div>
