@@ -359,7 +359,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       date:        mockTestDate,
       label:       'Full Mock Test',
       description: 'One full practice test, 14 days before your actual assessment.',
-      notes:       'Simulate test conditions. After this, shift to taper. Reduce training volume by 50%.',
+      notes:       'Simulate test conditions as closely as possible. After this, shift to taper: train half as often but keep the same effort when you do.',
       priority:    'high',
     })
   }
@@ -375,8 +375,8 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       type:        EVENT_TYPES.TAPER,
       date:        d,
       label:       'Taper Period',
-      description: 'Reduce volume 50%. Maintain intensity, cut frequency.',
-      notes:       'Do not add new training stress. Sleep, hydrate, and recover.',
+      description: 'Train half as often as normal but keep the same effort when you do. For example, if you trained 4 days last week, train only 2 this week.',
+      notes:       'No new exercises or harder workouts. Prioritize sleep, hydration, and recovery so you show up to test day rested.',
       priority:    'medium',
     })
   }
