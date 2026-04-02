@@ -91,7 +91,7 @@ export default function Header() {
           </button>
         </div>
         {/* Subtitle pinned below the wave lines */}
-        <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide pb-3">
+        <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide pt-2 pb-5">
           USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
         </p>
       </div>
