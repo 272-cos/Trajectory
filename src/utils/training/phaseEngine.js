@@ -441,7 +441,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'cardio',
       intensity: INTENSITY.HIGH,
       stress: 7,
-      description: '6x400m at faster than goal pace (2 min rest between intervals), OR 20 min at a hard but sustainable effort (RPE 7-8).',
+      description: '6x400m at faster than goal pace (2 min rest between intervals), OR 20 min at a hard but sustainable effort.',
       notes: 'This is the hardest cardio session of the week. One hard day, then recover.',
     },
     {
@@ -457,7 +457,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'cardio',
       intensity: INTENSITY.MODERATE,
       stress: 5,
-      description: '25-30 min of running at moderate effort (RPE 5-6). Include 4x1-min pickups at goal pace with easy running between.',
+      description: '25-30 min of running at moderate effort. Include 4x1-min pickups at goal pace with easy running between.',
       notes: 'Not a hard day. Stay controlled and build confidence at race pace.',
     },
     {
@@ -491,7 +491,7 @@ export const WEEKLY_TEMPLATES = {
       type: 'cardio',
       intensity: INTENSITY.LOW,
       stress: 3,
-      description: 'Easy recovery run - 20 min at conversational pace (RPE 4-5). Include dynamic stretching before and after.',
+      description: 'Easy recovery run - 20 min at conversational pace. Include dynamic stretching before and after.',
       notes: 'Active recovery. Keep the engine running without adding stress.',
     },
     {
