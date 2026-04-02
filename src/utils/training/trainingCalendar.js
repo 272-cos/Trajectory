@@ -20,6 +20,7 @@
  */
 
 import { EXERCISES, COMPONENTS } from '../scoring/constants.js'
+import { PI_EXERCISES, formatSecondsMMSS } from './practiceSession.js'
 import {
   weekNumberFromWeeksOut,
   getProgressionRatio,
@@ -314,6 +315,9 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
   const totalDays = daysBetween(todayISO, targetDateISO)
   const totalWeeks = weeksBetween(todayISO, targetDateISO)
 
+  // Extract earliest PI recordings per exercise for check-in comparisons
+  const baselineScores = extractBaselineScores(practiceSessionMap)
+
   const composite = currentScores?.composite ?? null
   const isPhase0 = shouldUsePhase0(composite, piPushups)
   const startingPhase = detectPhase(totalWeeks, { forcePhase0: isPhase0, totalWeeks })
@@ -481,25 +485,31 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 
       // ── Foundation check-in: repeat Week 1, measure delta ──────────────────
       if (isFoundationCheckin && idx === 0) {
+        const scTarget = baselineScores.hasStrengthCore
+          ? `Beat your Week 1 scores: ${[baselineScores.pushups, baselineScores.situps].filter(Boolean).join(', ')}`
+          : 'Beat your Week 1 push-up and sit-up counts'
         addEvent(dayISO, {
           type:        EVENT_TYPES.FOUNDATION_CHECKIN,
           date:        dayISO,
           label:       'Phase 1 Check-in - Strength & Core',
           description: 'Repeat exactly: 30-sec max push-ups, rest 2 min, 30-sec max sit-ups.',
           notes:       'Compare to Week 1 numbers. This is your first visible evidence of progress. Record in Practice Check > PI Workout.',
-          target:      'Beat your Week 1 push-up and sit-up counts',
+          target:      scTarget,
           priority:    'medium',
         })
         return
       }
       if (isFoundationCheckin && idx === 1) {
+        const cardioTarget = baselineScores.hasCardio
+          ? `Beat your Week 1 time: ${baselineScores.run400}`
+          : 'Beat your Week 1 400m time'
         addEvent(dayISO, {
           type:        EVENT_TYPES.FOUNDATION_CHECKIN,
           date:        dayISO,
           label:       'Phase 1 Check-in - Cardio',
           description: '400m run. Compare to Week 1 time.',
           notes:       'A faster time is your first visible cardio evidence. Record in Practice Check > PI Workout > 400m Run.',
-          target:      'Beat your Week 1 400m time',
+          target:      cardioTarget,
           priority:    'medium',
         })
         return
@@ -659,6 +669,40 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
     taperStart,
     weeks,
     eventsByDate,
+  }
+}
+
+// ── Baseline score extraction ────────────────────────────────────────────────
+
+/**
+ * Scan practice sessions for the earliest PI recording per exercise.
+ * Returns an object with formatted display values for check-in comparisons.
+ */
+function extractBaselineScores(practiceSessionMap) {
+  const earliest = {}
+  const sessions = Object.values(practiceSessionMap)
+    .filter(s => s.type === 'pi_workout' && s.piExercise && s.piValue != null)
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+
+  for (const s of sessions) {
+    if (!earliest[s.piExercise]) {
+      earliest[s.piExercise] = s.piValue
+    }
+  }
+
+  const pushups = earliest[PI_EXERCISES.PUSHUPS_30S]
+  const situps  = earliest[PI_EXERCISES.SITUPS_30S]
+  const run400  = earliest[PI_EXERCISES.RUN_400M]
+
+  return {
+    pushups: pushups != null ? `${pushups} push-ups in 30 sec` : null,
+    situps:  situps != null  ? `${situps} sit-ups in 30 sec`   : null,
+    run400:  run400 != null  ? `${formatSecondsMMSS(run400)} for 400m` : null,
+    hasPushups: pushups != null,
+    hasSitups:  situps != null,
+    hasRun400:  run400 != null,
+    hasStrengthCore: pushups != null || situps != null,
+    hasCardio: run400 != null,
   }
 }
 
