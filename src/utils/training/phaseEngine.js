@@ -355,12 +355,33 @@ export function capIntensity(requestedIntensity, phase) {
 }
 
 /**
- * Get the rep instruction for a given phase (replaces "max reps" language).
+ * Get the effort instruction for a given phase and session type.
+ *
+ * For strength/core sessions, returns rep-based cues.
+ * For cardio/movement sessions, returns effort/pace cues.
  *
  * @param {string} phase - PHASE_NAMES constant
+ * @param {string} [sessionType] - Session type: 'cardio', 'strength_core', 'movement_prep'
  * @returns {string} Instruction text
  */
-export function getRepInstruction(phase) {
+export function getRepInstruction(phase, sessionType) {
+  const isCardio = sessionType === 'cardio' || sessionType === 'movement_prep'
+
+  if (isCardio) {
+    switch (phase) {
+      case PHASE_NAMES.BASE:
+        return 'Keep the pace easy and conversational. Focus on building consistency.'
+      case PHASE_NAMES.BUILD:
+        return 'Moderate effort - you can speak in short sentences but not hold a conversation.'
+      case PHASE_NAMES.BUILD_PLUS:
+        return 'Hard effort on intervals, easy between. Maintain steady breathing and form.'
+      case PHASE_NAMES.SHARPEN:
+        return 'Test-pace effort. Simulate race conditions.'
+      default:
+        return 'Easy effort. Stay comfortable and build your base.'
+    }
+  }
+
   switch (phase) {
     case PHASE_NAMES.BASE:
       return 'Stop 3-4 reps before failure. Focus on form.'
@@ -712,7 +733,7 @@ function _prescribeSessionImpl(phase, weekNum, sessionIndex, specialInfo) {
       phase,
       phaseName: PHASE_DISPLAY[phase],
       effortLabel: EFFORT_LABELS[capped === INTENSITY.HIGH ? INTENSITY.MODERATE : capped],
-      repInstruction: getRepInstruction(phase),
+      repInstruction: getRepInstruction(phase, template.type),
       weekNum,
       isSpecialWeek: true,
       specialWeekType: specialInfo.type,
@@ -728,7 +749,7 @@ function _prescribeSessionImpl(phase, weekNum, sessionIndex, specialInfo) {
     phase,
     phaseName: PHASE_DISPLAY[phase],
     effortLabel: EFFORT_LABELS[governedIntensity],
-    repInstruction: getRepInstruction(phase),
+    repInstruction: getRepInstruction(phase, template.type),
     weekNum,
     isSpecialWeek: false,
     specialWeekType: null,

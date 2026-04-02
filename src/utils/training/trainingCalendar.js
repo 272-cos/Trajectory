@@ -585,12 +585,14 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       let effortLabel = null
       let intensity = null
       let stress = null
+      let sessionType = null
       if (phaseName) {
         const phaseTemplates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
         const sessionTemplate = phaseTemplates[idx % phaseTemplates.length]
         intensity = capIntensity(sessionTemplate.intensity, phaseName)
         effortLabel = EFFORT_LABELS[intensity]
         stress = sessionTemplate.stress || 3
+        sessionType = sessionTemplate.type || null
       }
 
       addEvent(dayISO, {
@@ -608,7 +610,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         weekNum:     weekNumberFromWeeksOut(weeksToTarget, totalWeeks),
         displayWeekNum: weekIndex + 1,
         progressionRatio: weekRatio,
-        repInstruction: phaseName ? getRepInstruction(phaseName) : null,
+        repInstruction: phaseName ? getRepInstruction(phaseName, sessionType) : null,
         isSpecialWeek: specialInfo.isSpecial,
         specialWeekType: specialInfo.type || null,
         priority:    'normal',
@@ -685,8 +687,8 @@ function getTrainingDayNotes(phaseName, phaseNumber, sessionIndex) {
 
   const templates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
   const template = templates[sessionIndex % templates.length]
-  const repInstruction = getRepInstruction(phaseName)
-  return `${template.notes} ${repInstruction}`
+  const effortInstruction = getRepInstruction(phaseName, template.type)
+  return `${template.notes} ${effortInstruction}`
 }
 
 // ── Utility re-exports ────────────────────────────────────────────────────────
