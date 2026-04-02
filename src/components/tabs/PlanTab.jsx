@@ -847,7 +847,7 @@ export default function PlanTab() {
               {currentPhaseInfo ? currentPhaseInfo.phaseLabel : PHASE_LABELS[calendar.startingPhase]}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">
-              {currentPhaseInfo ? `wk ${currentPhaseInfo.displayWeekNum}` : 'phase'}
+              {currentPhaseInfo ? `Week ${currentPhaseInfo.displayWeekNum}` : 'phase'}
             </div>
           </div>
         </div>
