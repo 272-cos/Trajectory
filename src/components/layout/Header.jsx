@@ -83,8 +83,8 @@ export default function Header() {
           <button
             type="button"
             onClick={toggleDarkMode}
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={darkMode ? 'Light mode' : 'Dark mode'}
+            aria-label={darkMode ? 'Enable light mode' : 'Enable dark mode'}
+            title={darkMode ? 'Enable Light Mode' : 'Enable Dark Mode'}
             className="p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-colors text-lg leading-none"
           >
             {darkMode ? '☀' : '☽'}
