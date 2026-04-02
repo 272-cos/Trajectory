@@ -66,9 +66,8 @@ export default function Header() {
         backgroundPosition: 'center 45%',
       }}
     >
-      <div className="container mx-auto max-w-4xl lg:max-w-6xl px-4 relative">
-        {/* Logo + wordmark aligned with the wave crossing point */}
-        <div className="flex items-center justify-between pt-8 sm:pt-10">
+      <div className="container mx-auto max-w-4xl lg:max-w-6xl px-4 py-5 flex items-center justify-between">
+        <div className="flex flex-col items-start gap-1">
           <div className="flex items-center gap-3 sm:gap-4">
             <img
               src={`${BASE}icons/icon-512.png`}
@@ -80,20 +79,20 @@ export default function Header() {
             />
             <TrajectoryWordmark />
           </div>
-          <button
-            type="button"
-            onClick={toggleDarkMode}
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={darkMode ? 'Light mode' : 'Dark mode'}
-            className="p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-colors text-lg leading-none"
-          >
-            {darkMode ? '☀' : '☽'}
-          </button>
+          {/* Subtitle pushed down below the wave lines */}
+          <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide mt-10 sm:mt-14">
+            USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
+          </p>
         </div>
-        {/* Subtitle centered between lower wave and banner bottom */}
-        <p className="text-xs sm:text-sm font-bold text-amber-400 tracking-wide pt-6 sm:pt-8 pb-3 sm:pb-4">
-          USAF PFA Readiness Tracker - UNOFFICIAL ESTIMATE
-        </p>
+        <button
+          type="button"
+          onClick={toggleDarkMode}
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={darkMode ? 'Light mode' : 'Dark mode'}
+          className="mt-1 p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-colors text-lg leading-none"
+        >
+          {darkMode ? '☀' : '☽'}
+        </button>
       </div>
     </header>
   )
