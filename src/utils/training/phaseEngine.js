@@ -396,6 +396,47 @@ export function getRepInstruction(phase, sessionType) {
   }
 }
 
+// ── Heart rate zones ────────────────────────────────────────────────────────
+
+/**
+ * Standard 5-zone heart rate model based on estimated max HR (220 - age).
+ *
+ * Zone 1: 50-60% - Recovery / warm-up
+ * Zone 2: 60-70% - Aerobic base (conversational pace)
+ * Zone 3: 70-80% - Tempo / threshold
+ * Zone 4: 80-90% - VO2max intervals
+ * Zone 5: 90-100% - Anaerobic / sprint
+ *
+ * @param {number} age - User's current age in years
+ * @returns {{ maxHR: number, zones: Array<{ zone: number, label: string, low: number, high: number }> }}
+ */
+export function getHeartRateZones(age) {
+  const maxHR = 220 - age
+  return {
+    maxHR,
+    zones: [
+      { zone: 1, label: 'Recovery',  low: Math.round(maxHR * 0.50), high: Math.round(maxHR * 0.60) },
+      { zone: 2, label: 'Aerobic',   low: Math.round(maxHR * 0.60), high: Math.round(maxHR * 0.70) },
+      { zone: 3, label: 'Tempo',     low: Math.round(maxHR * 0.70), high: Math.round(maxHR * 0.80) },
+      { zone: 4, label: 'Threshold', low: Math.round(maxHR * 0.80), high: Math.round(maxHR * 0.90) },
+      { zone: 5, label: 'Max',       low: Math.round(maxHR * 0.90), high: maxHR },
+    ],
+  }
+}
+
+/**
+ * Format a specific heart rate zone as a human-readable string.
+ * @param {number} age - User's current age
+ * @param {number} zoneNumber - Zone 1-5
+ * @returns {string} e.g. "Zone 2 (120-140 bpm)"
+ */
+export function formatHeartRateZone(age, zoneNumber) {
+  const { zones } = getHeartRateZones(age)
+  const z = zones.find(z => z.zone === zoneNumber)
+  if (!z) return `Zone ${zoneNumber}`
+  return `Zone ${zoneNumber} (${z.low}-${z.high} bpm)`
+}
+
 // ── D. Weekly structure templates ────────────────────────────────────────────
 
 /**
@@ -411,7 +452,7 @@ export const WEEKLY_TEMPLATES = {
       intensity: INTENSITY.LOW,
       stress: 3,
       description: '20-30 min at conversational pace. You should be able to speak full sentences.',
-      notes: 'Build your aerobic engine. Effort should feel sustainable and easy.',
+      notes: 'Build your aerobic engine. Stay in Zone 2 - effort should feel sustainable and easy.',
     },
     {
       label: 'Submax Strength & Core',
@@ -437,7 +478,7 @@ export const WEEKLY_TEMPLATES = {
       intensity: INTENSITY.MODERATE,
       stress: 5,
       description: '25-30 min with 2x5-min inserts at goal pace. Bookend with easy warm-up/cool-down.',
-      notes: 'Goal-pace inserts should feel "comfortably hard" - you can say 2-3 words.',
+      notes: 'Goal-pace inserts at Zone 3 - should feel "comfortably hard" where you can say 2-3 words.',
     },
     {
       label: 'Strength Build',
@@ -453,7 +494,7 @@ export const WEEKLY_TEMPLATES = {
       intensity: INTENSITY.LOW,
       stress: 4,
       description: '30-35 min sustained at a pace where you could hold a short conversation.',
-      notes: 'This is your weekly long effort. Consistency matters more than speed.',
+      notes: 'This is your weekly long effort. Keep heart rate in Zone 2. Consistency matters more than speed.',
     },
   ],
   [PHASE_NAMES.BUILD_PLUS]: [
@@ -463,7 +504,7 @@ export const WEEKLY_TEMPLATES = {
       intensity: INTENSITY.HIGH,
       stress: 7,
       description: '6x400m at faster than goal pace (2 min rest between intervals), OR 20 min at a hard but sustainable effort.',
-      notes: 'This is the hardest cardio session of the week. One hard day, then recover.',
+      notes: 'This is the hardest cardio session of the week. Push into Zone 4 on intervals, recover in Zone 1 between.',
     },
     {
       label: 'Density Strength',
@@ -479,7 +520,7 @@ export const WEEKLY_TEMPLATES = {
       intensity: INTENSITY.MODERATE,
       stress: 5,
       description: '25-30 min of running at moderate effort. Include 4x1-min pickups at goal pace with easy running between.',
-      notes: 'Not a hard day. Stay controlled and build confidence at race pace.',
+      notes: 'Not a hard day. Base effort in Zone 2 with pickups at Zone 3.',
     },
     {
       label: 'Specificity Strength',
@@ -497,7 +538,7 @@ export const WEEKLY_TEMPLATES = {
       intensity: INTENSITY.HIGH,
       stress: 7,
       description: 'Full test-distance run at goal pace. Record splits at each half-mile or lap.',
-      notes: 'Simulate test conditions. This is your dress rehearsal.',
+      notes: 'Simulate test conditions at Zone 3 to Zone 4. This is your dress rehearsal.',
     },
     {
       label: 'Test-Pace Strength',
@@ -513,7 +554,7 @@ export const WEEKLY_TEMPLATES = {
       intensity: INTENSITY.LOW,
       stress: 3,
       description: 'Easy recovery run - 20 min at conversational pace. Include dynamic stretching before and after.',
-      notes: 'Active recovery. Keep the engine running without adding stress.',
+      notes: 'Active recovery in Zone 1 to Zone 2. Keep the engine running without adding stress.',
     },
     {
       label: 'Light Movement',

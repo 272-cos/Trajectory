@@ -19,7 +19,7 @@
  *   TR-10  Taper period (0-14 days out) suppresses aggressive training recommendations
  */
 
-import { EXERCISES, COMPONENTS } from '../scoring/constants.js'
+import { EXERCISES, COMPONENTS, calculateAge } from '../scoring/constants.js'
 import { PI_EXERCISES, PI_IS_TIME, formatSecondsMMSS } from './practiceSession.js'
 import {
   weekNumberFromWeeksOut,
@@ -34,6 +34,7 @@ import {
   capIntensity,
   getRepInstruction,
   WEEKLY_TEMPLATES,
+  formatHeartRateZone,
 } from './phaseEngine.js'
 
 // ── Phase detection ───────────────────────────────────────────────────────────
@@ -314,6 +315,9 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 
   const totalDays = daysBetween(todayISO, targetDateISO)
   const totalWeeks = weeksBetween(todayISO, targetDateISO)
+
+  // Compute age for personalized heart rate zones
+  const age = demographics?.dob ? calculateAge(demographics.dob, new Date()) : null
 
   // Extract earliest PI recordings per exercise for check-in comparisons
   const baselineScores = extractBaselineScores(practiceSessionMap)
@@ -612,7 +616,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         date:        dayISO,
         label:       dayLabel,
         description: getTrainingDayDescription(phaseName, phaseForWeek, idx),
-        notes:       getTrainingDayNotes(phaseName, phaseForWeek, idx),
+        notes:       getTrainingDayNotes(phaseName, phaseForWeek, idx, age),
         phase:       phaseForWeek,
         phaseName,
         phaseLabel,
@@ -775,7 +779,7 @@ function getTrainingDayDescription(phaseName, phaseNumber, sessionIndex) {
   return template.description
 }
 
-function getTrainingDayNotes(phaseName, phaseNumber, sessionIndex) {
+function getTrainingDayNotes(phaseName, phaseNumber, sessionIndex, age) {
   if (phaseNumber === PHASES.PHASE_0 || !phaseName) {
     return 'Pre-progression: Rest 60-90s between sets. Stop a rep or two short of failure - form matters more than count right now.'
   }
@@ -783,7 +787,14 @@ function getTrainingDayNotes(phaseName, phaseNumber, sessionIndex) {
   const templates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
   const template = templates[sessionIndex % templates.length]
   const effortInstruction = getRepInstruction(phaseName, template.type)
-  return `${template.notes} ${effortInstruction}`
+  let notes = `${template.notes} ${effortInstruction}`
+
+  // Personalize heart rate zone references with actual BPM ranges
+  if (age && template.type === 'cardio') {
+    notes = notes.replace(/Zone (\d)/g, (_, num) => formatHeartRateZone(age, Number(num)))
+  }
+
+  return notes
 }
 
 // ── Utility re-exports ────────────────────────────────────────────────────────
@@ -806,4 +817,6 @@ export {
   getRepInstruction,
   getSpecialWeekInfo,
   PI_WEEKS,
+  getHeartRateZones,
+  formatHeartRateZone,
 } from './phaseEngine.js'
