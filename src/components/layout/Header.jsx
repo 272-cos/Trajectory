@@ -54,7 +54,7 @@ function TrajectoryWordmark() {
 }
 
 export default function Header() {
-  const { darkMode, toggleDarkMode } = useApp()
+  const { darkMode, toggleDarkMode, reopenTutorial } = useApp()
 
   return (
     <header
@@ -80,15 +80,26 @@ export default function Header() {
             />
             <TrajectoryWordmark />
           </div>
-          <button
-            type="button"
-            onClick={toggleDarkMode}
-            aria-label={darkMode ? 'Enable light mode' : 'Enable dark mode'}
-            title={darkMode ? 'Enable Light Mode' : 'Enable Dark Mode'}
-            className="p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-colors text-lg leading-none"
-          >
-            {darkMode ? '☀' : '☽'}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={reopenTutorial}
+              aria-label="Open help walkthrough"
+              title="Help / Walkthrough"
+              className="p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-colors text-sm leading-none font-bold"
+            >
+              ?
+            </button>
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              aria-label={darkMode ? 'Enable light mode' : 'Enable dark mode'}
+              title={darkMode ? 'Enable Light Mode' : 'Enable Dark Mode'}
+              className="p-2 rounded-full bg-black/20 hover:bg-black/30 text-white transition-colors text-lg leading-none"
+            >
+              {darkMode ? '☀' : '☽'}
+            </button>
+          </div>
         </div>
         {/* Subtitle positioned below the wave lines, centered in remaining space */}
         <p className="absolute bottom-1 left-4 text-xs sm:text-sm font-bold text-amber-400 tracking-wide">
