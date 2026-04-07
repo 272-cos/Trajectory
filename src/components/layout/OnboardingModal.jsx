@@ -119,8 +119,8 @@ const SLIDES = [
     FlowContent: HowItWorksContent,
     expandTitle: 'About your codes',
     expandBullets: [
-      'D-code (D1- prefix, ~9 chars): stores your date of birth and gender only - nothing else.',
-      'S-code (S3- prefix, ~22 chars): stores one assessment. Codes travel via URL or QR scan with no account needed.',
+      'Your profile code (~9 chars) stores your date of birth and gender only - nothing else.',
+      'Each assessment code (~22 chars) stores one saved check-in. Codes travel via URL or QR scan with no account needed.',
       'Full history backup: use Backup & Restore in the Tools tab to export everything as a JSON file.',
     ],
   },
