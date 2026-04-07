@@ -18,6 +18,11 @@ A mobile-first web app for USAF Airmen to self-assess fitness performance agains
 8. **No em dashes or en dashes** - use only hyphens (-) throughout the codebase and docs
 9. **No internal tracking codes in UI** - Internal references (TR-XX, PG-XX, CS-XX, IV-XX, RP-XX, etc.) must NEVER appear in user-facing text, labels, disclaimers, or rendered output. They belong only in code comments and documentation.
 10. **Exercise-type-appropriate language** - Never use rep-based language ("reps before failure", "sets of X reps") for cardio/running sessions. Cardio descriptions must use time, distance, or effort-based cues only (e.g., "20 min at conversational pace", "hard but sustainable effort"). Similarly, never use cardio language (pace, distance, heart rate zones) for strength exercises. The `getRepInstruction()` function in `phaseEngine.js` accepts a `sessionType` parameter to enforce this.
+11. **No codec terminology in UI** - The internal terms "D-code" and "S-code" must NEVER appear in user-facing text, labels, buttons, tooltips, or rendered output. Use the approved user-friendly equivalents instead:
+    - D-code -> **"profile code"** (e.g., "Copy your profile code", "Enter your profile code")
+    - S-code -> **"assessment code"** (e.g., "Save your assessment code", "Import an assessment code")
+    - D-code/S-code prefixes (`D1-`, `S3-`, `S2-`) are internal codec details and must not be explained or surfaced to users
+    - "D-code" and "S-code" are acceptable in code variable names, function names, comments, and developer documentation only
 
 ## Development Commands
 

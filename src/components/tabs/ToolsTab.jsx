@@ -270,6 +270,25 @@ function BackupRestoreContent() {
   )
 }
 
+// -- Help / Walkthrough content -----------------------------------------------
+
+function WalkthroughContent() {
+  const { reopenTutorial } = useApp()
+  return (
+    <div className="mt-4">
+      <p className="text-xs text-gray-500 mb-3">
+        Re-run the getting started walkthrough to review features or find something you missed.
+      </p>
+      <button
+        onClick={reopenTutorial}
+        className="w-full px-4 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+      >
+        Open Walkthrough
+      </button>
+    </div>
+  )
+}
+
 // -- Main Tab -----------------------------------------------------------------
 
 const TOOLS = [
@@ -278,6 +297,7 @@ const TOOLS = [
   { id: 'hamr', title: 'HAMR Metronome', subtitle: '20m shuttle run beep cadence', section: 'practice' },
   { id: 'score', title: 'What Score Do I Need?', subtitle: 'Reverse lookup by target composite', section: 'planning' },
   { id: 'backup', title: 'Backup & Restore', subtitle: 'Export or import your data', section: 'data' },
+  { id: 'walkthrough', title: 'View Walkthrough', subtitle: 'Re-run the getting started guide', section: 'help' },
 ]
 
 export default function ToolsTab() {
@@ -290,6 +310,7 @@ export default function ToolsTab() {
   const practiceTools = TOOLS.filter(t => t.section === 'practice')
   const planningTools = TOOLS.filter(t => t.section === 'planning')
   const dataTools = TOOLS.filter(t => t.section === 'data')
+  const helpTools = TOOLS.filter(t => t.section === 'help')
 
   const renderToolContent = (id) => {
     switch (id) {
@@ -298,6 +319,7 @@ export default function ToolsTab() {
       case 'hamr': return <HamrMetronome />
       case 'score': return <ScoreTargetContent />
       case 'backup': return <BackupRestoreContent />
+      case 'walkthrough': return <WalkthroughContent />
       default: return null
     }
   }
@@ -327,6 +349,7 @@ export default function ToolsTab() {
       {renderSection('Practice Timers', practiceTools)}
       {renderSection('Score Planning', planningTools)}
       {renderSection('Data Management', dataTools)}
+      {renderSection('Help', helpTools)}
     </div>
   )
 }
