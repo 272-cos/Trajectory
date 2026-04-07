@@ -61,7 +61,7 @@ function HowItWorksContent() {
     {
       num: '1',
       label: 'Build your profile',
-      desc: 'Date of birth + gender sets your scoring bracket (30 seconds)',
+      desc: 'Date of birth + gender sets your scoring bracket',
     },
     {
       num: '2',
@@ -117,25 +117,17 @@ const SLIDES = [
     detail: null,
     icon: IconArrow,
     FlowContent: HowItWorksContent,
-    expandTitle: 'About your codes',
-    expandBullets: [
-      'Your profile code (~9 chars) stores your date of birth and gender only - nothing else.',
-      'Each assessment code (~22 chars) stores one saved check-in. Codes travel via URL or QR scan with no account needed.',
-      'Full history backup: use Backup & Restore in the Tools tab to export everything as a JSON file.',
-    ],
+    expandTitle: null,
+    expandBullets: null,
   },
   {
     id: 'profile',
     title: 'Set Up Your Profile',
     body: 'Enter your date of birth and biological sex on the Profile tab. These set your age bracket, which determines the point thresholds for every scoring component.',
-    detail: 'Set your target PFA date to unlock the Trajectory forecast and auto-generate your training plan.',
+    detail: 'Set your target PFA date to unlock the Trajectory forecast and auto-generate your training plan. Copy your profile code and save it somewhere safe - it is the fastest way to restore your profile on a new device.',
     icon: IconPerson,
-    expandTitle: 'Also on Profile tab',
-    expandBullets: [
-      'Copy your D-code and save it somewhere safe - it is your only way to restore your profile if you clear your browser.',
-      'Scroll to the bottom of the Profile tab to see your achievement badges, earned by logging assessments consistently.',
-      'If you have existing codes from another device, paste your D-code in the Profile tab to restore your profile.',
-    ],
+    expandTitle: null,
+    expandBullets: null,
   },
   {
     id: 'selfcheck',
@@ -157,13 +149,8 @@ const SLIDES = [
     body: 'The Trajectory tab forecasts your estimated score at your target PFA date - confidence grows as you add more check-ins (1 assessment = low, 2 = medium, 3+ = high confidence). The Plan tab generates a training calendar that adapts to your timeline.',
     detail: 'Check the History tab to view trends, and flag any anomalous results as outliers to keep your forecast accurate. The Report tab generates a print-ready supervisor summary.',
     icon: IconChart,
-    expandTitle: 'More about your forecast',
-    expandBullets: [
-      'The training plan uses four phases - Base Building, Foundation Build, Intensity Peak, and Final Prep - automatically sized to your timeline.',
-      'After each training day, rate how hard it felt (1-5). The plan uses these ratings to detect overtraining or undertraining and adjusts guidance.',
-      'Tap any assessment in History to flag it as an outlier - it stays in your record but is excluded from your forecast.',
-      'The strategy panel on the Trajectory tab shows which exercise gives you the most points per week of training effort - focus there first.',
-    ],
+    expandTitle: null,
+    expandBullets: null,
   },
   {
     id: 'tools',
@@ -171,13 +158,8 @@ const SLIDES = [
     body: 'The Tools tab has a "What Score Do I Need?" calculator - dial in a target composite and see exactly what performance is required for your age and gender. Tap the share icon on any saved assessment to get a QR code for device transfer.',
     detail: 'Your data lives only in this browser - export a backup from the Tools tab and save it somewhere safe.',
     icon: IconWrench,
-    expandTitle: 'What else is in Tools',
-    expandBullets: [
-      'HAMR Metronome: uses official Leger protocol timing to practice shuttle runs at the correct cadence.',
-      'Stopwatch: lap timer with automatic score lookup for your age and gender bracket after your session.',
-      'Run Pacer: audio-guided lap pacing to help you hit your target 2-mile pace.',
-      'Backup & Restore: download your full data as a JSON file. Importing replaces current data - it does not merge.',
-    ],
+    expandTitle: null,
+    expandBullets: null,
   },
 ]
 
