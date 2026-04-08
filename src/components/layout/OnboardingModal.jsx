@@ -1,16 +1,18 @@
 /**
  * Onboarding Modal - Guided walkthrough for first-time and returning users
- * 6-step flow: Welcome -> How It Works -> Profile -> Self-Check -> Forecast & Plan -> Tools & Data
+ * 4-slide flow: Welcome -> How It Works -> First Two Steps -> Your Data
  *
- * Preserved behaviors:
- * - Skip walkthrough link on intermediate slides (not first, not last)
- * - "I already have codes" escape hatch on slide 1
- * - Clickable progress dots (active=larger+blue, completed=lighter blue, future=gray)
- * - Keyboard navigation: Escape=skip, ArrowRight=next, ArrowLeft=back
- * - Modal focuses on mount and on slide change
- * - Disclaimer box on first slide only
- * - Privacy note on last slide
- * - Navigates to Profile tab on finish
+ * First-launch behaviors:
+ * - "Get Started" primary CTA on slide 1
+ * - "I already have codes - skip to Profile" ghost button on slide 1
+ * - Skip / Escape navigates to Profile tab
+ * - "Go to Profile" on last slide navigates to Profile tab
+ *
+ * Returning-user behaviors (reopened via '?' or Tools tab):
+ * - "Review" primary CTA on slide 1
+ * - No "I already have codes" button (user is already set up)
+ * - Skip / Escape closes modal without navigating away from current tab
+ * - "Go to Profile" on last slide still navigates to Profile tab
  */
 
 import { useState, useEffect, useRef } from 'react'
@@ -30,27 +32,15 @@ const IconArrow = (
   </svg>
 )
 
-const IconPerson = (
-  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-  </svg>
-)
-
-const IconCheck = (
+const IconSteps = (
   <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 )
 
-const IconChart = (
+const IconShield = (
   <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-  </svg>
-)
-
-const IconWrench = (
-  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
   </svg>
 )
 
@@ -61,17 +51,17 @@ function HowItWorksContent() {
     {
       num: '1',
       label: 'Build your profile',
-      desc: 'Date of birth + gender sets your scoring bracket',
+      desc: 'Date of birth and gender set your scoring bracket. Your target PFA date activates the forecast and training plan.',
     },
     {
       num: '2',
       label: 'Score yourself',
-      desc: 'Log exercises and see your score live - saves as a portable code',
+      desc: 'Enter your performance in the Self-Check tab. Scores update live. Save when done - your result stores as a short, portable code.',
     },
     {
       num: '3',
       label: 'See where you are headed',
-      desc: 'Forecast, training plan, history, and reports all build from your check-ins',
+      desc: 'Trajectory forecasts your score at your target date. Confidence grows with each check-in. The Plan tab adapts your training timeline automatically.',
     },
   ]
 
@@ -103,12 +93,10 @@ const SLIDES = [
   {
     id: 'welcome',
     title: 'Welcome to Trajectory',
-    body: 'Score your PFA readiness against 2026 DAFMAN 36-2905 standards, see where you are headed, and walk into test day prepared - not guessing. Everything stays on your device - no account, no login, no data sent anywhere.',
+    body: 'Score your PFA readiness against 2026 DAFMAN 36-2905 standards, see where you are headed, and walk into test day prepared. Everything stays on your device - no account, no login, no data sent anywhere.',
     detail: null,
     icon: IconBolt,
     showDisclaimer: true,
-    expandTitle: null,
-    expandBullets: null,
   },
   {
     id: 'how-it-works',
@@ -117,69 +105,33 @@ const SLIDES = [
     detail: null,
     icon: IconArrow,
     FlowContent: HowItWorksContent,
-    expandTitle: null,
-    expandBullets: null,
   },
   {
-    id: 'profile',
-    title: 'Set Up Your Profile',
-    body: 'Enter your date of birth and biological sex on the Profile tab. These set your age bracket, which determines the point thresholds for every scoring component.',
-    detail: 'Set your target PFA date to unlock the Trajectory forecast and auto-generate your training plan. Copy your profile code and save it somewhere safe - it is the fastest way to restore your profile on a new device.',
-    icon: IconPerson,
-    expandTitle: null,
-    expandBullets: null,
+    id: 'first-steps',
+    title: 'Your First Two Steps',
+    body: 'On the Profile tab, enter your date of birth and gender. Then go to Self-Check and enter your performance for each component - your score appears live as you type.',
+    detail: 'Save your profile code from the Profile tab - it is the fastest way to restore your setup on another device.',
+    icon: IconSteps,
   },
   {
-    id: 'selfcheck',
-    title: 'Score Yourself',
-    body: 'Go to the Self-Check tab and enter your performance for each component: cardio, strength, core, and body composition. Scores update live as you type, and your entries are auto-saved as a draft while you work.',
-    detail: 'Your composite score appears only when all four components have data. Tap Save Assessment to lock in your results - after saving, your assessment appears in History and feeds the Trajectory forecast.',
-    icon: IconCheck,
-    expandTitle: 'Tips for Self-Check',
-    expandBullets: [
-      'Set your exercise preferences once on the Trajectory tab and Self-Check will automatically select those exercises for you.',
-      'Body composition uses waist-to-height ratio (WHtR) - enter both your waist and height measurements in inches.',
-      'Exempt components are excluded from the composite calculation entirely - they do not lower your score.',
-      'The 2km walk option only appears when cardio is marked exempt - it is pass/fail only and does not add to your composite.',
-    ],
-  },
-  {
-    id: 'trajectory',
-    title: 'Your Forecast and Plan',
-    body: 'The Trajectory tab forecasts your estimated score at your target PFA date - confidence grows as you add more check-ins (1 assessment = low, 2 = medium, 3+ = high confidence). The Plan tab generates a training calendar that adapts to your timeline.',
-    detail: 'Check the History tab to view trends, and flag any anomalous results as outliers to keep your forecast accurate. The Report tab generates a print-ready supervisor summary.',
-    icon: IconChart,
-    expandTitle: null,
-    expandBullets: null,
-  },
-  {
-    id: 'tools',
-    title: 'Tools and Data',
-    body: 'The Tools tab has a "What Score Do I Need?" calculator - dial in a target composite and see exactly what performance is required for your age and gender. Tap the share icon on any saved assessment to get a QR code for device transfer.',
-    detail: 'Your data lives only in this browser - export a backup from the Tools tab and save it somewhere safe.',
-    icon: IconWrench,
-    expandTitle: null,
-    expandBullets: null,
+    id: 'your-data',
+    title: 'Your Data Stays Here',
+    body: 'All scores and settings live only in this browser. The Report tab generates a print-ready summary you can share with your supervisor. Export a backup from the Tools tab at any time.',
+    detail: null,
+    icon: IconShield,
   },
 ]
 
 // -- Main component -----------------------------------------------------------
 
 export default function OnboardingModal() {
-  const { completeOnboarding, setActiveTab } = useApp()
+  const { completeOnboarding, setActiveTab, tutorialIsReopen } = useApp()
   const modalRef = useRef(null)
   const [step, setStep] = useState(0)
-  const [isExpanded, setIsExpanded] = useState(false)
 
   const slide = SLIDES[step]
   const isFirst = step === 0
   const isLast = step === SLIDES.length - 1
-  const expandContentId = `onboarding-expand-${slide.id}`
-
-  // Reset expanded state when slide changes
-  useEffect(() => {
-    setIsExpanded(false)
-  }, [step])
 
   const handleNext = () => {
     if (isLast) {
@@ -194,9 +146,10 @@ export default function OnboardingModal() {
     if (!isFirst) setStep(step - 1)
   }
 
+  // Skip: on first launch navigate to Profile; on reopen just close
   const handleSkip = () => {
     completeOnboarding()
-    setActiveTab('profile')
+    if (!tutorialIsReopen) setActiveTab('profile')
   }
 
   const handleHaveCodes = () => {
@@ -277,45 +230,10 @@ export default function OnboardingModal() {
 
           {/* Disclaimer - first slide only */}
           {slide.showDisclaimer && (
-            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-3 mb-2 mt-2">
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-3 mb-2 mt-3">
               <p className="text-xs text-amber-800 dark:text-amber-200 text-center">
                 <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
               </p>
-            </div>
-          )}
-
-          {/* Expandable "Learn more" section */}
-          {slide.expandTitle && slide.expandBullets && (
-            <div className="mt-3">
-              <button
-                type="button"
-                onClick={() => setIsExpanded(prev => !prev)}
-                aria-expanded={isExpanded}
-                aria-controls={expandContentId}
-                className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left"
-              >
-                <svg
-                  className={`w-4 h-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-                {slide.expandTitle}
-              </button>
-              <div
-                id={expandContentId}
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-64' : 'max-h-0'}`}
-              >
-                <div className="pt-3 border-t border-gray-100 dark:border-gray-700 mt-1 space-y-2 px-1">
-                  {slide.expandBullets.map((bullet, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5" aria-hidden="true" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{bullet}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
         </div>
@@ -328,14 +246,16 @@ export default function OnboardingModal() {
                 onClick={handleNext}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
               >
-                Get Started
+                {tutorialIsReopen ? 'Review' : 'Get Started'}
               </button>
-              <button
-                onClick={handleHaveCodes}
-                className="w-full border border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium py-2.5 px-4 rounded-lg transition-colors text-sm"
-              >
-                I already have codes - skip to Profile
-              </button>
+              {!tutorialIsReopen && (
+                <button
+                  onClick={handleHaveCodes}
+                  className="w-full border border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium py-2.5 px-4 rounded-lg transition-colors text-sm"
+                >
+                  I already have codes - skip to Profile
+                </button>
+              )}
             </>
           ) : isLast ? (
             <>
@@ -357,7 +277,7 @@ export default function OnboardingModal() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-                Data stays private - no account, no server, no problem.
+                No account. No server. No problem.
               </p>
             </>
           ) : (

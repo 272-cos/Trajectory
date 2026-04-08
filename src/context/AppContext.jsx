@@ -318,11 +318,16 @@ export function AppProvider({ children }) {
   // Complete onboarding (marks user as onboarded in localStorage)
   const completeOnboarding = useCallback(() => {
     setShowOnboarding(false)
+    setTutorialIsReopen(false)
     setOnboarded()
   }, [])
 
+  // Tracks whether the tutorial was opened by a returning user (vs first launch)
+  const [tutorialIsReopen, setTutorialIsReopen] = useState(false)
+
   // Re-open tutorial without resetting the onboarded flag (for returning users)
   const reopenTutorial = useCallback(() => {
+    setTutorialIsReopen(true)
     setShowOnboarding(true)
   }, [])
 
@@ -365,6 +370,7 @@ export function AppProvider({ children }) {
     showOnboarding,
     completeOnboarding,
     reopenTutorial,
+    tutorialIsReopen,
 
     // Toast notifications
     toasts,
@@ -393,7 +399,7 @@ export function AppProvider({ children }) {
     scodes, addSCode, removeSCode,
     targetPfaDate, updateTargetPfaDate,
     activeTab,
-    showOnboarding, completeOnboarding, reopenTutorial,
+    showOnboarding, completeOnboarding, reopenTutorial, tutorialIsReopen,
     toasts, addToast, dismissToast,
     darkMode, toggleDarkMode,
     personalGoal, updatePersonalGoal,

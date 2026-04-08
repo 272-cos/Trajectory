@@ -13,6 +13,7 @@ import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession
 import { getTrainingResources } from '../../utils/training/resources.js'
 import { BASE_REGISTRY } from '../../utils/codec/bitpack.js'
 import ShareModal from '../shared/ShareModal.jsx'
+import HintBanner from '../shared/HintBanner.jsx'
 import {
   PI_EXERCISES, PI_EXERCISE_LABELS, PI_IS_TIME,
   scalePIWorkout, scaleFractionalTest,
@@ -574,6 +575,15 @@ export default function SelfCheckTab() {
 
   return (
     <div className="space-y-6">
+      <HintBanner
+        storageKey="pfa_hint_selfcheck"
+        title="A few things before you start"
+        bullets={[
+          'Body composition needs both your waist and height measurements - enter both and your score appears automatically.',
+          'When you are done, tap Save Assessment to lock in your result. The auto-save only holds your draft.',
+          'Composite score appears only when all four components have data.',
+        ]}
+      />
       {/* TR-09: Mock test window banner - informational only */}
       {mockTestWindow && !mockTestRecorded && (
         <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-lg">

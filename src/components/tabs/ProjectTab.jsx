@@ -26,6 +26,7 @@ import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS, COMPONENT_EXER
 import { getRecommendations, generateWeeklyPlan } from '../../utils/recommendations/recommendationEngine.js'
 import { getExercisePrefs, saveExercisePrefs, getPracticeSessions, getShowMilestones, setShowMilestones } from '../../utils/storage/localStorage.js'
 import { generateCalendar, EVENT_TYPES } from '../../utils/training/trainingCalendar.js'
+import HintBanner from '../shared/HintBanner.jsx'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1215,6 +1216,15 @@ export default function ProjectTab() {
 
   return (
     <div className="space-y-4">
+      <HintBanner
+        storageKey="pfa_hint_trajectory"
+        title="Getting the most from your forecast"
+        bullets={[
+          'Set your exercise preferences in the panel below and Self-Check will pre-select those exercises on every future assessment.',
+          'Confidence grows with each check-in - one assessment gives a starting point, three or more gives a reliable trend.',
+          'The strategy panel ranks which exercise gives you the most scoring points per week of training effort.',
+        ]}
+      />
 
       {/* ── Practice-only mode banner ──────────────────────────────────────── */}
       {practiceOnlyMode && (
