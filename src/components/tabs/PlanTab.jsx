@@ -789,7 +789,7 @@ export default function PlanTab() {
                     : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed',
                 ].join(' ')}
               >
-                Generate my training calendar
+                Generate my training plan
               </button>
             </div>
           )
@@ -823,7 +823,7 @@ export default function PlanTab() {
     <div className="space-y-4">
       <HintBanner
         storageKey="pfa_hint_plan"
-        title="How your training calendar works"
+        title="How your training plan works"
         bullets={[
           'Tap any day to see your workout prescription. Mark it complete and rate how hard it felt (1-5) - the plan uses those ratings to adjust future sessions.',
           'In the final two weeks before your test, volume drops automatically. A practice run is scheduled in the final week. This is intentional - trust the taper.',

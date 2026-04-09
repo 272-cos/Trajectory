@@ -104,7 +104,7 @@ function TrajectoryContainer() {
       <SubViewToggle
         options={[
           { id: 'projection', label: 'Projection' },
-          { id: 'calendar', label: 'Training Calendar' },
+          { id: 'calendar', label: 'Training Plan' },
         ]}
         active={subView}
         onChange={setSubView}

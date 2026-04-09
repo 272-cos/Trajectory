@@ -44,6 +44,12 @@ const IconShield = (
   </svg>
 )
 
+const IconFork = (
+  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-12m0 0l-6-6m6 6l6-6" />
+  </svg>
+)
+
 // -- Slide 2: How It Works flow diagram ---------------------------------------
 
 function HowItWorksContent() {
@@ -87,6 +93,42 @@ function HowItWorksContent() {
   )
 }
 
+// -- Slide 4: Two Ways to Move Forward (Forecast vs Training Plan) -------------
+
+function TwoToolsContent() {
+  return (
+    <div className="mt-3 space-y-3">
+      {/* Projection path */}
+      <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3">
+        <div className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">Projection</div>
+        <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+          Predicts your composite score at your target test date and ranks which exercise gives the most points per week of effort.
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 font-mono space-y-0.5 mb-2">
+          <div>Projected score: ~82 on test day</div>
+          <div>Best focus: Sit-ups - +4 pts in ~2 wk</div>
+        </div>
+        <div className="text-xs font-medium text-blue-700 dark:text-blue-400">Already training? Start here.</div>
+      </div>
+
+      {/* Training Plan path */}
+      <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3">
+        <div className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">Training Plan</div>
+        <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+          Builds a 16-week workout calendar around your current scores. Tap any day for your prescription - the plan adapts as you log sessions.
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 font-mono space-y-0.5 mb-2">
+          <div>Week 1 Day 2: Push-ups - 4 sets (stop at 70%)</div>
+          <div>Run: 20 min at conversational pace</div>
+        </div>
+        <div className="text-xs font-medium text-green-700 dark:text-green-400">Need daily structure? Start here.</div>
+      </div>
+
+      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Both are sub-tabs inside the Trajectory tab.</p>
+    </div>
+  )
+}
+
 // -- Slides definition --------------------------------------------------------
 
 const SLIDES = [
@@ -112,6 +154,14 @@ const SLIDES = [
     body: 'On the Profile tab, enter your date of birth and gender. Then go to Self-Check and enter your performance for each component - your score appears live as you type.',
     detail: 'Save your profile code from the Profile tab - it is the fastest way to restore your setup on another device.',
     icon: IconSteps,
+  },
+  {
+    id: 'two-tools',
+    title: 'Two Ways to Move Forward',
+    body: null,
+    detail: null,
+    icon: IconFork,
+    TwoToolsContent: TwoToolsContent,
   },
   {
     id: 'your-data',
@@ -220,6 +270,9 @@ export default function OnboardingModal() {
 
           {/* Slide 2: How It Works flow diagram */}
           {slide.FlowContent && <slide.FlowContent />}
+
+          {/* Slide 4: Two Ways to Move Forward */}
+          {slide.TwoToolsContent && <slide.TwoToolsContent />}
 
           {/* Detail hint - always visible */}
           {slide.detail && (
