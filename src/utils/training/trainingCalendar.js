@@ -21,6 +21,7 @@
 
 import { EXERCISES, COMPONENTS, calculateAge } from '../scoring/constants.js'
 import { PI_EXERCISES, PI_IS_TIME, formatSecondsMMSS } from './practiceSession.js'
+import { applyAdaptation, ADAPTATION_STATES } from './adaptiveFeedback.js'
 import {
   weekNumberFromWeeksOut,
   getProgressionRatio,
@@ -311,7 +312,7 @@ function getMondayOfWeek(dateISO) {
  * @returns {object} Calendar structure
  */
 export function generateCalendar(demographics, targetDateISO, currentScores, todayISO, options = {}) {
-  const { piPushups = null, practiceSessionMap = {}, preferredDays = DEFAULT_TRAINING_DAYS } = options
+  const { piPushups = null, practiceSessionMap = {}, preferredDays = DEFAULT_TRAINING_DAYS, adaptationState = null } = options
 
   const totalDays = daysBetween(todayISO, targetDateISO)
   const totalWeeks = weeksBetween(todayISO, targetDateISO)
@@ -611,7 +612,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         sessionType = sessionTemplate.type || null
       }
 
-      addEvent(dayISO, {
+      let trainingEvent = {
         type:        EVENT_TYPES.TRAINING,
         date:        dayISO,
         label:       dayLabel,
@@ -630,7 +631,36 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         isSpecialWeek: specialInfo.isSpecial,
         specialWeekType: specialInfo.type || null,
         priority:    'normal',
-      })
+      }
+
+      // Apply RPE-based adaptation to future sessions that have a governed intensity.
+      // Past sessions (date <= today) are never modified.
+      //
+      // Phase-aware guards (validated by fitness review):
+      //   SHARPEN - suppress all adaptation: test-pace RPE is intentionally high
+      //             during the final taper weeks; triggering a fatigue response here
+      //             would reduce intensity at exactly the wrong moment.
+      //   BASE + UNDERTRAINING - suppress undertraining signal only: low RPE is the
+      //             expected and correct output during base-building weeks; it is not
+      //             a deficit that warrants a volume increase.
+      const isSharpening  = phaseName === PHASE_NAMES.SHARPEN
+      const isBase        = phaseName === PHASE_NAMES.BASE
+      const isUndertrained = adaptationState?.state === ADAPTATION_STATES.UNDERTRAINED
+      const effectiveAdaptation = (
+        adaptationState &&
+        !isSharpening &&
+        !(isBase && isUndertrained)
+      ) ? adaptationState : null
+
+      if (effectiveAdaptation && intensity && daysBetween(todayISO, dayISO) > 0) {
+        trainingEvent = applyAdaptation(trainingEvent, effectiveAdaptation)
+        // Keep effortLabel in sync if intensity was downgraded
+        if (trainingEvent.intensity !== intensity) {
+          trainingEvent.effortLabel = EFFORT_LABELS[trainingEvent.intensity]
+        }
+      }
+
+      addEvent(dayISO, trainingEvent)
     })
 
     // Week metadata

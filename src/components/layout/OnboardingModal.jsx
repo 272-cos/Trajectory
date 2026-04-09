@@ -67,7 +67,7 @@ function HowItWorksContent() {
     {
       num: '3',
       label: 'See where you are headed',
-      desc: 'Trajectory forecasts your score at your target date. Confidence grows with each check-in. The Plan tab adapts your training timeline automatically.',
+      desc: 'Projection shows where your scores are headed and gets more accurate with each check-in. Training Plan lays out a 16-week program - Base through Final Prep - so you know exactly what to do between now and test day.',
     },
   ]
 
