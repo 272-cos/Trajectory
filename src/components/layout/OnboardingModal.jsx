@@ -98,9 +98,9 @@ function HowItWorksContent() {
 function TwoToolsContent() {
   return (
     <div className="mt-3 space-y-3">
-      {/* Forecast path */}
+      {/* Projection path */}
       <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3">
-        <div className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">Forecast</div>
+        <div className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">Projection</div>
         <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
           Predicts your composite score at your target test date and ranks which exercise gives the most points per week of effort.
         </div>
@@ -111,9 +111,9 @@ function TwoToolsContent() {
         <div className="text-xs font-medium text-blue-700 dark:text-blue-400">Already training? Start here.</div>
       </div>
 
-      {/* Training Plan path */}
+      {/* Training Calendar path */}
       <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3">
-        <div className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">Training Plan</div>
+        <div className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">Training Calendar</div>
         <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
           Builds a 16-week workout calendar around your current scores. Tap any day for your prescription - the plan adapts as you log sessions.
         </div>
@@ -124,7 +124,7 @@ function TwoToolsContent() {
         <div className="text-xs font-medium text-green-700 dark:text-green-400">Need daily structure? Start here.</div>
       </div>
 
-      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Both live in the Trajectory tab.</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Both are sub-tabs inside the Trajectory tab.</p>
     </div>
   )
 }
