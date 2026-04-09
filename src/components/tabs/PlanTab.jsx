@@ -652,6 +652,12 @@ export default function PlanTab() {
     return map
   }, [calendarKey])
 
+  // ── Adaptation state from RPE feedback ─────────────────────────────────────
+  const [adaptationState, setAdaptationState] = useState(() => detectAdaptationState())
+  const handleRPERecorded = useCallback(() => {
+    setAdaptationState(detectAdaptationState())
+  }, [])
+
   // ── Generate the calendar ─────────────────────────────────────────────────
   const calendar = useMemo(() => {
     if (!targetPfaDate || preferredDays.length !== 3) return null
@@ -666,12 +672,6 @@ export default function PlanTab() {
   // (NORMAL -> FATIGUED, etc.), not on every minor RPE value change
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demographics, targetPfaDate, currentScores, practiceSessionMap, preferredDays, calendarKey, adaptationState.state])
-
-  // ── Adaptation state from RPE feedback ─────────────────────────────────────
-  const [adaptationState, setAdaptationState] = useState(() => detectAdaptationState())
-  const handleRPERecorded = useCallback(() => {
-    setAdaptationState(detectAdaptationState())
-  }, [])
 
   // ── Current phase info for header ─────────────────────────────────────────
   const currentPhaseInfo = useMemo(() => {
