@@ -111,9 +111,9 @@ function TwoToolsContent() {
         <div className="text-xs font-medium text-blue-700 dark:text-blue-400">Already training? Start here.</div>
       </div>
 
-      {/* Training Calendar path */}
+      {/* Training Plan path */}
       <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3">
-        <div className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">Training Calendar</div>
+        <div className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">Training Plan</div>
         <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
           Builds a 16-week workout calendar around your current scores. Tap any day for your prescription - the plan adapts as you log sessions.
         </div>
