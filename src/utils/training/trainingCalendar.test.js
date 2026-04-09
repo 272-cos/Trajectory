@@ -243,7 +243,7 @@ describe('generateCalendar', () => {
     expect(fracTests.find(f => f.fraction === 0.5).date < fracTests.find(f => f.fraction === 0.75).date).toBe(true)
   })
 
-  it('places BASELINE_PI events in the first week', () => {
+  it('places BASELINE_PI events in the first week (Monday start)', () => {
     const cal = generateCalendar(baseDemographics, '2026-09-01', baseScores, '2026-03-23')
     const baselineEvents = collectEventsByType(cal, EVENT_TYPES.BASELINE_PI)
     expect(baselineEvents.length).toBeGreaterThanOrEqual(2)
@@ -251,6 +251,27 @@ describe('generateCalendar', () => {
       expect(evt.date >= '2026-03-23').toBe(true)
       expect(evt.date <= '2026-03-29').toBe(true)
     }
+  })
+
+  it('places BASELINE_PI events on first two future training days when starting mid-week', () => {
+    // Thursday start: Mon/Wed preferred days are already past, so baselines must land
+    // on the next available future training days (not be silently dropped).
+    const thursdayStart = '2026-04-09' // Thursday
+    const preferredDays = [1, 3, 5] // Mon/Wed/Fri
+    const cal = generateCalendar(
+      baseDemographics, '2026-09-01', baseScores, thursdayStart,
+      { preferredDays },
+    )
+    const baselineEvents = collectEventsByType(cal, EVENT_TYPES.BASELINE_PI)
+    expect(baselineEvents.length).toBeGreaterThanOrEqual(2)
+    // All baselines must be on or after today (never in the past)
+    for (const evt of baselineEvents) {
+      expect(evt.date >= thursdayStart).toBe(true)
+    }
+    // The two baselines must be on consecutive training days (Fri this week, Mon next)
+    const sortedDates = baselineEvents.map(e => e.date).sort()
+    expect(sortedDates[0]).toBe('2026-04-10') // Friday
+    expect(sortedDates[1]).toBe('2026-04-13') // Monday
   })
 
   it('places FOUNDATION_CHECKIN events', () => {
