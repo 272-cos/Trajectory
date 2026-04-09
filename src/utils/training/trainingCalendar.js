@@ -417,6 +417,7 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
   let weekStart = firstMonday
   let weekIndex = 0
   let piCycleIndex = 0 // tracks which PI component to cycle to next
+  let baselinePlaced = 0 // counts how many baseline PI sessions have been placed (max 2)
 
   while (daysBetween(weekStart, targetDateISO) > 0) {
     const weekEnd      = addDays(weekStart, 6)
@@ -428,8 +429,9 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
     const phaseForWeek = detectPhase(weeksToTarget, { forcePhase0: isPhase0, totalWeeks })
     const phaseName = isPhase0 ? null : getPhaseFromRatio(weekRatio, totalWeeks)
 
-    // Week 1 baseline PI
-    const isBaselineWeek = weekIndex === 0 && totalWeeks >= 10 && !isPhase0
+    // Baseline PI: fires on first two future training days of the plan.
+    // Counter-based (not weekIndex/idx) so mid-week starts don't skip baselines.
+    const isBaselineWeek = baselinePlaced < 2 && totalWeeks >= 10 && !isPhase0
 
     // Foundation check-in: at end of BASE phase (capped at weekIndex 3)
     const isFoundationCheckin = weekIndex === baseEndWeekIndex
@@ -462,29 +464,32 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
       if (daysBetween(dayISO, taperStart) <= 0) return
       if (daysBetween(dayISO, targetDateISO) <= 0) return
 
-      // ── Week 1 baseline: Day 1 = strength + core, Day 2 = cardio ────────────
-      if (isBaselineWeek && idx === 0) {
+      // ── Baseline: first two future training days ─────────────────────────
+      // Uses baselinePlaced counter so mid-week starts never skip baselines.
+      if (isBaselineWeek && baselinePlaced === 0) {
         addEvent(dayISO, {
           type:        EVENT_TYPES.BASELINE_PI,
           date:        dayISO,
-          label:       'Week 1 Baseline - Strength & Core',
+          label:       'Baseline - Strength & Core',
           description: '30-sec max push-ups, then rest 2 min, then 30-sec max sit-ups.',
           notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Training begins immediately after.',
           target:      '30-sec max push-ups + 30-sec max sit-ups',
           priority:    'high',
         })
+        baselinePlaced++
         return
       }
-      if (isBaselineWeek && idx === 1) {
+      if (isBaselineWeek && baselinePlaced === 1) {
         addEvent(dayISO, {
           type:        EVENT_TYPES.BASELINE_PI,
           date:        dayISO,
-          label:       'Week 1 Baseline - Cardio',
+          label:       'Baseline - Cardio',
           description: '400m run at comfortable effort. Record your time.',
           notes:       'Predicts your 2-mile pace. Record in Practice Check > PI Workout > 400m Run.',
           target:      '400m run - record time',
           priority:    'high',
         })
+        baselinePlaced++
         return
       }
 
