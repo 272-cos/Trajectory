@@ -24,6 +24,16 @@ export const ADAPTATION_STATES = {
   UNDERTRAINED: 'undertrained',
 }
 
+/**
+ * Hard safety caps for adaptation adjustments.
+ * detectAdaptationState() must never produce values exceeding these limits.
+ */
+export const ADAPTATION_CAPS = {
+  MAX_INTENSITY_DROP:  1,    // maximum 1 intensity level down (e.g. moderate -> low)
+  MAX_VOLUME_DROP:     0.20, // maximum 20% volume reduction
+  MAX_VOLUME_INCREASE: 0.10, // maximum 10% volume increase
+}
+
 export const RPE_LABELS = {
   1: 'Very Easy - barely felt it',
   2: 'Easy - could do much more',
@@ -235,9 +245,14 @@ export function applyAdaptation(session, adaptationResult) {
     modified.adaptationNote = 'Intensity reduced - fatigue management'
   }
 
-  // Volume modification flag (consumed by UI to show fewer sets)
+  // Volume modification flag (consumed by UI to show fewer/more sets)
   if (adjustments.volumeMod !== 0) {
     modified.volumeModifier = 1 + adjustments.volumeMod
+    if (!modified.adaptationNote) {
+      modified.adaptationNote = adjustments.volumeMod > 0
+        ? 'Volume increased - undertraining detected'
+        : 'Volume reduced - fatigue management'
+    }
   }
 
   // Recovery insertion flag

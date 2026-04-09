@@ -337,6 +337,13 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate,
                       {event.repInstruction}
                     </div>
                   )}
+                  {/* Adaptation note - visible when session intensity or volume was adjusted */}
+                  {event.adaptationNote && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-700 font-medium flex items-center gap-1.5">
+                      <span aria-hidden="true">⚑</span>
+                      {event.adaptationNote}
+                    </div>
+                  )}
                   {event.target && (
                     <div className="bg-gray-100 rounded-lg p-2.5 border border-gray-200">
                       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">
@@ -653,9 +660,12 @@ export default function PlanTab() {
       targetPfaDate,
       currentScores,
       TODAY,
-      { practiceSessionMap, preferredDays },
+      { practiceSessionMap, preferredDays, adaptationState },
     )
-  }, [demographics, targetPfaDate, currentScores, practiceSessionMap, preferredDays, calendarKey])
+  // adaptationState.state is a string - memo recomputes only on state transitions
+  // (NORMAL -> FATIGUED, etc.), not on every minor RPE value change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demographics, targetPfaDate, currentScores, practiceSessionMap, preferredDays, calendarKey, adaptationState.state])
 
   // ── Adaptation state from RPE feedback ─────────────────────────────────────
   const [adaptationState, setAdaptationState] = useState(() => detectAdaptationState())
