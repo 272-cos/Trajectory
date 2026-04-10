@@ -175,7 +175,7 @@ const SLIDES = [
 // -- Main component -----------------------------------------------------------
 
 export default function OnboardingModal() {
-  const { completeOnboarding, setActiveTab, tutorialIsReopen } = useApp()
+  const { completeOnboarding, setActiveTab, tutorialIsReopen, darkMode } = useApp()
   const modalRef = useRef(null)
   const [step, setStep] = useState(0)
 
@@ -283,8 +283,8 @@ export default function OnboardingModal() {
 
           {/* Disclaimer - first slide only */}
           {slide.showDisclaimer && (
-            <div className="bg-amber-50 dark:bg-gray-800 border border-amber-300 dark:border-gray-600 rounded-lg p-3 mb-2 mt-3">
-              <p className="text-xs text-amber-800 dark:text-gray-300 text-center">
+            <div className={`border rounded-lg p-3 mb-2 mt-3 ${darkMode ? 'bg-gray-800 border-gray-600' : 'bg-amber-50 border-amber-300'}`}>
+              <p className={`text-xs text-center ${darkMode ? 'text-gray-300' : 'text-amber-800'}`}>
                 <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
               </p>
             </div>
