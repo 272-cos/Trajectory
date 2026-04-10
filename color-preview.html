@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Disclaimer Box Color Preview</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    .scene {
+      display: flex;
+      gap: 0;
+    }
+    .panel {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .dark-panel { background: #111827; } /* gray-900 - modal bg */
+    .light-panel { background: #f3f4f6; }
+
+    .label { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 4px; }
+    .dark-panel .label { color: #6b7280; }
+    .light-panel .label { color: #6b7280; }
+
+    .modal-card {
+      width: 280px;
+      background: #111827;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .modal-card-light {
+      width: 280px;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .box {
+      border-radius: 6px;
+      padding: 10px 12px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .box strong { font-weight: 700; }
+
+    /* Option A - current: amber-500/20 */
+    .opt-a {
+      background: rgba(245,158,11, 0.20); /* amber-500 at 20% */
+      border: 1px solid rgba(251,191,36, 0.60); /* amber-400 at 60% */
+      color: #fde68a; /* amber-200 */
+    }
+
+    /* Option B - amber-500/30 (more visible) */
+    .opt-b {
+      background: rgba(245,158,11, 0.30);
+      border: 1px solid rgba(251,191,36, 0.75);
+      color: #fde68a;
+    }
+
+    /* Option C - yellow-400/20 (more yellow, less brown) */
+    .opt-c {
+      background: rgba(250,204,21, 0.15); /* yellow-400 at 15% */
+      border: 1px solid rgba(250,204,21, 0.50);
+      color: #fef08a; /* yellow-200 */
+    }
+
+    /* Option D - left-border accent, minimal fill */
+    .opt-d {
+      background: rgba(245,158,11, 0.10);
+      border: 1px solid transparent;
+      border-left: 3px solid #f59e0b; /* amber-500 solid */
+      border-radius: 0 6px 6px 0;
+      color: #fde68a;
+    }
+
+    /* Light mode */
+    .opt-light {
+      background: #fffbeb; /* amber-50 */
+      border: 1px solid #fcd34d; /* amber-300 */
+      color: #92400e; /* amber-800 */
+    }
+
+    .caption { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  </style>
+</head>
+<body>
+<div class="scene">
+
+  <!-- Dark mode options -->
+  <div class="panel dark-panel">
+    <div class="label" style="color:#9ca3af">Dark Mode Options</div>
+
+    <div class="modal-card">
+      <div class="label" style="color:#6b7280; margin-bottom:8px">A &mdash; amber-500 / 20% (current)</div>
+      <div class="box opt-a">
+        <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
+      </div>
+    </div>
+
+    <div class="modal-card">
+      <div class="label" style="color:#6b7280; margin-bottom:8px">B &mdash; amber-500 / 30%</div>
+      <div class="box opt-b">
+        <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
+      </div>
+    </div>
+
+    <div class="modal-card">
+      <div class="label" style="color:#6b7280; margin-bottom:8px">C &mdash; yellow-400 / 15% (more yellow)</div>
+      <div class="box opt-c">
+        <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
+      </div>
+    </div>
+
+    <div class="modal-card">
+      <div class="label" style="color:#6b7280; margin-bottom:8px">D &mdash; left-border accent only</div>
+      <div class="box opt-d">
+        <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
+      </div>
+    </div>
+  </div>
+
+  <!-- Light mode (unchanged) -->
+  <div class="panel light-panel">
+    <div class="label">Light Mode (unchanged)</div>
+    <div class="modal-card-light">
+      <div class="box opt-light">
+        <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
