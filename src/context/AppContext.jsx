@@ -19,9 +19,12 @@ import {
   getPersonalGoal,
   savePersonalGoal,
   onStorageError,
+  getExercisePrefs,
+  saveExercisePrefs,
 } from '../utils/storage/localStorage.js'
 import { decodeDCode } from '../utils/codec/dcode.js'
 import { decodeSCode } from '../utils/codec/scode.js'
+import { normalizePfaPreferences } from '../utils/training/exercisePreferences.js'
 
 const AppContext = createContext(null)
 
@@ -347,6 +350,17 @@ export function AppProvider({ children }) {
     savePersonalGoal(clamped)
   }, [])
 
+  // PFA exercise preferences (upperBody, core, cardio selections)
+  const [pfaPreferences, setPfaPreferencesState] = useState(() =>
+    normalizePfaPreferences(getExercisePrefs()),
+  )
+
+  const updatePfaPreferences = useCallback((prefs) => {
+    const normalized = normalizePfaPreferences(prefs)
+    setPfaPreferencesState(normalized)
+    saveExercisePrefs(normalized)
+  }, [])
+
   const value = useMemo(() => ({
     // D-code
     dcode,
@@ -384,6 +398,10 @@ export function AppProvider({ children }) {
     // Personal score goal
     personalGoal,
     updatePersonalGoal,
+
+    // PFA exercise preferences
+    pfaPreferences,
+    updatePfaPreferences,
 
     // Self-check unsaved data warning
     selfCheckDirty,

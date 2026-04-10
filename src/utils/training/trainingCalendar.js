@@ -23,6 +23,14 @@ import { EXERCISES, COMPONENTS, calculateAge } from '../scoring/constants.js'
 import { PI_EXERCISES, PI_IS_TIME, formatSecondsMMSS } from './practiceSession.js'
 import { applyAdaptation, ADAPTATION_STATES } from './adaptiveFeedback.js'
 import {
+  UPPER_BODY, CORE, CARDIO,
+  buildStrengthDescription,
+  buildCardioDescription,
+  buildCardioNotes,
+  getBaselineStrengthDef,
+  getBaselineCardioDef,
+} from './exercisePreferences.js'
+import {
   weekNumberFromWeeksOut,
   getProgressionRatio,
   getPhaseFromRatio,
@@ -312,7 +320,13 @@ function getMondayOfWeek(dateISO) {
  * @returns {object} Calendar structure
  */
 export function generateCalendar(demographics, targetDateISO, currentScores, todayISO, options = {}) {
-  const { piPushups = null, practiceSessionMap = {}, preferredDays = DEFAULT_TRAINING_DAYS, adaptationState = null } = options
+  const {
+    piPushups = null,
+    practiceSessionMap = {},
+    preferredDays = DEFAULT_TRAINING_DAYS,
+    adaptationState = null,
+    pfaPreferences = null,
+  } = options
 
   const totalDays = daysBetween(todayISO, targetDateISO)
   const totalWeeks = weeksBetween(todayISO, targetDateISO)
@@ -466,28 +480,31 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 
       // ── Baseline: first two future training days ─────────────────────────
       // Uses baselinePlaced counter so mid-week starts never skip baselines.
+      // Event content adapts to pfaPreferences (HRPU, Plank, HAMR variants).
       if (isBaselineWeek && baselinePlaced === 0) {
+        const bDef = getBaselineStrengthDef(pfaPreferences)
         addEvent(dayISO, {
-          type:        EVENT_TYPES.BASELINE_PI,
-          date:        dayISO,
-          label:       'Baseline - Strength & Core',
-          description: '30-sec max push-ups, then rest 2 min, then 30-sec max sit-ups.',
-          notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Training begins immediately after.',
-          target:      '30-sec max push-ups + 30-sec max sit-ups',
-          priority:    'high',
+          type:     EVENT_TYPES.BASELINE_PI,
+          date:     dayISO,
+          label:    bDef.label,
+          description: bDef.description,
+          notes:    bDef.notes,
+          target:   bDef.target,
+          priority: 'high',
         })
         baselinePlaced++
         return
       }
       if (isBaselineWeek && baselinePlaced === 1) {
+        const bDef = getBaselineCardioDef(pfaPreferences)
         addEvent(dayISO, {
-          type:        EVENT_TYPES.BASELINE_PI,
-          date:        dayISO,
-          label:       'Baseline - Cardio',
-          description: '400m run at comfortable effort. Record your time.',
-          notes:       'Predicts your 2-mile pace. Record in Practice Check > PI Workout > 400m Run.',
-          target:      '400m run - record time',
-          priority:    'high',
+          type:     EVENT_TYPES.BASELINE_PI,
+          date:     dayISO,
+          label:    bDef.label,
+          description: bDef.description,
+          notes:    bDef.notes,
+          target:   bDef.target,
+          priority: 'high',
         })
         baselinePlaced++
         return
@@ -495,14 +512,15 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
 
       // ── Foundation check-in: repeat Week 1, measure delta ──────────────────
       if (isFoundationCheckin && idx === 0) {
+        const bDef = getBaselineStrengthDef(pfaPreferences)
         const scTarget = baselineScores.hasStrengthCore
           ? `Beat your Week 1 scores: ${[baselineScores.pushups, baselineScores.situps].filter(Boolean).join(', ')}`
-          : 'Beat your Week 1 push-up and sit-up counts'
+          : `Beat your Week 1 ${bDef.target}`
         addEvent(dayISO, {
           type:        EVENT_TYPES.FOUNDATION_CHECKIN,
           date:        dayISO,
           label:       'Phase 1 Check-in - Strength & Core',
-          description: 'Repeat exactly: 30-sec max push-ups, rest 2 min, 30-sec max sit-ups.',
+          description: `Repeat exactly: ${bDef.description}`,
           notes:       'Compare to Week 1 numbers. This is your first visible evidence of progress. Record in Practice Check > PI Workout.',
           target:      scTarget,
           priority:    'medium',
@@ -510,15 +528,16 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         return
       }
       if (isFoundationCheckin && idx === 1) {
+        const cDef = getBaselineCardioDef(pfaPreferences)
         const cardioTarget = baselineScores.hasCardio
           ? `Beat your Week 1 time: ${baselineScores.run400}`
-          : 'Beat your Week 1 400m time'
+          : `Beat your Week 1 ${cDef.target}`
         addEvent(dayISO, {
           type:        EVENT_TYPES.FOUNDATION_CHECKIN,
           date:        dayISO,
           label:       'Phase 1 Check-in - Cardio',
-          description: '400m run. Compare to Week 1 time.',
-          notes:       'A faster time is your first visible cardio evidence. Record in Practice Check > PI Workout > 400m Run.',
+          description: `Repeat exactly: ${cDef.description}`,
+          notes:       'Compare to Week 1 numbers. A better result is your first visible cardio evidence. Record in Practice Check > PI Workout.',
           target:      cardioTarget,
           priority:    'medium',
         })
@@ -568,9 +587,21 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         }
 
         const piCycle = [
-          { component: COMPONENTS.CARDIO,   exercise: EXERCISES.RUN_2MILE, fitnessLevel: getFitnessLevel(cardioScore) },
-          { component: COMPONENTS.STRENGTH,  exercise: EXERCISES.PUSHUPS,   fitnessLevel: getFitnessLevel(strengthScore) },
-          { component: COMPONENTS.CORE,      exercise: EXERCISES.SITUPS,    fitnessLevel: getFitnessLevel(coreScore) },
+          {
+            component:   COMPONENTS.CARDIO,
+            exercise:    pfaPreferences?.cardio === CARDIO.HAMR ? EXERCISES.HAMR : EXERCISES.RUN_2MILE,
+            fitnessLevel: getFitnessLevel(cardioScore),
+          },
+          {
+            component:   COMPONENTS.STRENGTH,
+            exercise:    pfaPreferences?.upperBody === UPPER_BODY.HRPU ? EXERCISES.HRPU : EXERCISES.PUSHUPS,
+            fitnessLevel: getFitnessLevel(strengthScore),
+          },
+          {
+            component:   COMPONENTS.CORE,
+            exercise:    pfaPreferences?.core === CORE.PLANK ? EXERCISES.PLANK : EXERCISES.SITUPS,
+            fitnessLevel: getFitnessLevel(coreScore),
+          },
         ]
         const piItem = piCycle[piCycleIndex % 3]
         piCycleIndex++
@@ -621,8 +652,8 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         type:        EVENT_TYPES.TRAINING,
         date:        dayISO,
         label:       dayLabel,
-        description: getTrainingDayDescription(phaseName, phaseForWeek, idx),
-        notes:       getTrainingDayNotes(phaseName, phaseForWeek, idx, age),
+        description: getTrainingDayDescription(phaseName, phaseForWeek, idx, pfaPreferences),
+        notes:       getTrainingDayNotes(phaseName, phaseForWeek, idx, age, pfaPreferences),
         phase:       phaseForWeek,
         phaseName,
         phaseLabel,
@@ -798,7 +829,7 @@ function buildBeatTarget(exercise, baselineScores, fallbackTarget) {
 
 // ── Training day copy helpers ─────────────────────────────────────────────────
 
-function getTrainingDayDescription(phaseName, phaseNumber, sessionIndex) {
+function getTrainingDayDescription(phaseName, phaseNumber, sessionIndex, pfaPreferences) {
   // Phase 0 retains its own pre-progression descriptions
   if (phaseNumber === PHASES.PHASE_0 || !phaseName) {
     const phase0Sessions = [
@@ -811,16 +842,35 @@ function getTrainingDayDescription(phaseName, phaseNumber, sessionIndex) {
 
   const templates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
   const template = templates[sessionIndex % templates.length]
+
+  // Apply exercise preference substitutions when non-default exercises are selected
+  if (pfaPreferences) {
+    if (template.type === 'strength_core') {
+      const overrideDesc = buildStrengthDescription(phaseName, template.intensity, pfaPreferences)
+      if (overrideDesc) return overrideDesc
+    } else if (template.type === 'cardio') {
+      const overrideDesc = buildCardioDescription(template.label, pfaPreferences)
+      if (overrideDesc) return overrideDesc
+    }
+  }
+
   return template.description
 }
 
-function getTrainingDayNotes(phaseName, phaseNumber, sessionIndex, age) {
+function getTrainingDayNotes(phaseName, phaseNumber, sessionIndex, age, pfaPreferences) {
   if (phaseNumber === PHASES.PHASE_0 || !phaseName) {
     return 'Pre-progression: Rest 60-90s between sets. Stop a rep or two short of failure - form matters more than count right now.'
   }
 
   const templates = WEEKLY_TEMPLATES[phaseName] || WEEKLY_TEMPLATES[PHASE_NAMES.BASE]
   const template = templates[sessionIndex % templates.length]
+
+  // For HAMR cardio, use shuttle-specific notes
+  if (pfaPreferences && template.type === 'cardio') {
+    const overrideNotes = buildCardioNotes(template.label, pfaPreferences)
+    if (overrideNotes) return overrideNotes
+  }
+
   const effortInstruction = getRepInstruction(phaseName, template.type)
   let notes = `${template.notes} ${effortInstruction}`
 
