@@ -283,8 +283,8 @@ export default function OnboardingModal() {
 
           {/* Disclaimer - first slide only */}
           {slide.showDisclaimer && (
-            <div className="bg-amber-50 dark:bg-transparent border border-amber-300 dark:border-amber-500 rounded-lg p-3 mb-2 mt-3">
-              <p className="text-xs text-amber-800 dark:text-amber-400 text-center">
+            <div className="bg-amber-50 dark:bg-gray-800 border border-amber-300 dark:border-gray-600 rounded-lg p-3 mb-2 mt-3">
+              <p className="text-xs text-amber-800 dark:text-gray-300 text-center">
                 <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
               </p>
             </div>
