@@ -283,7 +283,7 @@ export default function OnboardingModal() {
 
           {/* Disclaimer - first slide only */}
           {slide.showDisclaimer && (
-            <div className={`border rounded-lg p-3 mb-2 mt-3 ${darkMode ? 'bg-amber-500/20 border-amber-400/60' : 'bg-amber-50 border-amber-300'}`}>
+            <div className={`border rounded-lg p-3 mb-2 mt-3 ${darkMode ? 'bg-amber-500/30 border-amber-400/75' : 'bg-amber-50 border-amber-300'}`}>
               <p className={`text-xs text-center ${darkMode ? 'text-amber-200' : 'text-amber-800'}`}>
                 <strong>Unofficial</strong> personal assessment tool. Provides <strong>estimates only</strong>, not official PFA scores.
               </p>
