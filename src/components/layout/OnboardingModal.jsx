@@ -118,7 +118,7 @@ function TwoToolsContent() {
           Builds a 16-week workout calendar around your current scores. Tap any day for your prescription - the plan adapts as you log sessions.
         </div>
         <div className="bg-white dark:bg-gray-800 rounded px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 font-mono space-y-0.5 mb-2">
-          <div>Week 1 Day 2: Push-ups - 4 sets (stop at 70%)</div>
+          <div>Push-ups: 3 sets, stop 3-4 reps before failure (90s rest)</div>
           <div>Run: 20 min at conversational pace</div>
         </div>
         <div className="text-xs font-medium text-green-700 dark:text-green-400">Need daily structure? Start here.</div>
