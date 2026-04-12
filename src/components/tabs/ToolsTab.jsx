@@ -8,7 +8,7 @@ import Stopwatch from '../tools/Stopwatch.jsx'
 import HamrMetronome from '../tools/HamrMetronome.jsx'
 import RunPacer from '../tools/RunPacer.jsx'
 import { useApp } from '../../context/AppContext.jsx'
-import { calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
+import { calculateAge, getAgeBracket, EXERCISES } from '../../utils/scoring/constants.js'
 import { generateTargetTable } from '../../utils/scoring/reverseScoring.js'
 import { exportBackup, importBackup } from '../../utils/storage/localStorage.js'
 
@@ -134,17 +134,26 @@ function ScoreTargetContent() {
                 </span>
               </div>
               <div className="space-y-1.5">
-                {row.exercises.map(ex => (
-                  <div key={ex.exercise} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">{ex.label}</span>
-                    <div className="text-right">
-                      <span className="font-bold text-gray-900">{ex.displayValue}</span>
-                      {ex.lowerIsBetter && ex.rawValue !== null && (
-                        <span className="text-xs text-gray-400 ml-1">or faster</span>
-                      )}
-                      {!ex.lowerIsBetter && ex.rawValue !== null && (
-                        <span className="text-xs text-gray-400 ml-1">or more</span>
-                      )}
+                {row.exercises.map((ex, idx) => (
+                  <div key={ex.exercise}>
+                    {idx > 0 && (
+                      <div className="text-xs text-gray-400 italic pl-1 pb-1">- or -</div>
+                    )}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">{ex.label}</span>
+                      <div className="text-right">
+                        <span className="font-bold text-gray-900">{ex.displayValue}</span>
+                        {ex.lowerIsBetter && ex.rawValue !== null && (
+                          <span className="text-xs text-gray-400 ml-1">
+                            {ex.exercise === EXERCISES.WHTR ? 'or lower' : 'or faster'}
+                          </span>
+                        )}
+                        {!ex.lowerIsBetter && ex.rawValue !== null && (
+                          <span className="text-xs text-gray-400 ml-1">
+                            {ex.exercise === EXERCISES.PLANK ? 'or longer' : 'or more'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
