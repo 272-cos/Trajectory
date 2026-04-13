@@ -291,6 +291,13 @@ export default function HistoryTab() {
     if (!undoDelete) return
     addSCode(undoDelete.code)
     clearTimeout(undoDelete.timer)
+    // Clear outlier flag so restored assessment doesn't show strikethrough
+    setOutliers(prev => {
+      if (!prev.has(undoDelete.code)) return prev
+      const next = new Set(prev)
+      next.delete(undoDelete.code)
+      return next
+    })
     setUndoDelete(null)
   }
 

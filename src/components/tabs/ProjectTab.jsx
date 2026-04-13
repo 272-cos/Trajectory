@@ -1082,9 +1082,17 @@ export default function ProjectTab() {
       if (currentPcts.strength != null) calScores.strength = currentPcts.strength
       if (currentPcts.core != null) calScores.core = currentPcts.core
       if (currentPcts.bodyComp != null) calScores.bodyComp = currentPcts.bodyComp
-      // Approximate composite
-      const vals = [currentPcts.cardio, currentPcts.strength, currentPcts.core, currentPcts.bodyComp].filter(v => v != null)
-      if (vals.length > 0) calScores.composite = vals.reduce((a, b) => a + b, 0) / vals.length
+      // Weighted composite (50-20-15-15 model, matching calculateCompositeScore)
+      const weightMap = { cardio: 50, strength: 15, core: 15, bodyComp: 20 }
+      let earned = 0
+      let possible = 0
+      for (const [comp, pct] of Object.entries(currentPcts)) {
+        if (pct != null && weightMap[comp]) {
+          earned += (pct / 100) * weightMap[comp]
+          possible += weightMap[comp]
+        }
+      }
+      if (possible > 0) calScores.composite = Math.round((earned / possible) * 1000) / 10
     }
 
     try {

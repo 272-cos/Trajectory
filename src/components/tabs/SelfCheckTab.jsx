@@ -395,6 +395,30 @@ export default function SelfCheckTab() {
           return false
         }
       }
+      // Strength reps: must be 1-300 (reject 0, negative, and absurd values)
+      if (!strengthExempt && strengthValue) {
+        const reps = parseInt(strengthValue, 10)
+        if (isNaN(reps) || reps < 1 || reps > 300) {
+          setError('Strength reps must be between 1 and 300.')
+          return false
+        }
+      }
+      // Core reps: must be 1-300 (when not plank)
+      if (!coreExempt && coreValue && coreExercise !== EXERCISES.PLANK) {
+        const reps = parseInt(coreValue, 10)
+        if (isNaN(reps) || reps < 1 || reps > 300) {
+          setError('Core reps must be between 1 and 300.')
+          return false
+        }
+      }
+      // HAMR shuttles: must be 1-232 after conversion
+      if (!cardioExempt && cardioExercise === EXERCISES.HAMR && cardioValue) {
+        const val = cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10)
+        if (isNaN(val) || val < 1 || val > 232) {
+          setError('HAMR shuttles must be between 1 and 232.')
+          return false
+        }
+      }
       // IV-10: At least one component non-exempt
       if (cardioExempt && strengthExempt && coreExempt && bodyCompExempt) {
         setError('All components exempt. No composite score possible.')
