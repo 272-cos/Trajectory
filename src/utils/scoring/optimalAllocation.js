@@ -17,6 +17,7 @@ import {
   COMPONENTS,
   COMPONENT_WEIGHTS,
   COMPONENT_MINIMUMS,
+  PASSING_COMPOSITE,
   IMPROVEMENT_UNITS,
   EFFORT_WEEKS_PER_UNIT,
 } from './constants.js'
@@ -241,15 +242,49 @@ export function computeOptimalAllocation(currentScores, targetComposite, demogra
   }
 
   const currentComposite = Math.round((totalEarned / totalPossible) * 1000) / 10
+
+  // Check if already at target AND all component minimums met
+  const allMinimumsmet = compKeys.every(key => {
+    const cs = compState[key]
+    return cs.exempt || cs.currentPts >= cs.minPts
+  })
+  if (currentComposite >= targetComposite && allMinimumsmet) {
+    const components = {}
+    for (const key of compKeys) {
+      const cs = compState[key]
+      if (cs.exempt) continue
+      components[key] = {
+        exercise: cs.exercise,
+        currentPts: cs.currentPts,
+        targetPts: cs.currentPts,
+        ptsGain: 0,
+        effortWeeks: 0,
+        targetRaw: cs.currentValue,
+        displayTarget: null,
+        marginalCostNow: 0,
+      }
+    }
+    return {
+      achievable: true,
+      currentComposite,
+      targetComposite,
+      totalEffortWeeks: 0,
+      components,
+      bestBangForBuck: null,
+    }
+  }
+
   // Add 0.05 epsilon so rounding lands on or above target per SL-06
   const targetPts = (targetComposite / 100) * totalPossible + 0.05
   let pointsNeeded = Math.max(0, targetPts - totalEarned)
 
   // Phase 1: Force components below minimums up to their minimums (mandatory)
+  // Only enforce minimums when targeting a passing score (>= 75)
+  const enforceMinimums = targetComposite >= PASSING_COMPOSITE
   for (const key of compKeys) {
     const cs = compState[key]
     if (cs.exempt) continue
-    if (cs.currentPts < cs.minPts) {
+    if (enforceMinimums && cs.currentPts < cs.minPts) {
       const mandatoryGain = cs.minPts - cs.currentPts
       // Build schedule if not yet built
       if (!cs.schedule) {

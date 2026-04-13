@@ -20,7 +20,7 @@ const ToolsTab = lazy(() => import('./components/tabs/ToolsTab.jsx'))
 class TabErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { hasError: false }
+    this.state = { hasError: false, retryCount: 0 }
   }
 
   static getDerivedStateFromError() {
@@ -33,16 +33,36 @@ class TabErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
+      const stuck = this.state.retryCount >= 1
+
       return (
-        <div className="bg-white rounded-xl shadow-md p-6 text-center space-y-3">
-          <p className="text-gray-900 font-semibold">This section hit an error</p>
-          <p className="text-gray-500 text-sm">Your other tabs and saved data are fine.</p>
-          <button
-            onClick={() => this.setState({ hasError: false })}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors min-h-[44px]"
-          >
-            Try Again
-          </button>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center space-y-3">
+          <p className="text-gray-900 dark:text-gray-100 font-semibold">
+            {stuck ? 'This tab keeps crashing' : 'This section hit an error'}
+          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            {stuck
+              ? 'Try switching to a different tab, or reload the page.'
+              : 'Your other tabs and saved data are fine.'}
+          </p>
+          <div className="flex flex-col gap-2">
+            {!stuck && (
+              <button
+                onClick={() => this.setState(prev => ({ hasError: false, retryCount: prev.retryCount + 1 }))}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors min-h-[44px]"
+              >
+                Try Again
+              </button>
+            )}
+            {stuck && (
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors min-h-[44px]"
+              >
+                Reload Page
+              </button>
+            )}
+          </div>
           <p className="text-xs text-gray-400">UNOFFICIAL ESTIMATE - Not for official use</p>
         </div>
       )
