@@ -198,28 +198,6 @@ export function prescribePIWorkout(exercise, fitnessLevel) {
   return exercisePrescriptions[level] || exercisePrescriptions[FITNESS_LEVELS.LOW]
 }
 
-// ── Fractional test prescriptions ─────────────────────────────────────────────
-
-/**
- * Prescribe fractional test targets for a given exercise, bracket, and fraction.
- *
- * @param {string} exercise - EXERCISES constant
- * @param {string} ageBracket - e.g. '25-29'
- * @param {string} gender - 'M' or 'F'
- * @param {number} fraction - 0.5 or 0.75
- * @returns {{ target: string, description: string, notes: string }}
- */
-export function prescribeFractionalTest(exercise, ageBracket, gender, fraction) {
-  const pct = Math.round(fraction * 100)
-  const label = `${pct}% Partial Test`
-
-  return {
-    target: `Perform ${pct}% of your passing standard for this exercise`,
-    description: label,
-    notes: `This is a ${pct}% partial test. Your predicted full-test score will be calculated automatically. Results are approximate - always label as estimated.`,
-  }
-}
-
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
 function addDays(dateISO, days) {

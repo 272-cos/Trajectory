@@ -421,6 +421,7 @@ export function AppProvider({ children }) {
     toasts, addToast, dismissToast,
     darkMode, toggleDarkMode,
     personalGoal, updatePersonalGoal,
+    pfaPreferences, updatePfaPreferences,
     selfCheckDirty, pendingTabNavigation, suppressSelfCheckWarning,
     registerSelfCheckGenerator, triggerSelfCheckGenerate,
   ])
