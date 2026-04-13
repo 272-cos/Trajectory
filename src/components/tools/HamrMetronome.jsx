@@ -29,10 +29,31 @@ import {
 
 const SESSION_KEY = 'pfa_practice_hamr'
 
-// Beep audio parameters
+// ── Shuttle beep audio parameters ────────────────────────────────────────────
 const BEEP_FREQ = 1320    // Hz - high-pitched short beep
 const BEEP_DURATION = 0.07 // seconds per beep tone
 const TRIPLE_GAP = 0.15    // seconds between triple beep starts
+
+// ── Countdown audio parameters ───────────────────────────────────────────────
+// Synth tones only - no human voice, no audio files.
+// Pattern: 3 long tones ... 2 long tones ... 1 distinct tone ... ascending sweep
+const CD_FREQ = 440           // Hz - deep horn tone for "3" and "2" signals
+const CD_DIFF_FREQ = 660      // Hz - distinct higher tone for "1" signal
+const CD_TONE_DURATION = 0.4  // seconds per countdown tone (long vs 70ms shuttle beeps)
+const CD_TONE_GAP = 0.2       // seconds between tones within a group
+const CD_GROUP_GAP = 0.4      // seconds between groups (after last tone of group ends)
+const SWEEP_START = 660       // Hz - "go" sweep start frequency
+const SWEEP_END = 1320        // Hz - "go" sweep end frequency
+const SWEEP_DURATION = 0.6    // seconds for ascending sweep
+const POST_SWEEP_PAUSE = 0.5  // seconds of silence after sweep before first shuttle
+
+// Total countdown duration:
+// Group "3": tones at 0.0, 0.6, 1.2 (each 0.4s) -> ends at 1.6
+// Group "2": tones at 2.0, 2.6 (each 0.4s) -> ends at 3.0
+// Group "1": tone at 3.4 (0.4s) -> ends at 3.8
+// Sweep: at 4.2 (0.6s) -> ends at 4.8
+// + POST_SWEEP_PAUSE -> shuttle timer starts at 5.3
+const COUNTDOWN_TOTAL_S = 4.8 + POST_SWEEP_PAUSE // ~5.3s
 
 /**
  * Schedule a single beep tone into the AudioContext.
@@ -50,6 +71,83 @@ function scheduleBeepTone(ctx, when) {
   gain.gain.exponentialRampToValueAtTime(0.001, when + BEEP_DURATION)
   osc.start(when)
   osc.stop(when + BEEP_DURATION + 0.01)
+}
+
+/**
+ * Schedule a countdown tone (longer, lower, different waveform than shuttle beeps).
+ * Returns the gain node so it can be silenced on skip.
+ */
+function scheduleCountdownTone(ctx, when, freq, duration, waveType = 'triangle') {
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.type = waveType
+  osc.frequency.value = freq
+  gain.gain.setValueAtTime(0.7, when)
+  gain.gain.exponentialRampToValueAtTime(0.001, when + duration)
+  osc.start(when)
+  osc.stop(when + duration + 0.02)
+  return gain
+}
+
+/**
+ * Schedule the ascending frequency sweep ("go" signal).
+ * Returns the gain node so it can be silenced on skip.
+ */
+function scheduleSweepTone(ctx, when) {
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(SWEEP_START, when)
+  osc.frequency.exponentialRampToValueAtTime(SWEEP_END, when + SWEEP_DURATION)
+  gain.gain.setValueAtTime(0.7, when)
+  gain.gain.exponentialRampToValueAtTime(0.001, when + SWEEP_DURATION)
+  osc.start(when)
+  osc.stop(when + SWEEP_DURATION + 0.02)
+  return gain
+}
+
+/**
+ * Schedule the full countdown sequence into the AudioContext.
+ * Returns an array of gain nodes (for silencing on skip).
+ *
+ * Timeline (seconds from `t0`):
+ *   0.0, 0.6, 1.2   - three 440Hz triangle tones ("3")
+ *   2.0, 2.6         - two   440Hz triangle tones ("2")
+ *   3.4              - one   660Hz sawtooth tone  ("1" - distinct)
+ *   4.2              - ascending 660->1320Hz sweep ("go")
+ *   5.3              - first shuttle interval begins
+ */
+function scheduleCountdown(ctx) {
+  const t0 = ctx.currentTime + 0.05 // small lookahead
+  const gains = []
+
+  // "3" - three horn tones
+  const step = CD_TONE_DURATION + CD_TONE_GAP // 0.6s per tone slot
+  gains.push(scheduleCountdownTone(ctx, t0, CD_FREQ, CD_TONE_DURATION))
+  gains.push(scheduleCountdownTone(ctx, t0 + step, CD_FREQ, CD_TONE_DURATION))
+  gains.push(scheduleCountdownTone(ctx, t0 + step * 2, CD_FREQ, CD_TONE_DURATION))
+
+  // "2" - two horn tones (starts at 2.0s)
+  const g2Start = t0 + step * 2 + CD_TONE_DURATION + CD_GROUP_GAP // 1.2 + 0.4 + 0.4 = 2.0
+  gains.push(scheduleCountdownTone(ctx, g2Start, CD_FREQ, CD_TONE_DURATION))
+  gains.push(scheduleCountdownTone(ctx, g2Start + step, CD_FREQ, CD_TONE_DURATION))
+
+  // "1" - one distinct tone (starts at 3.4s)
+  const g1Start = g2Start + step + CD_TONE_DURATION + CD_GROUP_GAP // 2.6 + 0.4 + 0.4 = 3.4
+  gains.push(scheduleCountdownTone(ctx, g1Start, CD_DIFF_FREQ, CD_TONE_DURATION, 'sawtooth'))
+
+  // "Go" - ascending sweep (starts at 4.2s)
+  const sweepStart = g1Start + CD_TONE_DURATION + CD_GROUP_GAP // 3.4 + 0.4 + 0.4 = 4.2
+  gains.push(scheduleSweepTone(ctx, sweepStart))
+
+  // Haptic: long pulse for each group
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200, 300, 200, 100, 200, 300, 300, 300, 400])
+
+  return gains
 }
 
 /**
@@ -78,7 +176,7 @@ export default function HamrMetronome() {
   const { demographics } = useApp()
 
   // UI state
-  const [status, setStatus] = useState('idle') // 'idle' | 'running' | 'paused' | 'done'
+  const [status, setStatus] = useState('idle') // 'idle' | 'countdown' | 'running' | 'paused' | 'done'
   const [startLevel, setStartLevel] = useState(1)
   const [totalShuttles, setTotalShuttles] = useState(0)
   const [elapsedMs, setElapsedMs] = useState(0)
@@ -92,6 +190,8 @@ export default function HamrMetronome() {
   const tickTimeoutRef = useRef(null)
   const displayIntervalRef = useRef(null)
   const wakeLockRef = useRef(null)
+  const countdownTimeoutRef = useRef(null) // setTimeout ID for countdown -> running transition
+  const countdownGainsRef = useRef([])     // gain nodes from countdown (silenced on skip)
 
   // Scheduler state refs
   const nextShuttleRef = useRef(1)       // next shuttle number to complete (1-indexed total)
@@ -121,7 +221,7 @@ export default function HamrMetronome() {
   // Re-acquire wake lock on visibility change
   useEffect(() => {
     const onVisChange = () => {
-      if (document.visibilityState === 'visible' && status === 'running') {
+      if (document.visibilityState === 'visible' && (status === 'running' || status === 'countdown')) {
         requestWakeLock()
       }
     }
@@ -133,6 +233,7 @@ export default function HamrMetronome() {
   useEffect(() => {
     return () => {
       clearTimeout(tickTimeoutRef.current)
+      clearTimeout(countdownTimeoutRef.current)
       if (displayIntervalRef.current) clearInterval(displayIntervalRef.current)
       releaseWakeLock()
       if (audioCtxRef.current) {
@@ -208,6 +309,28 @@ export default function HamrMetronome() {
     }, delay)
   }, [stopDisplayInterval, releaseWakeLock])
 
+  // Begin the shuttle timer (called after countdown completes or is skipped)
+  const startShuttleTimer = useCallback(() => {
+    const firstShuttle = firstShuttleOfLevel(startLevel)
+    const firstInfo = getLevelForShuttle(firstShuttle)
+    if (!firstInfo) return
+
+    // Initialize scheduler state
+    nextShuttleRef.current = firstShuttle
+    sessionStartRef.current = performance.now()
+    totalPausedMsRef.current = 0
+    pauseStartRef.current = null
+
+    // First beep fires after one shuttle interval
+    nextBeepAtRef.current = performance.now() + firstInfo.intervalMs
+
+    setTotalShuttles(0)
+    setElapsedMs(0)
+    setStatus('running')
+    startDisplayInterval()
+    scheduleTick()
+  }, [startLevel, startDisplayInterval, scheduleTick])
+
   const handleStart = useCallback(async () => {
     // Initialize AudioContext on user gesture (required by browsers)
     try {
@@ -227,22 +350,42 @@ export default function HamrMetronome() {
     const firstInfo = getLevelForShuttle(firstShuttle)
     if (!firstInfo) return
 
-    // Initialize scheduler state
-    nextShuttleRef.current = firstShuttle
-    sessionStartRef.current = performance.now()
-    totalPausedMsRef.current = 0
-    pauseStartRef.current = null
-
-    // First beep fires after one shuttle interval
-    nextBeepAtRef.current = performance.now() + firstInfo.intervalMs
-
-    setTotalShuttles(0)
-    setElapsedMs(0)
-    setStatus('running')
     requestWakeLock()
-    startDisplayInterval()
-    scheduleTick()
-  }, [startLevel, requestWakeLock, startDisplayInterval, scheduleTick])
+
+    // Play countdown sequence, then start shuttle timer
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      setStatus('countdown')
+      countdownGainsRef.current = scheduleCountdown(audioCtxRef.current)
+
+      // After countdown completes, start the shuttle timer
+      countdownTimeoutRef.current = setTimeout(() => {
+        countdownGainsRef.current = []
+        countdownTimeoutRef.current = null
+        startShuttleTimer()
+      }, COUNTDOWN_TOTAL_S * 1000)
+    } else {
+      // No audio available - skip countdown, start directly
+      startShuttleTimer()
+    }
+  }, [startLevel, requestWakeLock, startShuttleTimer])
+
+  // Skip countdown and start shuttles immediately
+  const handleSkipCountdown = useCallback(() => {
+    // Clear countdown timeout
+    if (countdownTimeoutRef.current) {
+      clearTimeout(countdownTimeoutRef.current)
+      countdownTimeoutRef.current = null
+    }
+
+    // Silence any remaining countdown tones by disconnecting gain nodes
+    for (const gain of countdownGainsRef.current) {
+      try { gain.disconnect() } catch { /* already disconnected */ }
+    }
+    countdownGainsRef.current = []
+
+    // Start shuttle timer immediately
+    startShuttleTimer()
+  }, [startShuttleTimer])
 
   const handlePause = useCallback(() => {
     clearTimeout(tickTimeoutRef.current)
@@ -275,7 +418,20 @@ export default function HamrMetronome() {
     scheduleTick()
   }, [requestWakeLock, startDisplayInterval, scheduleTick])
 
+  // Silence any active countdown tones
+  const cancelCountdown = useCallback(() => {
+    if (countdownTimeoutRef.current) {
+      clearTimeout(countdownTimeoutRef.current)
+      countdownTimeoutRef.current = null
+    }
+    for (const gain of countdownGainsRef.current) {
+      try { gain.disconnect() } catch { /* already disconnected */ }
+    }
+    countdownGainsRef.current = []
+  }, [])
+
   const handleStop = useCallback(() => {
+    cancelCountdown()
     clearTimeout(tickTimeoutRef.current)
     tickTimeoutRef.current = null
     stopDisplayInterval()
@@ -290,9 +446,10 @@ export default function HamrMetronome() {
     setStatus('idle')
     setTotalShuttles(0)
     setElapsedMs(0)
-  }, [totalShuttles, stopDisplayInterval, releaseWakeLock])
+  }, [totalShuttles, cancelCountdown, stopDisplayInterval, releaseWakeLock])
 
   const handleReset = useCallback(() => {
+    cancelCountdown()
     clearTimeout(tickTimeoutRef.current)
     tickTimeoutRef.current = null
     stopDisplayInterval()
@@ -300,7 +457,7 @@ export default function HamrMetronome() {
     setStatus('idle')
     setTotalShuttles(0)
     setElapsedMs(0)
-  }, [stopDisplayInterval, releaseWakeLock])
+  }, [cancelCountdown, stopDisplayInterval, releaseWakeLock])
 
   // Auto-score: compute points for completed shuttle count
   const autoScore = (() => {
@@ -313,6 +470,7 @@ export default function HamrMetronome() {
   })()
 
   const isIdle = status === 'idle'
+  const isCountdown = status === 'countdown'
   const isRunning = status === 'running'
   const isPaused = status === 'paused'
   const isDone = status === 'done'
@@ -354,6 +512,15 @@ export default function HamrMetronome() {
           <p className="text-xs text-gray-500 mt-1">
             Experienced runners can warm up by starting at a higher level.
           </p>
+        </div>
+      )}
+
+      {/* Countdown display */}
+      {isCountdown && (
+        <div className="mb-6 flex flex-col items-center justify-center py-8">
+          <div className="text-lg font-semibold text-gray-700 mb-2">Get ready...</div>
+          <div className="text-sm text-gray-500">Listen for the countdown tones</div>
+          <div className="mt-4 text-xs text-gray-400">3 tones - 2 tones - 1 tone - GO</div>
         </div>
       )}
 
@@ -447,6 +614,25 @@ export default function HamrMetronome() {
           </button>
         )}
 
+        {isCountdown && (
+          <>
+            <button
+              onClick={handleSkipCountdown}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-4 px-6 rounded-xl text-lg transition-colors min-h-[56px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label="Skip countdown and start immediately"
+            >
+              Skip
+            </button>
+            <button
+              onClick={handleStop}
+              className="flex-1 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold py-4 px-6 rounded-xl text-lg transition-colors min-h-[56px] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              aria-label="Cancel HAMR test"
+            >
+              Cancel
+            </button>
+          </>
+        )}
+
         {isRunning && (
           <>
             <button
@@ -518,7 +704,7 @@ export default function HamrMetronome() {
       )}
 
       {/* Protocol reference */}
-      {isIdle && (
+      {(isIdle && !isCountdown) && (
         <div className="mt-4 bg-gray-50 rounded-lg p-3">
           <p className="text-xs font-semibold text-gray-600 mb-1">How to use</p>
           <ul className="text-xs text-gray-500 space-y-0.5">
