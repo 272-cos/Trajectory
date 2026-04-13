@@ -123,25 +123,31 @@ export const IMPROVEMENT_UNITS = {
 
 // Effort weeks per unit improvement (baseline, at low-to-mid performance level)
 // Source: docs/RESEARCH-FITNESS-PROGRAMS.md
+// These represent physiological effort per improvement unit; the scoring table
+// density (points per threshold step) is captured separately by the marginal cost
+// schedule in optimalAllocation.js.
 // Run 10s: ~1.5 weeks of interval/tempo training
-// HAMR 2 shuttles: ~1 week (similar agility/cardio demands to run)
+// HAMR 2 shuttles: ~1.2 weeks (agility adaptation harder than generic reps)
 // Push-ups 5 reps: ~1 week with daily push-up practice
 // HRPU 5 reps: ~1.5 weeks (hand-release technique adds overhead)
 // Sit-ups 5 reps: ~1 week with daily core work
-// CLRC 5 reps: ~1.5 weeks (cross-leg technique learning curve)
-// Plank 15s: ~2 weeks ("add 5-10 seconds per week" per HPRC guidance)
+// CLRC 5 reps: ~1.2 weeks (similar to sit-ups, moderate technique curve)
+// Plank 15s: ~1.5 weeks (HPRC: "add 5-10 sec/week", 15s unit = 1.5-3 weeks midpoint)
 // WHtR 0.01: ~4 weeks (body composition changes require sustained dietary changes)
-// All factors scale up near performance ceiling via effortScaleFactor() in strategyEngine.js
+// All factors scale up near performance ceiling via effortScaleFactor() in optimalAllocation.js
 export const EFFORT_WEEKS_PER_UNIT = {
   [EXERCISES.RUN_2MILE]: 1.5,
-  [EXERCISES.HAMR]: 1.0,
+  [EXERCISES.HAMR]: 1.2,
   [EXERCISES.PUSHUPS]: 1.0,
   [EXERCISES.HRPU]: 1.5,
   [EXERCISES.SITUPS]: 1.0,
-  [EXERCISES.CLRC]: 1.5,
-  [EXERCISES.PLANK]: 2.0,
+  [EXERCISES.CLRC]: 1.2,
+  [EXERCISES.PLANK]: 1.5,
   [EXERCISES.WHTR]: 4.0,
 }
+
+// Effort model version - bump when recalibrating effort constants or curve
+export const EFFORT_MODEL_VERSION = '2.0'
 
 // Diagnostic period (non-scored) per DTM Fitness SAF/MR 23 Sep 2025
 // Six-month diagnostic period: 1 Mar 2026 - 31 Aug 2026

@@ -416,6 +416,28 @@ describe('strategyEngine', () => {
       expect(result.summary).toContain('ROI')
     }
   })
+
+  it('includes optimalAllocation when options.targetComposite is provided', () => {
+    const rawInputs = {
+      [COMPONENTS.CARDIO]: { exercise: EXERCISES.RUN_2MILE, value: 1075, exempt: false },
+      [COMPONENTS.STRENGTH]: { exercise: EXERCISES.PUSHUPS, value: 42, exempt: false },
+      [COMPONENTS.CORE]: { exercise: EXERCISES.SITUPS, value: 42, exempt: false },
+      [COMPONENTS.BODY_COMP]: { exercise: EXERCISES.WHTR, value: 0.45, exempt: false },
+    }
+    const result = strategyEngine(demographics, rawInputs, {}, { targetComposite: 85 })
+    expect(result.optimalAllocation).toBeDefined()
+    expect(result.optimalAllocation).not.toBeNull()
+    expect(result.optimalAllocation.targetComposite).toBe(85)
+    expect(result.optimalAllocation.components).toBeDefined()
+  })
+
+  it('does not include optimalAllocation when no targetComposite option', () => {
+    const rawInputs = {
+      [COMPONENTS.STRENGTH]: { exercise: EXERCISES.PUSHUPS, value: 42, exempt: false },
+    }
+    const result = strategyEngine(demographics, rawInputs)
+    expect(result.optimalAllocation).toBeUndefined()
+  })
 })
 
 // ---------------------------------------------------------------------------
