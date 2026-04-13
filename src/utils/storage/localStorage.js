@@ -311,17 +311,6 @@ export function removePracticeSession(id) {
   safeSetItem(PRACTICE_SESSIONS_KEY, JSON.stringify(sessions))
 }
 
-/**
- * Clear all practice sessions from localStorage.
- */
-export function clearPracticeSessions() {
-  try {
-    localStorage.removeItem(PRACTICE_SESSIONS_KEY)
-  } catch {
-    // ignore
-  }
-}
-
 // ── Preferred training days ───────────────────────────────────────────────────
 
 const PREFERRED_DAYS_KEY = 'pfa_preferred_days'

@@ -258,27 +258,6 @@ export function getRecommendations(componentType, exercise, percentage, exempt =
   return tierRecs.slice(0, 3)
 }
 
-/**
- * Get tier label for display
- * @param {number} percentage - Component percentage score
- * @returns {string} Display label
- */
-export function getTierLabel(percentage) {
-  if (percentage < 75) return 'BELOW PASSING'
-  if (percentage <= 80) return 'MARGINAL PASS'
-  return 'STRONG PASS'
-}
-
-/**
- * Get tier emoji
- * @param {number} percentage - Component percentage score
- * @returns {string} Emoji
- */
-export function getTierEmoji(percentage) {
-  if (percentage < 75) return '💪'
-  if (percentage <= 80) return '⚡'
-  return '🚀'
-}
 
 // ─── Weekly Training Plan Generator ────────────────────────────────────────────
 
