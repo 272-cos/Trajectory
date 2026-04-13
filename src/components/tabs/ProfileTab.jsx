@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { encodeDCode, decodeDCode } from '../../utils/codec/dcode.js'
 import { decodeSCode } from '../../utils/codec/scode.js'
-import { GENDER, calculateAge } from '../../utils/scoring/constants.js'
+import { GENDER, VALIDATION, calculateAge } from '../../utils/scoring/constants.js'
 import AchievementBadges from '../shared/AchievementBadges.jsx'
 
 export default function ProfileTab() {
@@ -43,9 +43,9 @@ export default function ProfileTab() {
       return
     }
     const age = calculateAge(dobValue)
-    if (age < 17) {
+    if (age < VALIDATION.AGE_MIN) {
       setDobError('Age must be at least 17 for USAF service.')
-    } else if (age > 65) {
+    } else if (age > VALIDATION.AGE_MAX) {
       setDobError('Age exceeds maximum USAF service range (65).')
     } else {
       setDobError('')
@@ -125,7 +125,7 @@ export default function ProfileTab() {
 
     // IV-04: Validate age range
     const age = calculateAge(dob)
-    if (age < 17 || age > 65) {
+    if (age < VALIDATION.AGE_MIN || age > VALIDATION.AGE_MAX) {
       setError('Date of birth must produce age 17-65 for USAF service range.')
       return
     }

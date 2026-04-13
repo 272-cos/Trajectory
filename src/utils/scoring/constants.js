@@ -149,6 +149,31 @@ export const EFFORT_WEEKS_PER_UNIT = {
 // Effort model version - bump when recalibrating effort constants or curve
 export const EFFORT_MODEL_VERSION = '2.0'
 
+// ── Input validation bounds ──────────────────────────────────────────────────
+// Single source of truth for UI validation ranges. Referenced by SelfCheckTab,
+// ProfileTab, and any input that accepts user-entered PFA data.
+export const VALIDATION = {
+  HEIGHT_MIN_INCHES: 48,
+  HEIGHT_MAX_INCHES: 84,
+  WAIST_MIN_INCHES: 20,
+  WAIST_MAX_INCHES: 55,
+  RUN_MAX_SECONDS: 7200,     // 2:00:00
+  PLANK_MAX_SECONDS: 600,    // 10:00
+  REPS_MIN: 1,
+  REPS_MAX: 300,
+  HAMR_MIN_SHUTTLES: 1,
+  HAMR_MAX_SHUTTLES: 232,    // 21 levels complete
+  AGE_MIN: 17,
+  AGE_MAX: 65,
+  PROJECTION_MAX_DAYS: 365,
+}
+
+// Recommendation tier thresholds (percentage boundaries)
+export const RECOMMENDATION_TIERS = {
+  FAILING_BELOW: 75,   // < 75% = failing tier
+  MARGINAL_BELOW: 80,  // 75-80% = marginal tier, > 80% = strong
+}
+
 // Diagnostic period (non-scored) per DTM Fitness SAF/MR 23 Sep 2025
 // Six-month diagnostic period: 1 Mar 2026 - 31 Aug 2026
 // Official scored testing begins: 1 Sep 2026
