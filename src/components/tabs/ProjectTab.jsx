@@ -26,6 +26,7 @@ import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS, COMPONENT_EXER
 import { getRecommendations, generateWeeklyPlan } from '../../utils/recommendations/recommendationEngine.js'
 import { getExercisePrefs, saveExercisePrefs, getPracticeSessions, getShowMilestones, setShowMilestones } from '../../utils/storage/localStorage.js'
 import { generateCalendar, EVENT_TYPES } from '../../utils/training/trainingCalendar.js'
+import HintBanner from '../shared/HintBanner.jsx'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -121,7 +122,8 @@ function exerciseName(exercise) {
 // ─── Projection Trajectory Chart ──────────────────────────────────────────────
 
 function ProjectionChart({ historicalScores, projectedComposite, targetDate, practicePredictions, milestones, showMilestones, onToggleMilestones }) {
-  if (historicalScores.length === 0) return null
+  const hasPracticeData = practicePredictions && practicePredictions.length > 0
+  if (historicalScores.length === 0 && !hasPracticeData) return null
 
   // Build chart data: historical points + projected endpoint
   const chartData = historicalScores.map(h => ({
@@ -150,7 +152,6 @@ function ProjectionChart({ historicalScores, projectedComposite, targetDate, pra
   }
 
   // Merge scaled practice data points (dotted overlay)
-  const hasPracticeData = practicePredictions && practicePredictions.length > 0
   if (hasPracticeData) {
     practicePredictions.forEach(p => {
       if (p.date && p.predictedComposite != null) {
@@ -422,7 +423,7 @@ function GapBar({ currentPct, projectedPct, minPct, pass }) {
 
 // ─── Component Projection Card ─────────────────────────────────────────────────
 
-function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem, isTopPriority }) {
+function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem, isTopPriority, allocationTarget }) {
   if (!proj) return null
 
   const weight = COMPONENT_WEIGHTS[compType]
@@ -512,7 +513,7 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem,
 
       {/* Training Focus - inline strategy advice */}
       {strategyItem && strategyItem.status === 'improvable' && (
-        <TrainingFocus item={strategyItem} isTopPriority={isTopPriority} compType={compType} proj={proj} />
+        <TrainingFocus item={strategyItem} isTopPriority={isTopPriority} compType={compType} proj={proj} allocationTarget={allocationTarget} />
       )}
     </div>
   )
@@ -520,7 +521,7 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem,
 
 // ─── Training Focus (inline in ComponentCard) ────────────────────────────────
 
-function TrainingFocus({ item, isTopPriority, compType, proj }) {
+function TrainingFocus({ item, isTopPriority, compType, proj, allocationTarget }) {
   const [expanded, setExpanded] = useState(false)
 
   // Get recommendations for this component
@@ -549,6 +550,21 @@ function TrainingFocus({ item, isTopPriority, compType, proj }) {
 
       {expanded && (
         <div className="mt-2 space-y-2 text-xs">
+          {/* Optimal allocation target */}
+          {allocationTarget && allocationTarget.ptsGain > 0 && (
+            <div className="bg-blue-50 rounded p-2 text-blue-800">
+              <span className="font-medium">
+                Recommended: {allocationTarget.currentPts.toFixed(1)} -{'>'} {allocationTarget.targetPts.toFixed(1)} pts
+              </span>
+              {allocationTarget.displayTarget && (
+                <span className="ml-1 text-blue-600">({allocationTarget.displayTarget})</span>
+              )}
+              {allocationTarget.effortWeeks > 0 && (
+                <span className="ml-1 text-blue-600">~{allocationTarget.effortWeeks} wk</span>
+              )}
+            </div>
+          )}
+
           {/* ROI and next gain */}
           <div className="flex items-center gap-2 flex-wrap text-gray-600">
             <span>
@@ -845,33 +861,34 @@ export default function ProjectTab() {
   }, [demographics, decodedScodes])
 
   // Practice session scaled predictions for the dotted overlay (TR-05: not S-codes)
+  // Fractional tests with >= 1 component contribute a partial composite estimate.
+  // Body comp from the most recent S-code supplements fractional tests when available.
   const practicePredictions = useMemo(() => {
     if (!demographics) return []
     const sessions = getPracticeSessions()
+
+    // Extract body comp result from most recent S-code to supplement fractional test composites
+    const latestBodyCompResult = (() => {
+      if (!decodedScodes.length) return null
+      const latest = decodedScodes[decodedScodes.length - 1]
+      if (!latest.bodyComp || latest.bodyComp.exempt) return null
+      if (!latest.bodyComp.heightInches || !latest.bodyComp.waistInches) return null
+      try {
+        const age = calculateAge(demographics.dob, latest.date)
+        const ageBracket = getAgeBracket(age)
+        const whtr = calculateWHtR(latest.bodyComp.waistInches, latest.bodyComp.heightInches)
+        const r = calculateComponentScore(
+          { type: COMPONENTS.BODY_COMP, exercise: EXERCISES.WHTR, value: whtr, exempt: false },
+          demographics.gender, ageBracket
+        )
+        return r?.tested ? { ...r, type: COMPONENTS.BODY_COMP } : null
+      } catch { return null }
+    })()
+
     return sessions.flatMap(session => {
       try {
-        if (session.type === 'pi_workout' && session.scaled?.predictedFullValue != null) {
-          // PI workout: single exercise prediction, score it against the bracket
-          const age = calculateAge(demographics.dob, session.date)
-          const ageBracket = getAgeBracket(age)
-          const gender = demographics.gender
-          const fullEx = session.scaled.fullExercise
-          const val = session.scaled.predictedFullValue
-          if (!fullEx || val == null) return []
-          const compType = [EXERCISES.PUSHUPS, EXERCISES.HRPU].includes(fullEx) ? COMPONENTS.STRENGTH
-            : [EXERCISES.SITUPS, EXERCISES.CLRC, EXERCISES.PLANK].includes(fullEx) ? COMPONENTS.CORE
-              : fullEx === EXERCISES.RUN_2MILE ? COMPONENTS.CARDIO
-                : fullEx === EXERCISES.HAMR ? COMPONENTS.CARDIO
-                  : null
-          if (!compType) return []
-          const result = calculateComponentScore(
-            { type: compType, exercise: fullEx, value: val, exempt: false },
-            gender, ageBracket
-          )
-          if (!result?.tested) return []
-          // Partial prediction: show as single component points value only (no composite without all 4)
-          return [{ date: session.date, predictedComposite: null, componentPct: result.percentage, componentType: compType }]
-        }
+        // PI workouts are single-component - cannot produce a composite; skip for chart
+        if (session.type === 'pi_workout') return []
 
         if (session.type === 'fractional_test' && session.components) {
           const age = calculateAge(demographics.dob, session.date)
@@ -901,17 +918,27 @@ export default function ProjectTab() {
             if (r?.tested) comps.push({ ...r, type: COMPONENTS.CORE })
           }
 
-          if (comps.length < 2) return []
+          // Supplement with body comp from most recent S-code when available
+          if (latestBodyCompResult) comps.push(latestBodyCompResult)
+
+          // Require at least one tested component to produce an estimate
+          if (comps.length < 1) return []
           const comp = calculateCompositeScore(comps)
           if (!comp || comp.composite == null) return []
-          return [{ date: session.date, predictedComposite: comp.composite }]
+
+          const isPartial = comps.length < 4
+          const label = `${Math.round(session.fraction * 100)}% test est.${isPartial ? ' (partial)' : ''}`
+          // 75% tests carry less scaling error than 50%
+          const confidence = session.fraction >= 0.75 ? 'medium' : 'low'
+
+          return [{ date: session.date, predictedComposite: comp.composite, confidence, label }]
         }
         return []
       } catch {
         return []
       }
     }).filter(p => p.predictedComposite != null)
-  }, [demographics])
+  }, [demographics, decodedScodes])
 
   // Current component percentages from most recent S-code (for gap bar "current" marker)
   const currentPcts = useMemo(() => {
@@ -985,11 +1012,12 @@ export default function ProjectTab() {
     }
 
     try {
-      return strategyEngine({ gender: demographics.gender, ageBracket }, inputs, prefs)
+      const options = personalGoal ? { targetComposite: personalGoal } : {}
+      return strategyEngine({ gender: demographics.gender, ageBracket }, inputs, prefs, options)
     } catch {
       return null
     }
-  }, [demographics, decodedScodes, targetPfaDate, exercisePrefs])
+  }, [demographics, decodedScodes, targetPfaDate, exercisePrefs, personalGoal])
 
   // Weekly training plan input: current component data from most recent S-code
   const weeklyPlan = useMemo(() => {
@@ -1054,9 +1082,17 @@ export default function ProjectTab() {
       if (currentPcts.strength != null) calScores.strength = currentPcts.strength
       if (currentPcts.core != null) calScores.core = currentPcts.core
       if (currentPcts.bodyComp != null) calScores.bodyComp = currentPcts.bodyComp
-      // Approximate composite
-      const vals = [currentPcts.cardio, currentPcts.strength, currentPcts.core, currentPcts.bodyComp].filter(v => v != null)
-      if (vals.length > 0) calScores.composite = vals.reduce((a, b) => a + b, 0) / vals.length
+      // Weighted composite (50-20-15-15 model, matching calculateCompositeScore)
+      const weightMap = { cardio: 50, strength: 15, core: 15, bodyComp: 20 }
+      let earned = 0
+      let possible = 0
+      for (const [comp, pct] of Object.entries(currentPcts)) {
+        if (pct != null && weightMap[comp]) {
+          earned += (pct / 100) * weightMap[comp]
+          possible += weightMap[comp]
+        }
+      }
+      if (possible > 0) calScores.composite = Math.round((earned / possible) * 1000) / 10
     }
 
     try {
@@ -1131,10 +1167,38 @@ export default function ProjectTab() {
 
   // ── Blocked states ────────────────────────────────────────────────────────────
 
-  // Soft nudge instead of hard gate - show what the tab does, guide toward setup
-  if (!demographics || !scodes || scodes.length === 0) {
-    const needsProfile = !demographics
-    const needsScodes = !scodes || scodes.length === 0
+  // Hard block only when demographics are missing - nothing can be computed without them
+  if (!demographics) {
+    return (
+      <div
+        role="tabpanel"
+        id="project-panel"
+        aria-labelledby="project-tab"
+        className="space-y-4"
+      >
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Readiness Projection</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            This tab projects your trajectory to your target PFA date using your self-check history.
+            It shows per-component gap bars, weekly improvement targets, and a composite projection chart.
+          </p>
+          <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <span className="text-blue-500 font-bold text-sm flex-shrink-0">1</span>
+            <p className="text-sm text-blue-800 flex-1">
+              <button type="button" onClick={() => setActiveTab('profile')} className="underline font-medium text-blue-700 hover:text-blue-900">
+                Set up your profile
+              </button>
+              {' '}- DOB and gender (10 seconds)
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Soft nudge when no S-codes and no practice data either
+  const hasPracticeDataForGate = practicePredictions.length > 0
+  if (!scodes?.length && !hasPracticeDataForGate) {
     return (
       <div
         role="tabpanel"
@@ -1149,28 +1213,22 @@ export default function ProjectTab() {
             It shows per-component gap bars, weekly improvement targets, and a composite projection chart.
           </p>
           <div className="space-y-2">
-            {needsProfile && (
-              <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <span className="text-blue-500 font-bold text-sm flex-shrink-0">1</span>
-                <p className="text-sm text-blue-800 flex-1">
-                  <button type="button" onClick={() => setActiveTab('profile')} className="underline font-medium text-blue-700 hover:text-blue-900">
-                    Set up your profile
-                  </button>
-                  {' '}- DOB and gender (10 seconds)
-                </p>
-              </div>
-            )}
-            {needsScodes && (
-              <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <span className="text-blue-500 font-bold text-sm flex-shrink-0">{needsProfile ? '2' : '1'}</span>
-                <p className="text-sm text-blue-800 flex-1">
-                  <button type="button" onClick={() => setActiveTab('selfcheck')} className="underline font-medium text-blue-700 hover:text-blue-900">
-                    Complete a self-check
-                  </button>
-                  {' '}- enter your exercise results
-                </p>
-              </div>
-            )}
+            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <span className="text-blue-500 font-bold text-sm flex-shrink-0">1</span>
+              <p className="text-sm text-blue-800 flex-1">
+                <button type="button" onClick={() => setActiveTab('selfcheck')} className="underline font-medium text-blue-700 hover:text-blue-900">
+                  Complete a self-check
+                </button>
+                {' '}- enter your exercise results
+              </p>
+            </div>
+            <p className="text-xs text-gray-500">
+              Following the Plan tab? Fractional test results recorded in{' '}
+              <button type="button" onClick={() => setActiveTab('selfcheck')} className="underline text-gray-600">
+                Self-Check &gt; Practice Check
+              </button>
+              {' '}will also appear here once saved.
+            </p>
           </div>
         </div>
       </div>
@@ -1178,9 +1236,31 @@ export default function ProjectTab() {
   }
 
   const composite = projection?.composite ?? null
+  const practiceOnlyMode = !scodes?.length && practicePredictions.length > 0
 
   return (
     <div className="space-y-4">
+      <HintBanner
+        storageKey="pfa_hint_trajectory"
+        title="Getting the most from your forecast"
+        bullets={[
+          'Set your exercise preferences in the panel below and Self-Check will pre-select those exercises on every future assessment.',
+          'Confidence grows with each check-in - one assessment gives a starting point, three or more gives a reliable trend.',
+          'The strategy panel ranks which exercise gives you the most scoring points per week of training effort.',
+        ]}
+      />
+
+      {/* ── Practice-only mode banner ──────────────────────────────────────── */}
+      {practiceOnlyMode && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+          <strong>Showing practice data only.</strong> The chart below reflects fractional test estimates
+          from your Plan tab workouts. Complete a full{' '}
+          <button type="button" onClick={() => setActiveTab('selfcheck')} className="underline font-medium">
+            Self-Check
+          </button>
+          {' '}to unlock gap analysis and weekly targets.
+        </div>
+      )}
 
       {/* ── Target + Goal row ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1375,6 +1455,11 @@ export default function ProjectTab() {
                     {COMP_LABELS[strategyData.topPriority.component]} ({EXERCISE_NAMES[strategyData.topPriority.exercise]})
                     - +{strategyData.topPriority.ptsGain.toFixed(1)} pts in ~{strategyData.topPriority.effortWeeks.toFixed(1)} wk
                   </p>
+                  {strategyData.optimalAllocation && strategyData.optimalAllocation.totalEffortWeeks > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Optimal path to {strategyData.optimalAllocation.targetComposite}: ~{strategyData.optimalAllocation.totalEffortWeeks.toFixed(0)} weeks total effort
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -1406,6 +1491,7 @@ export default function ProjectTab() {
               {COMP_ORDER.map(compType => {
                 const strategyItem = strategyData?.ranked?.find(r => r.component === compType) ?? null
                 const isTopPriority = strategyData?.topPriority?.component === compType
+                const allocationTarget = strategyData?.optimalAllocation?.components?.[compType] ?? null
                 return (
                   <ComponentCard
                     key={compType}
@@ -1415,6 +1501,7 @@ export default function ProjectTab() {
                     daysToTarget={daysToTarget}
                     strategyItem={strategyItem}
                     isTopPriority={isTopPriority}
+                    allocationTarget={allocationTarget}
                   />
                 )
               })}

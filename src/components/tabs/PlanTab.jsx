@@ -18,6 +18,11 @@ import {
   savePreferredDays,
 } from '../../utils/storage/localStorage.js'
 import {
+  UPPER_BODY,
+  CORE,
+  CARDIO,
+} from '../../utils/training/exercisePreferences.js'
+import {
   generateCalendar,
   PHASES,
   PHASE_LABELS,
@@ -27,9 +32,22 @@ import {
   getFitnessLevel,
   daysBetween,
   hasConsecutiveDays,
+  PHASE_DISPLAY,
+  weekNumberFromWeeksOut,
+  getProgressionRatio,
+  getPhaseFromRatio,
+  phaseConfig,
 } from '../../utils/training/trainingCalendar.js'
 import { isMockTestWindow, isInTaperPeriod } from '../../utils/training/practiceSession.js'
 import { downloadSingleEvent } from '../../utils/training/icsExport.js'
+import {
+  RPE_SHORT_LABELS,
+  recordRPE,
+  getRPEForDate,
+  detectAdaptationState,
+  ADAPTATION_STATES,
+} from '../../utils/training/adaptiveFeedback.js'
+import HintBanner from '../shared/HintBanner.jsx'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -39,29 +57,35 @@ const DOW_HEADERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 // Dot colors for event types shown on day cells
 const EVENT_DOT = {
-  [EVENT_TYPES.TEST_DAY]:        'bg-red-500',
-  [EVENT_TYPES.MOCK_TEST]:       'bg-orange-500',
-  [EVENT_TYPES.FRACTIONAL_TEST]: 'bg-purple-500',
-  [EVENT_TYPES.PI_WORKOUT]:      'bg-blue-500',
-  [EVENT_TYPES.TAPER]:           'bg-amber-400',
-  [EVENT_TYPES.TRAINING]:        'bg-green-500',
+  [EVENT_TYPES.TEST_DAY]:           'bg-red-500',
+  [EVENT_TYPES.MOCK_TEST]:          'bg-orange-500',
+  [EVENT_TYPES.FRACTIONAL_TEST]:    'bg-purple-500',
+  [EVENT_TYPES.PI_WORKOUT]:         'bg-blue-500',
+  [EVENT_TYPES.BASELINE_PI]:        'bg-teal-500',
+  [EVENT_TYPES.FOUNDATION_CHECKIN]: 'bg-cyan-500',
+  [EVENT_TYPES.TAPER]:              'bg-amber-400',
+  [EVENT_TYPES.TRAINING]:           'bg-green-500',
 }
 
 // Full-bleed bg tints for special day cells
 const CELL_TINT = {
-  [EVENT_TYPES.TEST_DAY]:  'bg-red-100',
-  [EVENT_TYPES.MOCK_TEST]: 'bg-orange-100',
-  [EVENT_TYPES.TAPER]:     'bg-amber-50',
+  [EVENT_TYPES.TEST_DAY]:           'bg-red-100',
+  [EVENT_TYPES.MOCK_TEST]:          'bg-orange-100',
+  [EVENT_TYPES.BASELINE_PI]:        'bg-teal-50',
+  [EVENT_TYPES.FOUNDATION_CHECKIN]: 'bg-cyan-50',
+  [EVENT_TYPES.TAPER]:              'bg-amber-50',
 }
 
 // Detail-panel colors keyed by type
 const DETAIL_COLORS = {
-  [EVENT_TYPES.TEST_DAY]:        { border: 'border-red-400',    bg: 'bg-red-50',     text: 'text-red-800',    icon: '🎯' },
-  [EVENT_TYPES.MOCK_TEST]:       { border: 'border-orange-400', bg: 'bg-orange-50',  text: 'text-orange-800', icon: '📋' },
-  [EVENT_TYPES.FRACTIONAL_TEST]: { border: 'border-purple-400', bg: 'bg-purple-50',  text: 'text-purple-800', icon: '📊' },
-  [EVENT_TYPES.PI_WORKOUT]:      { border: 'border-blue-400',   bg: 'bg-blue-50',    text: 'text-blue-800',   icon: '📈' },
-  [EVENT_TYPES.TAPER]:           { border: 'border-amber-400',  bg: 'bg-amber-50',   text: 'text-amber-800',  icon: '🏖' },
-  [EVENT_TYPES.TRAINING]:        { border: 'border-green-400',  bg: 'bg-green-50',   text: 'text-green-800',  icon: '💪' },
+  [EVENT_TYPES.TEST_DAY]:           { border: 'border-red-400',    bg: 'bg-red-50',     text: 'text-red-800',    icon: '🎯' },
+  [EVENT_TYPES.MOCK_TEST]:          { border: 'border-orange-400', bg: 'bg-orange-50',  text: 'text-orange-800', icon: '📋' },
+  [EVENT_TYPES.FRACTIONAL_TEST]:    { border: 'border-purple-400', bg: 'bg-purple-50',  text: 'text-purple-800', icon: '📊' },
+  [EVENT_TYPES.PI_WORKOUT]:         { border: 'border-blue-400',   bg: 'bg-blue-50',    text: 'text-blue-800',   icon: '📈' },
+  [EVENT_TYPES.BASELINE_PI]:        { border: 'border-teal-400',   bg: 'bg-teal-50',    text: 'text-teal-800',   icon: '📍' },
+  [EVENT_TYPES.FOUNDATION_CHECKIN]: { border: 'border-cyan-400',   bg: 'bg-cyan-50',    text: 'text-cyan-800',   icon: '🔁' },
+  [EVENT_TYPES.TAPER]:              { border: 'border-amber-400',  bg: 'bg-amber-50',   text: 'text-amber-800',  icon: '🏖' },
+  [EVENT_TYPES.TRAINING]:           { border: 'border-green-400',  bg: 'bg-green-50',   text: 'text-green-800',  icon: '💪' },
 }
 
 const PHASE_BANNER_COLORS = {
@@ -183,7 +207,48 @@ function DayCell({ dateISO, events, isCompleted, isSelected, isToday, inPlanRang
 
 // ── Day Detail Panel ──────────────────────────────────────────────────────────
 
-function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate }) {
+function RPEPrompt({ dateISO, weekNum, phase, onRecorded }) {
+  const [selected, setSelected] = useState(() => getRPEForDate(dateISO))
+
+  const handleSelect = (rpe) => {
+    setSelected(rpe)
+    recordRPE(dateISO, rpe, weekNum || 0, phase || '')
+    if (onRecorded) onRecorded()
+  }
+
+  return (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mt-2">
+      <div className="text-xs font-semibold text-gray-600 mb-2">How hard was this workout?</div>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map(rpe => (
+          <button
+            key={rpe}
+            onClick={() => handleSelect(rpe)}
+            className={[
+              'flex-1 py-2 rounded text-xs font-bold transition-all border',
+              selected === rpe
+                ? rpe <= 2 ? 'bg-green-500 border-green-600 text-white'
+                  : rpe <= 3 ? 'bg-blue-500 border-blue-600 text-white'
+                  : rpe <= 4 ? 'bg-amber-500 border-amber-600 text-white'
+                  : 'bg-red-500 border-red-600 text-white'
+                : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400',
+            ].join(' ')}
+            aria-label={`RPE ${rpe}: ${RPE_SHORT_LABELS[rpe]}`}
+          >
+            {rpe}
+          </button>
+        ))}
+      </div>
+      {selected && (
+        <div className="text-xs text-gray-500 mt-1.5 text-center">
+          {RPE_SHORT_LABELS[selected]}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate, onRPERecorded }) {
   const [expanded, setExpanded] = useState(null)
 
   const primaryEvent = events[0]
@@ -193,6 +258,8 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
   const canComplete = events.some(e =>
     e.type === EVENT_TYPES.TRAINING ||
     e.type === EVENT_TYPES.PI_WORKOUT ||
+    e.type === EVENT_TYPES.BASELINE_PI ||
+    e.type === EVENT_TYPES.FOUNDATION_CHECKIN ||
     e.type === EVENT_TYPES.FRACTIONAL_TEST ||
     e.type === EVENT_TYPES.MOCK_TEST,
   )
@@ -217,7 +284,7 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
               'flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-all',
               isCompleted
                 ? 'bg-green-500 border-green-600 text-white'
-                : 'bg-white border-gray-300 text-gray-700 hover:border-green-400 hover:text-green-700',
+                : 'bg-gray-100 border-gray-300 text-gray-700 hover:border-green-400 hover:text-green-700',
             ].join(' ')}
           >
             <span>{isCompleted ? '✓' : '○'}</span>
@@ -249,11 +316,41 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
 
               {isOpen && (
                 <div className={`px-4 pb-4 space-y-2 ${ec.bg}`}>
+                  {/* Phase + effort label for training events */}
+                  {event.type === EVENT_TYPES.TRAINING && event.phaseLabel && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                        Week {event.displayWeekNum || event.weekNum || '?'} - {event.phaseLabel} Phase
+                      </span>
+                      {event.effortLabel && (
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          event.intensity === 'high' ? 'bg-red-100 text-red-700' :
+                          event.intensity === 'moderate' ? 'bg-amber-100 text-amber-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {event.effortLabel}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {event.description && (
                     <p className={`text-sm ${ec.text}`}>{event.description}</p>
                   )}
+                  {/* Effort instruction for training events */}
+                  {event.type === EVENT_TYPES.TRAINING && event.repInstruction && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700 font-medium">
+                      {event.repInstruction}
+                    </div>
+                  )}
+                  {/* Adaptation note - visible when session intensity or volume was adjusted */}
+                  {event.adaptationNote && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-700 font-medium flex items-center gap-1.5">
+                      <span aria-hidden="true">⚑</span>
+                      {event.adaptationNote}
+                    </div>
+                  )}
                   {event.target && (
-                    <div className="bg-white rounded-lg p-2.5 border border-gray-100">
+                    <div className="bg-gray-100 rounded-lg p-2.5 border border-gray-200">
                       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">
                         Target
                       </div>
@@ -262,6 +359,20 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
                   )}
                   {event.notes && (
                     <p className="text-xs text-gray-600 italic">{event.notes}</p>
+                  )}
+                  {(event.type === EVENT_TYPES.BASELINE_PI || event.type === EVENT_TYPES.FOUNDATION_CHECKIN) && (
+                    <div className={`border rounded-lg p-2 text-xs font-medium ${event.type === EVENT_TYPES.BASELINE_PI ? 'bg-teal-50 border-teal-200 text-teal-800' : 'bg-cyan-50 border-cyan-200 text-cyan-800'}`}>
+                      {event.type === EVENT_TYPES.BASELINE_PI
+                        ? 'Record each exercise in '
+                        : 'Record and compare in '}
+                      <button onClick={() => onNavigate('selfcheck')} className="font-bold underline hover:opacity-70 transition-opacity">
+                        Self-Check tab
+                      </button>{' '}
+                      under <strong>Practice Check - Quick Benchmark</strong>. Results appear on your{' '}
+                      <button onClick={() => onNavigate('project')} className="font-bold underline hover:opacity-70 transition-opacity">
+                        Trajectory tab
+                      </button>{event.type === EVENT_TYPES.FOUNDATION_CHECKIN ? ' - look for the delta vs Week 1' : ''}.
+                    </div>
                   )}
                   {event.type === EVENT_TYPES.PI_WORKOUT && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700">
@@ -288,8 +399,24 @@ function DayDetail({ dateISO, events, isCompleted, onToggleComplete, onNavigate 
                   )}
                   {event.type === EVENT_TYPES.MOCK_TEST && (
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 text-xs text-orange-700 font-medium">
-                      TR-01: Do this exactly once. After today, shift to taper - cut volume 50%,
-                      maintain intensity, rest more.
+                      Do this exactly once. After today, follow the daily taper plan on
+                      your calendar - it tells you exactly what to do each day until test day.
+                    </div>
+                  )}
+                  {/* RPE feedback - show for completed training days */}
+                  {isCompleted && event.type === EVENT_TYPES.TRAINING && (
+                    <RPEPrompt
+                      dateISO={dateISO}
+                      weekNum={event.weekNum}
+                      phase={event.phaseName}
+                      onRecorded={onRPERecorded}
+                    />
+                  )}
+                  {/* Special week indicator */}
+                  {event.isSpecialWeek && event.specialWeekType && (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-xs text-indigo-700">
+                      <strong>Special week:</strong> Reduced training load around this benchmark/test.
+                      Rest before and after for best results.
                     </div>
                   )}
                   {event.type === EVENT_TYPES.TEST_DAY && (
@@ -371,7 +498,7 @@ function MonthGrid({ year, month, eventsByDate, completedDays, selectedDate, pla
 // ── Main PlanTab ──────────────────────────────────────────────────────────────
 
 export default function PlanTab() {
-  const { dcode, demographics, targetPfaDate, scodes, setActiveTab } = useApp()
+  const { dcode, demographics, targetPfaDate, scodes, setActiveTab, pfaPreferences, updatePfaPreferences } = useApp()
 
   const todayParts = parseISO(TODAY)
   const [viewYear,  setViewYear]  = useState(todayParts.year)
@@ -530,6 +657,12 @@ export default function PlanTab() {
     return map
   }, [calendarKey])
 
+  // ── Adaptation state from RPE feedback ─────────────────────────────────────
+  const [adaptationState, setAdaptationState] = useState(() => detectAdaptationState())
+  const handleRPERecorded = useCallback(() => {
+    setAdaptationState(detectAdaptationState())
+  }, [])
+
   // ── Generate the calendar ─────────────────────────────────────────────────
   const calendar = useMemo(() => {
     if (!targetPfaDate || preferredDays.length !== 3) return null
@@ -538,9 +671,27 @@ export default function PlanTab() {
       targetPfaDate,
       currentScores,
       TODAY,
-      { practiceSessionMap, preferredDays },
+      { practiceSessionMap, preferredDays, adaptationState, pfaPreferences },
     )
-  }, [demographics, targetPfaDate, currentScores, practiceSessionMap, preferredDays, calendarKey])
+  // adaptationState.state is a string - memo recomputes only on state transitions.
+  // pfaPreferences fields are primitives - memo recomputes when any selection changes.
+  }, [demographics, targetPfaDate, currentScores, practiceSessionMap, preferredDays, calendarKey, adaptationState.state, pfaPreferences?.upperBody, pfaPreferences?.core, pfaPreferences?.cardio])
+
+  // ── Current phase info for header ─────────────────────────────────────────
+  const currentPhaseInfo = useMemo(() => {
+    if (!calendar || !calendar.totalWeeks) return null
+    const currentWeeksOut = Math.max(0, Math.ceil(daysBetween(TODAY, calendar.targetDate) / 7))
+    const ratio = getProgressionRatio(currentWeeksOut, calendar.totalWeeks)
+    const phase = getPhaseFromRatio(ratio, calendar.totalWeeks)
+    const displayWeekNum = Math.max(1, Math.min(calendar.totalWeeks, calendar.totalWeeks - currentWeeksOut + 1))
+    return {
+      weekNum: weekNumberFromWeeksOut(currentWeeksOut, calendar.totalWeeks),
+      displayWeekNum,
+      phase,
+      phaseLabel: PHASE_DISPLAY[phase],
+      config: phaseConfig[phase],
+    }
+  }, [calendar])
 
   // ── Status banners ─────────────────────────────────────────────────────────
   const inMockWindow = targetPfaDate ? isMockTestWindow(targetPfaDate, TODAY) : false
@@ -652,7 +803,7 @@ export default function PlanTab() {
                     : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed',
                 ].join(' ')}
               >
-                Generate my training calendar
+                Generate my training plan
               </button>
             </div>
           )
@@ -684,6 +835,15 @@ export default function PlanTab() {
 
   return (
     <div className="space-y-4">
+      <HintBanner
+        storageKey="pfa_hint_plan"
+        title="How your training plan works"
+        bullets={[
+          'Tap any day to see your workout prescription. Mark it complete and rate how hard it felt (1-5) - the plan uses those ratings to adjust future sessions.',
+          'In the final two weeks before your test, volume drops automatically. A practice run is scheduled in the final week. This is intentional - trust the taper.',
+          'Set your preferred training days in the settings panel to control which days get workouts.',
+        ]}
+      />
       {/* Header */}
       <div className="bg-white rounded-xl shadow-md p-4">
         <div className="flex items-center justify-between mb-3">
@@ -708,9 +868,11 @@ export default function PlanTab() {
           </div>
           <div className="text-center">
             <div className={`text-xs font-bold px-2 py-1 rounded border ${phaseBannerColor}`}>
-              {PHASE_LABELS[calendar.startingPhase]}
+              {currentPhaseInfo ? currentPhaseInfo.phaseLabel : PHASE_LABELS[calendar.startingPhase]}
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">phase</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              {currentPhaseInfo ? `Week ${currentPhaseInfo.displayWeekNum}` : 'phase'}
+            </div>
           </div>
         </div>
 
@@ -724,11 +886,37 @@ export default function PlanTab() {
           </div>
         )}
 
-        {/* Phase context */}
+        {/* Phase context - enhanced with phase engine info */}
         <div className={`mt-3 rounded-lg border p-2.5 text-xs ${phaseBannerColor}`}>
-          {calendar.isPhase0 && <span className="font-semibold">Pre-Progression: </span>}
-          {PHASE_DESCRIPTIONS[calendar.startingPhase]}
+          {calendar.startingPhase === PHASES.PHASE_0 && <span className="font-semibold">Pre-Progression: </span>}
+          {currentPhaseInfo && calendar.startingPhase !== PHASES.PHASE_0 && (
+            <span className="font-semibold">Week {currentPhaseInfo.displayWeekNum} - {currentPhaseInfo.phaseLabel} Phase: </span>
+          )}
+          {currentPhaseInfo && currentPhaseInfo.config
+            ? currentPhaseInfo.config.description
+            : PHASE_DESCRIPTIONS[calendar.startingPhase]
+          }
+          {currentPhaseInfo && currentPhaseInfo.config && (
+            <div className="mt-1 opacity-75">
+              Effort: {currentPhaseInfo.config.effortLabel}
+            </div>
+          )}
         </div>
+
+        {/* Adaptation state banner */}
+        {adaptationState.state !== ADAPTATION_STATES.NORMAL && adaptationState.avgRPE > 0 && (
+          <div className={`mt-2 rounded-lg border p-2.5 text-xs ${
+            adaptationState.state === ADAPTATION_STATES.FATIGUED
+              ? 'bg-red-50 border-red-200 text-red-700'
+              : 'bg-blue-50 border-blue-200 text-blue-700'
+          }`}>
+            <strong>
+              {adaptationState.state === ADAPTATION_STATES.FATIGUED ? 'Fatigue Detected' : 'Undertraining Detected'}
+            </strong>
+            {' - '}{adaptationState.recommendation}
+            <span className="opacity-60"> (Avg RPE: {adaptationState.avgRPE})</span>
+          </div>
+        )}
 
         {/* Preferred training days picker */}
         {(() => {
@@ -820,6 +1008,61 @@ export default function PlanTab() {
           )
         })()}
 
+        {/* PFA exercise preference picker */}
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">PFA Events</div>
+          {[
+            {
+              label:   'Upper Body',
+              options: [
+                { value: UPPER_BODY.PUSHUPS, short: 'Push-ups' },
+                { value: UPPER_BODY.HRPU,    short: 'Hand-Release' },
+              ],
+              current: pfaPreferences?.upperBody || UPPER_BODY.PUSHUPS,
+              onChange: (v) => updatePfaPreferences({ ...pfaPreferences, upperBody: v }),
+            },
+            {
+              label:   'Core',
+              options: [
+                { value: CORE.SITUPS, short: 'Sit-ups' },
+                { value: CORE.PLANK,  short: 'Plank' },
+              ],
+              current: pfaPreferences?.core || CORE.SITUPS,
+              onChange: (v) => updatePfaPreferences({ ...pfaPreferences, core: v }),
+            },
+            {
+              label:   'Cardio',
+              options: [
+                { value: CARDIO.RUN,  short: 'Dist. Run' },
+                { value: CARDIO.HAMR, short: 'HAMR' },
+              ],
+              current: pfaPreferences?.cardio || CARDIO.RUN,
+              onChange: (v) => updatePfaPreferences({ ...pfaPreferences, cardio: v }),
+            },
+          ].map(({ label, options, current, onChange }) => (
+            <div key={label} className="flex items-center gap-2 mb-1.5">
+              <div className="text-xs text-gray-500 w-20 shrink-0">{label}</div>
+              <div className="flex gap-1 flex-1">
+                {options.map(({ value, short }) => (
+                  <button
+                    key={value}
+                    onClick={() => onChange(value)}
+                    aria-pressed={current === value}
+                    className={[
+                      'flex-1 py-1 rounded text-xs font-semibold transition-colors border',
+                      current === value
+                        ? 'bg-blue-600 border-blue-700 text-white'
+                        : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
+                    ].join(' ')}
+                  >
+                    {short}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Fitness level summary */}
         {currentScores && (
           <div className="mt-3 grid grid-cols-4 gap-1.5">
@@ -847,12 +1090,12 @@ export default function PlanTab() {
       {/* Status banners */}
       {inTaper && !inMockWindow && (
         <div className="bg-amber-100 border border-amber-400 rounded-xl px-4 py-3 text-sm text-amber-800">
-          <strong>Taper Active</strong> - Volume -50%, intensity maintained. Rest and recover. TR-10.
+          <strong>Taper Active</strong> - Volume -50%, intensity maintained. Rest and recover.
         </div>
       )}
       {inMockWindow && (
         <div className="bg-orange-100 border border-orange-400 rounded-xl px-4 py-3 text-sm text-orange-800">
-          <strong>Mock Test Window</strong> - {daysToTest} days out. One full mock test now, then taper. TR-09.
+          <strong>Mock Test Window</strong> - {daysToTest} days out. One full mock test now, then taper.
         </div>
       )}
 
@@ -898,7 +1141,9 @@ export default function PlanTab() {
         <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-x-3 gap-y-1">
           {[
             { dot: 'bg-green-500',  label: 'Training' },
-            { dot: 'bg-blue-500',   label: 'Quick Benchmark' },
+            { dot: 'bg-teal-500',   label: 'Baseline' },
+            { dot: 'bg-cyan-500',   label: 'Check-in' },
+            { dot: 'bg-blue-500',   label: 'Benchmark' },
             { dot: 'bg-purple-500', label: 'Partial Test' },
             { dot: 'bg-orange-500', label: 'Mock' },
             { dot: 'bg-amber-400',  label: 'Taper' },
@@ -926,6 +1171,7 @@ export default function PlanTab() {
             isCompleted={completedDays.has(selectedDate)}
             onToggleComplete={() => handleToggleComplete(selectedDate)}
             onNavigate={setActiveTab}
+            onRPERecorded={handleRPERecorded}
           />
         )}
 
@@ -946,7 +1192,7 @@ export default function PlanTab() {
       {/* Disclaimer */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
         UNOFFICIAL ESTIMATE. For self-assessment only. Not a substitute for official AF fitness
-        guidance. All predictions approximate. TR-06.
+        guidance. All predictions approximate.
       </div>
 
       <div className="h-4" />

@@ -94,7 +94,7 @@ export default function HistoryTab() {
   const [importValue, setImportValue] = useState('')
   const [importResult, setImportResult] = useState(null)
   const [exportSuccess, setExportSuccess] = useState('')
-  const [undoDelete, setUndoDelete] = useState(null) // { code, timer }
+  const [undoDeletes, setUndoDeletes] = useState([]) // [{ code, timer }] - stack of pending undos
   const [shareState, setShareState] = useState(null) // { url, title } for ShareModal
   const [practiceSessions, setPracticeSessions] = useState(() => getPracticeSessions())
 
@@ -281,17 +281,26 @@ export default function HistoryTab() {
   const handleDelete = (code) => {
     removeSCode(code)
     setConfirmDelete(null)
-    // Soft delete: show undo for 60 seconds
-    if (undoDelete?.timer) clearTimeout(undoDelete.timer)
-    const timer = setTimeout(() => setUndoDelete(null), 60000)
-    setUndoDelete({ code, timer })
+    // Stack-based undo: each delete gets its own 60s window
+    const timer = setTimeout(() => {
+      setUndoDeletes(prev => prev.filter(u => u.code !== code))
+    }, 60000)
+    setUndoDeletes(prev => [...prev, { code, timer }])
   }
 
-  const handleUndoDelete = () => {
-    if (!undoDelete) return
-    addSCode(undoDelete.code)
-    clearTimeout(undoDelete.timer)
-    setUndoDelete(null)
+  const handleUndoDelete = (code) => {
+    const entry = undoDeletes.find(u => u.code === code)
+    if (!entry) return
+    addSCode(entry.code)
+    clearTimeout(entry.timer)
+    // Clear outlier flag so restored assessment doesn't show strikethrough
+    setOutliers(prev => {
+      if (!prev.has(entry.code)) return prev
+      const next = new Set(prev)
+      next.delete(entry.code)
+      return next
+    })
+    setUndoDeletes(prev => prev.filter(u => u.code !== code))
   }
 
   const handleOutlierToggle = (code) => {
@@ -402,18 +411,18 @@ export default function HistoryTab() {
 
   return (
     <div className="space-y-6">
-      {/* Undo delete banner */}
-      {undoDelete && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-2">
+      {/* Undo delete banner(s) */}
+      {undoDeletes.map(u => (
+        <div key={u.code} className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-2">
           <p className="text-sm text-amber-800">Assessment removed.</p>
           <button
-            onClick={handleUndoDelete}
+            onClick={() => handleUndoDelete(u.code)}
             className="px-3 py-1.5 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
           >
             Undo
           </button>
         </div>
-      )}
+      ))}
 
       {/* Profile code display */}
       {dcode && (

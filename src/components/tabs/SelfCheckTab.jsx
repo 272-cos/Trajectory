@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { encodeSCode, decodeSCode } from '../../utils/codec/scode.js'
-import { EXERCISES, COMPONENTS, GENDER, AGE_BRACKETS } from '../../utils/scoring/constants.js'
+import { EXERCISES, COMPONENTS, GENDER, AGE_BRACKETS, VALIDATION } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
@@ -13,6 +13,7 @@ import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession
 import { getTrainingResources } from '../../utils/training/resources.js'
 import { BASE_REGISTRY } from '../../utils/codec/bitpack.js'
 import ShareModal from '../shared/ShareModal.jsx'
+import HintBanner from '../shared/HintBanner.jsx'
 import {
   PI_EXERCISES, PI_EXERCISE_LABELS, PI_IS_TIME,
   scalePIWorkout, scaleFractionalTest,
@@ -262,7 +263,7 @@ export default function SelfCheckTab() {
           value = cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10)
         }
         // IV-07: Run time > 0 and max 2:00:00 (7200s)
-        if (value && value > 0 && !(cardioExercise === EXERCISES.RUN_2MILE && value > 7200)) {
+        if (value && value > 0 && !(cardioExercise === EXERCISES.RUN_2MILE && value > VALIDATION.RUN_MAX_SECONDS)) {
           const cardioScore = calculateComponentScore(
             { type: COMPONENTS.CARDIO, exercise: cardioExercise, value, exempt: false },
             gender,
@@ -304,7 +305,7 @@ export default function SelfCheckTab() {
       if (!coreExempt && coreValue) {
         const value = coreExercise === EXERCISES.PLANK ? parseTime(coreValue) : parseInt(coreValue, 10)
         // IV-09: Plank max 10:00 (600s)
-        if ((value || value === 0) && !(coreExercise === EXERCISES.PLANK && value > 600)) {
+        if ((value || value === 0) && !(coreExercise === EXERCISES.PLANK && value > VALIDATION.PLANK_MAX_SECONDS)) {
           const coreScore = calculateComponentScore(
             { type: COMPONENTS.CORE, exercise: coreExercise, value, exempt: false },
             gender,
@@ -349,7 +350,7 @@ export default function SelfCheckTab() {
       // Block non-numeric, non-finite, or negative input
       if (isNaN(h) || !isFinite(h) || h < 0) return
       setHeightInches(val)
-      if (h < 48 || h > 84) {
+      if (h < VALIDATION.HEIGHT_MIN_INCHES || h > VALIDATION.HEIGHT_MAX_INCHES) {
         setHeightError('Height must be between 48 and 84 inches.')
       } else {
         setHeightError('')
@@ -368,7 +369,7 @@ export default function SelfCheckTab() {
       // Block non-numeric, non-finite, or negative input
       if (isNaN(w) || !isFinite(w) || w < 0) return
       setWaistInches(val)
-      if (w < 20 || w > 55) {
+      if (w < VALIDATION.WAIST_MIN_INCHES || w > VALIDATION.WAIST_MAX_INCHES) {
         setWaistError('Waist must be between 20.0 and 55.0 inches.')
       } else {
         setWaistError('')
@@ -404,7 +405,7 @@ export default function SelfCheckTab() {
       // IV-05: Height range
       if (!bodyCompExempt && heightInches) {
         const h = parseFloat(heightInches)
-        if (h < 48 || h > 84) {
+        if (h < VALIDATION.HEIGHT_MIN_INCHES || h > VALIDATION.HEIGHT_MAX_INCHES) {
           setError('Height must be between 48 and 84 inches.')
           return false
         }
@@ -412,7 +413,7 @@ export default function SelfCheckTab() {
       // IV-06: Waist range
       if (!bodyCompExempt && waistInches) {
         const w = parseFloat(waistInches)
-        if (w < 20 || w > 55) {
+        if (w < VALIDATION.WAIST_MIN_INCHES || w > VALIDATION.WAIST_MAX_INCHES) {
           setError('Waist must be between 20.0 and 55.0 inches.')
           return false
         }
@@ -424,7 +425,7 @@ export default function SelfCheckTab() {
           setError('Enter a valid time between 0:01 and 2:00:00.')
           return false
         }
-        if (runTime != null && runTime > 7200) {
+        if (runTime != null && runTime > VALIDATION.RUN_MAX_SECONDS) {
           setError('Maximum run time is 2:00:00.')
           return false
         }
@@ -436,7 +437,7 @@ export default function SelfCheckTab() {
           setError('Enter a valid walk time greater than 0:00.')
           return false
         }
-        if (wt != null && wt > 7200) {
+        if (wt != null && wt > VALIDATION.RUN_MAX_SECONDS) {
           setError('Maximum walk time is 2:00:00.')
           return false
         }
@@ -444,8 +445,32 @@ export default function SelfCheckTab() {
       // IV-09: Plank max 10:00
       if (!coreExempt && coreExercise === EXERCISES.PLANK && coreValue) {
         const plankTime = parseTime(coreValue)
-        if (plankTime != null && plankTime > 600) {
+        if (plankTime != null && plankTime > VALIDATION.PLANK_MAX_SECONDS) {
           setError('Maximum plank entry is 10 minutes.')
+          return false
+        }
+      }
+      // Strength reps: must be 1-300 (reject 0, negative, and absurd values)
+      if (!strengthExempt && strengthValue) {
+        const reps = parseInt(strengthValue, 10)
+        if (isNaN(reps) || reps < VALIDATION.REPS_MIN || reps > VALIDATION.REPS_MAX) {
+          setError('Strength reps must be between 1 and 300.')
+          return false
+        }
+      }
+      // Core reps: must be 1-300 (when not plank)
+      if (!coreExempt && coreValue && coreExercise !== EXERCISES.PLANK) {
+        const reps = parseInt(coreValue, 10)
+        if (isNaN(reps) || reps < VALIDATION.REPS_MIN || reps > VALIDATION.REPS_MAX) {
+          setError('Core reps must be between 1 and 300.')
+          return false
+        }
+      }
+      // HAMR shuttles: must be 1-232 after conversion
+      if (!cardioExempt && cardioExercise === EXERCISES.HAMR && cardioValue) {
+        const val = cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10)
+        if (isNaN(val) || val < VALIDATION.HAMR_MIN_SHUTTLES || val > VALIDATION.HAMR_MAX_SHUTTLES) {
+          setError('HAMR shuttles must be between 1 and 232.')
           return false
         }
       }
@@ -629,6 +654,15 @@ export default function SelfCheckTab() {
 
   return (
     <div className="space-y-6">
+      <HintBanner
+        storageKey="pfa_hint_selfcheck"
+        title="A few things before you start"
+        bullets={[
+          'Body composition needs both your waist and height measurements - enter both and your score appears automatically.',
+          'When you are done, tap Save Assessment to lock in your result. The auto-save only holds your draft.',
+          'Composite score appears only when all four components have data.',
+        ]}
+      />
       {/* TR-09: Mock test window banner - informational only */}
       {mockTestWindow && !mockTestRecorded && (
         <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-lg">
@@ -884,12 +918,12 @@ export default function SelfCheckTab() {
                 />
               )}
               {cardioExercise === EXERCISES.RUN_2MILE && cardioValue && !isTimeIncomplete(cardioValue) && (
-                <p className={`text-xs mt-1 ${parseTime(cardioValue) != null && parseTime(cardioValue) > 0 && parseTime(cardioValue) <= 7200 ? 'text-gray-500' : 'text-red-500'}`}>
+                <p className={`text-xs mt-1 ${parseTime(cardioValue) != null && parseTime(cardioValue) > 0 && parseTime(cardioValue) <= VALIDATION.RUN_MAX_SECONDS ? 'text-gray-500' : 'text-red-500'}`}>
                   {parseTime(cardioValue) != null
                     ? (() => {
                         const t = parseTime(cardioValue)
                         if (t === 0) return 'Enter a valid time between 0:01 and 2:00:00.'
-                        if (t > 7200) return 'Maximum run time is 2:00:00.'
+                        if (t > VALIDATION.RUN_MAX_SECONDS) return 'Maximum run time is 2:00:00.'
                         return formatTime(t)
                       })()
                     : 'Invalid format - use MM:SS or total seconds'}
@@ -951,7 +985,7 @@ export default function SelfCheckTab() {
               onChange={(e) => {
                 const v = e.target.value.replace(/\D/g, '')
                 const n = parseInt(v, 10)
-                if (v === '' || (n >= 0 && n <= 300)) setStrengthValue(v)
+                if (v === '' || (n >= 0 && n <= VALIDATION.REPS_MAX)) setStrengthValue(v)
               }}
               disabled={strengthExempt}
               placeholder="42"
@@ -1007,7 +1041,7 @@ export default function SelfCheckTab() {
                 onChange={(e) => {
                   const v = e.target.value.replace(/\D/g, '')
                   const n = parseInt(v, 10)
-                  if (v === '' || (n >= 0 && n <= 300)) setCoreValue(v)
+                  if (v === '' || (n >= 0 && n <= VALIDATION.REPS_MAX)) setCoreValue(v)
                 }}
                 disabled={coreExempt}
                 placeholder="42"
@@ -1019,7 +1053,7 @@ export default function SelfCheckTab() {
                 {parseTime(coreValue) != null
                   ? (() => {
                       const t = parseTime(coreValue)
-                      if (t > 600) return 'Maximum plank entry is 10 minutes'
+                      if (t > VALIDATION.PLANK_MAX_SECONDS) return 'Maximum plank entry is 10 minutes'
                       return formatTime(t)
                     })()
                   : 'Invalid format - use MM:SS or total seconds'}

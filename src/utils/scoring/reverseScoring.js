@@ -11,6 +11,7 @@
 
 import { getScoringTable } from './scoringTables.js'
 import { EXERCISES, COMPONENT_WEIGHTS } from './constants.js'
+import { computeOptimalAllocation } from './optimalAllocation.js'
 
 // ── Exercises included per component (user-selectable alternatives shown) ────
 
@@ -135,22 +136,37 @@ export function reverseLookup(exercise, targetPts, gender, ageBracket) {
  *   - targetComposite: number (e.g. 85)
  *   - gender: 'M' | 'F'
  *   - ageBracket: age bracket constant
+ *   - currentScores: (optional) per-component current data for personalized mode
  *
  * Returns an array of component rows, each with exercise results.
  *
- * Uses equal-percentage distribution: target % = targetComposite / 100,
- * then multiply by component max points to get target component points.
+ * When currentScores is null (default): uses equal-percentage distribution.
+ * When currentScores is provided: uses optimal allocation (minimum-effort path)
+ * to compute personalized per-component targets.
  */
-export function generateTargetTable(targetComposite, gender, ageBracket) {
-  // Clamp to valid range
+export function generateTargetTable(targetComposite, gender, ageBracket, currentScores = null) {
+  // When we have current scores, use the optimal allocation engine
+  if (currentScores) {
+    return generatePersonalizedTable(targetComposite, gender, ageBracket, currentScores)
+  }
+
+  // Fallback: equal-percentage distribution (legacy behavior)
+  return generateEqualPercentageTable(targetComposite, gender, ageBracket)
+}
+
+/**
+ * Equal-percentage distribution (original behavior).
+ * Target % = targetComposite / 100, applied to each component equally.
+ */
+function generateEqualPercentageTable(targetComposite, gender, ageBracket) {
   const target = Math.max(60, Math.min(100, targetComposite))
-  const targetPct = target / 100 // e.g. 0.85 for score of 85
+  const targetPct = target / 100
 
   const rows = []
 
   for (const [component, exercises] of Object.entries(COMPONENT_EXERCISES)) {
-    const maxPts = COMPONENT_WEIGHTS[component] // e.g. 50 for cardio
-    const targetPts = targetPct * maxPts        // e.g. 42.5 for cardio at 85%
+    const maxPts = COMPONENT_WEIGHTS[component]
+    const targetPts = targetPct * maxPts
 
     const exerciseResults = exercises.map(exercise => {
       const result = reverseLookup(exercise, targetPts, gender, ageBracket)
@@ -170,8 +186,69 @@ export function generateTargetTable(targetComposite, gender, ageBracket) {
       maxPts,
       targetPts: Math.round(targetPts * 10) / 10,
       exercises: exerciseResults,
+      isOptimized: false,
     })
   }
+
+  return rows
+}
+
+/**
+ * Personalized optimal allocation.
+ * Uses greedy marginal-cost algorithm to find the minimum-effort path
+ * from current scores to the target composite.
+ */
+function generatePersonalizedTable(targetComposite, gender, ageBracket, currentScores) {
+  const target = Math.max(60, Math.min(100, targetComposite))
+
+  const allocation = computeOptimalAllocation(currentScores, target, { gender, ageBracket })
+
+  const rows = []
+
+  for (const [component, exercises] of Object.entries(COMPONENT_EXERCISES)) {
+    const maxPts = COMPONENT_WEIGHTS[component]
+    const compAlloc = allocation.components[component]
+
+    // Use optimized target points if available, otherwise fall back to equal pct
+    const targetPts = (compAlloc && !compAlloc.exempt)
+      ? compAlloc.targetPts
+      : (target / 100) * maxPts
+
+    const currentPts = (compAlloc && !compAlloc.exempt) ? compAlloc.currentPts : null
+    const ptsGain = (compAlloc && !compAlloc.exempt) ? compAlloc.ptsGain : null
+    const effortWeeks = (compAlloc && !compAlloc.exempt) ? compAlloc.effortWeeks : null
+
+    const exerciseResults = exercises.map(exercise => {
+      const result = reverseLookup(exercise, targetPts, gender, ageBracket)
+      return {
+        exercise,
+        label: EXERCISE_DISPLAY[exercise],
+        unit: EXERCISE_UNITS[exercise],
+        rawValue: result ? result.threshold : null,
+        displayValue: result ? formatReverseValue(exercise, result.threshold) : 'Off chart',
+        achievedPts: result ? result.points : null,
+        lowerIsBetter: isLowerBetter(exercise),
+      }
+    })
+
+    rows.push({
+      component,
+      maxPts,
+      targetPts: Math.round(targetPts * 10) / 10,
+      currentPts,
+      ptsGain: ptsGain !== null ? Math.round(ptsGain * 10) / 10 : null,
+      effortWeeks: effortWeeks !== null ? Math.round(effortWeeks * 10) / 10 : null,
+      exercises: exerciseResults,
+      isOptimized: true,
+      belowMinimum: compAlloc?.belowMinimum ?? false,
+      isBestBangForBuck: allocation.bestBangForBuck === component,
+    })
+  }
+
+  // Attach summary metadata to the array (non-enumerable to not break iteration)
+  rows.totalEffortWeeks = allocation.totalEffortWeeks
+  rows.achievable = allocation.achievable
+  rows.currentComposite = allocation.currentComposite
 
   return rows
 }

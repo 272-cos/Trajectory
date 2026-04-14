@@ -19,9 +19,12 @@ import {
   getPersonalGoal,
   savePersonalGoal,
   onStorageError,
+  getExercisePrefs,
+  saveExercisePrefs,
 } from '../utils/storage/localStorage.js'
 import { decodeDCode } from '../utils/codec/dcode.js'
 import { decodeSCode } from '../utils/codec/scode.js'
+import { normalizePfaPreferences } from '../utils/training/exercisePreferences.js'
 
 const AppContext = createContext(null)
 
@@ -315,10 +318,20 @@ export function AppProvider({ children }) {
     }
   }, [])
 
-  // Complete onboarding
+  // Complete onboarding (marks user as onboarded in localStorage)
   const completeOnboarding = useCallback(() => {
     setShowOnboarding(false)
+    setTutorialIsReopen(false)
     setOnboarded()
+  }, [])
+
+  // Tracks whether the tutorial was opened by a returning user (vs first launch)
+  const [tutorialIsReopen, setTutorialIsReopen] = useState(false)
+
+  // Re-open tutorial without resetting the onboarded flag (for returning users)
+  const reopenTutorial = useCallback(() => {
+    setTutorialIsReopen(true)
+    setShowOnboarding(true)
   }, [])
 
   // Toggle dark mode
@@ -335,6 +348,17 @@ export function AppProvider({ children }) {
     const clamped = Math.max(75.0, Math.min(100.0, goal))
     setPersonalGoalState(clamped)
     savePersonalGoal(clamped)
+  }, [])
+
+  // PFA exercise preferences (upperBody, core, cardio selections)
+  const [pfaPreferences, setPfaPreferencesState] = useState(() =>
+    normalizePfaPreferences(getExercisePrefs()),
+  )
+
+  const updatePfaPreferences = useCallback((prefs) => {
+    const normalized = normalizePfaPreferences(prefs)
+    setPfaPreferencesState(normalized)
+    saveExercisePrefs(normalized)
   }, [])
 
   const value = useMemo(() => ({
@@ -359,6 +383,8 @@ export function AppProvider({ children }) {
     // Onboarding
     showOnboarding,
     completeOnboarding,
+    reopenTutorial,
+    tutorialIsReopen,
 
     // Toast notifications
     toasts,
@@ -372,6 +398,10 @@ export function AppProvider({ children }) {
     // Personal score goal
     personalGoal,
     updatePersonalGoal,
+
+    // PFA exercise preferences
+    pfaPreferences,
+    updatePfaPreferences,
 
     // Self-check unsaved data warning
     selfCheckDirty,
@@ -387,10 +417,11 @@ export function AppProvider({ children }) {
     scodes, addSCode, removeSCode,
     targetPfaDate, updateTargetPfaDate,
     activeTab,
-    showOnboarding, completeOnboarding,
+    showOnboarding, completeOnboarding, reopenTutorial, tutorialIsReopen,
     toasts, addToast, dismissToast,
     darkMode, toggleDarkMode,
     personalGoal, updatePersonalGoal,
+    pfaPreferences, updatePfaPreferences,
     selfCheckDirty, pendingTabNavigation, suppressSelfCheckWarning,
     registerSelfCheckGenerator, triggerSelfCheckGenerate,
   ])

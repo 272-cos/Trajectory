@@ -85,7 +85,7 @@ function buildVEvent(event) {
  * @param {string} [options.calendarName] - Display name for the calendar
  * @returns {string} Complete ICS file content
  */
-export function generateICS(eventsByDate, options = {}) {
+function generateICS(eventsByDate, options = {}) {
   const calName = options.calendarName || 'Trajectory Training Plan'
   const events = []
 
@@ -116,7 +116,7 @@ export function generateICS(eventsByDate, options = {}) {
  * @param {string} icsContent - ICS file string
  * @param {string} [filename] - Download filename
  */
-export function downloadICS(icsContent, filename = 'trajectory-training-plan.ics') {
+function downloadICS(icsContent, filename = 'trajectory-training-plan.ics') {
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

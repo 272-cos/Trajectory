@@ -3,7 +3,14 @@
  * Provides tiered training suggestions based on component scores
  */
 
-import { COMPONENTS, EXERCISES, COMPONENT_MINIMUMS } from '../scoring/constants.js'
+import { COMPONENTS, EXERCISES, COMPONENT_MINIMUMS, RECOMMENDATION_TIERS } from '../scoring/constants.js'
+import {
+  getProgressionRatio,
+  getPhaseFromRatio,
+  phaseConfig,
+  PHASE_DISPLAY,
+  getRepInstruction,
+} from '../training/phaseEngine.js'
 
 // Recommendation tiers based on component percentage
 const TIERS = {
@@ -18,8 +25,8 @@ const TIERS = {
  * @returns {string} Tier constant
  */
 function getTier(percentage) {
-  if (percentage < 75) return TIERS.FAILING
-  if (percentage <= 80) return TIERS.MARGINAL
+  if (percentage < RECOMMENDATION_TIERS.FAILING_BELOW) return TIERS.FAILING
+  if (percentage <= RECOMMENDATION_TIERS.MARGINAL_BELOW) return TIERS.MARGINAL
   return TIERS.STRONG
 }
 
@@ -251,27 +258,6 @@ export function getRecommendations(componentType, exercise, percentage, exempt =
   return tierRecs.slice(0, 3)
 }
 
-/**
- * Get tier label for display
- * @param {number} percentage - Component percentage score
- * @returns {string} Display label
- */
-export function getTierLabel(percentage) {
-  if (percentage < 75) return 'BELOW PASSING'
-  if (percentage <= 80) return 'MARGINAL PASS'
-  return 'STRONG PASS'
-}
-
-/**
- * Get tier emoji
- * @param {number} percentage - Component percentage score
- * @returns {string} Emoji
- */
-export function getTierEmoji(percentage) {
-  if (percentage < 75) return '💪'
-  if (percentage <= 80) return '⚡'
-  return '🚀'
-}
 
 // ─── Weekly Training Plan Generator ────────────────────────────────────────────
 
@@ -375,18 +361,18 @@ const WEEKLY_WORKOUTS = {
   [COMPONENTS.STRENGTH]: {
     [EXERCISES.PUSHUPS]: {
       [URGENCY.URGENT]: [
-        'Max Rep Sets: 5 sets to near-failure with 2 min rest (test simulation conditions)',
+        'Near-Max Sets: 5 sets, stop 1 rep before failure, 2 min rest (test simulation)',
         'Pyramid: 1-2-3-4-5-4-3-2-1 reps with 10 sec rest (repeat x2 for volume)',
-        'Test Simulation: 1-min max effort push-ups under test conditions, record count',
+        'Test Simulation: 1-min near-max push-ups under test conditions, record count',
       ],
       [URGENCY.STANDARD]: [
-        'Volume Day: Accumulate 200 total push-ups in session (sets/rest as needed)',
+        'Volume Day: Accumulate 150 total push-ups in session, stop 2-3 reps before failure each set',
         'Pyramid Sets: 1-2-3-4-5-4-3-2-1 reps with 10 sec rest between each set',
         'Tempo Push-ups: 3-1-3 rhythm (3 sec down, 1 sec hold, 3 sec up) x3 sets of 10',
       ],
       [URGENCY.LONG_TERM]: [
         'Foundation: 3x15 incline push-ups (hands on stairs/bench) - build base strength',
-        'Strength Builder: 5x10 standard push-ups with 2 min rest - focus on full range',
+        'Strength Builder: 5x10 standard push-ups with 2 min rest - stop 3-4 reps before failure',
         'Negative Reps: 3x8 slow 5-sec lowering phase from plank to floor',
       ],
     },
@@ -394,10 +380,10 @@ const WEEKLY_WORKOUTS = {
       [URGENCY.URGENT]: [
         'Test Simulation: Full 2-min HRPU under test conditions, record count',
         'EMOM: 15 HRPUs every minute for 10 rounds (150 total reps)',
-        'Max Effort Sets: 3 sets to near-failure with 3 min rest',
+        'Near-Max Sets: 3 sets, stop 1 rep before failure, 3 min rest',
       ],
       [URGENCY.STANDARD]: [
-        'Timed Sets: 30 sec max effort / 30 sec rest x6 rounds - build muscular endurance',
+        'Timed Sets: 30 sec controlled effort / 30 sec rest x6 rounds - stop 2 reps before failure',
         'EMOM: 15 HRPUs every minute for 8 rounds (form focus - complete hand lift each rep)',
         'Form Drill: 3x12 slow HRPUs with deliberate full hand lift and chest contact',
       ],
@@ -412,14 +398,14 @@ const WEEKLY_WORKOUTS = {
   [COMPONENTS.CORE]: {
     [EXERCISES.SITUPS]: {
       [URGENCY.URGENT]: [
-        'Test Simulation: Full 1-min max sit-ups under test conditions, record count',
-        'Sprint Rounds: 30 sec max effort / 30 sec rest x6 sets - test-pace conditioning',
+        'Test Simulation: Full 1-min near-max sit-ups under test conditions, record count',
+        'Sprint Rounds: 30 sec near-max / 30 sec rest x6 sets - test-pace conditioning',
         'Cadence Drill: Metronome at 55 bpm for 3 sets of 30 reps - race rhythm training',
       ],
       [URGENCY.STANDARD]: [
-        '100 Sit-up Session: Complete 100 total in as few sets as possible',
+        '80 Sit-up Session: Complete 80 total, stop 2-3 reps before failure each set',
         'Cadence Training: Metronome at 55 bpm for 3 sets of 30 reps - build pace tolerance',
-        'Pyramid: 10-20-30-20-10 sit-ups with 30 sec rest - high volume with limited rest',
+        'Pyramid: 10-20-30-20-10 sit-ups with 30 sec rest - controlled volume with limited rest',
       ],
       [URGENCY.LONG_TERM]: [
         'Core Foundation: 3x20 crunches with controlled curl - no neck pulling',
@@ -430,8 +416,8 @@ const WEEKLY_WORKOUTS = {
     [EXERCISES.CLRC]: {
       [URGENCY.URGENT]: [
         'Test Simulation: Full 2-min CLRC under test conditions, record count',
-        'Timed Intervals: 45 sec max effort / 15 sec rest x8 rounds - threshold conditioning',
-        'Max Sets: 3 sets to near-failure with 2 min rest - build top-end capacity',
+        'Timed Intervals: 45 sec near-max / 15 sec rest x8 rounds - threshold conditioning',
+        'Near-Max Sets: 3 sets, stop 1 rep before failure, 2 min rest - build top-end capacity',
       ],
       [URGENCY.STANDARD]: [
         'High Rep Sets: 35 reps x3 with 1 min rest - build specific endurance',
@@ -448,7 +434,7 @@ const WEEKLY_WORKOUTS = {
       [URGENCY.URGENT]: [
         'Extended Hold: 2+ min continuous hold x2 sets with 3 min rest',
         'Pyramid: 60-90-120 sec holds with 30 sec rest (builds target duration)',
-        'Test Prep: Hold until failure, rest 3 min, repeat x2 - simulate test conditions',
+        'Test Prep: Hold to near-failure, rest 3 min, repeat x2 - simulate test conditions',
       ],
       [URGENCY.STANDARD]: [
         '2-Min Goal: Build to 2+ min continuous hold - add 10 sec per session',
@@ -532,7 +518,7 @@ function getSessionsPerWeek(component, gapBelowMin, urgency) {
  * @param {string} targetDate - ISO date string for target PFA date
  * @returns {Object|null} Weekly plan or null if insufficient data
  */
-export function generateWeeklyPlan(componentData, targetDate) {
+export function generateWeeklyPlan(componentData, targetDate, totalPlanWeeks) {
   if (!componentData || !targetDate) return null
 
   const today = new Date().toISOString().split('T')[0]
@@ -547,6 +533,13 @@ export function generateWeeklyPlan(componentData, targetDate) {
   if (weeksToTarget < 4) urgency = URGENCY.URGENT
   else if (weeksToTarget <= 12) urgency = URGENCY.STANDARD
   else urgency = URGENCY.LONG_TERM
+
+  // Phase engine integration (dynamic - no 16-week clamping)
+  const planTotal = totalPlanWeeks || weeksToTarget
+  const ratio = getProgressionRatio(weeksToTarget, planTotal)
+  const phase = getPhaseFromRatio(ratio, planTotal)
+  const config = phaseConfig[phase]
+  const repInstruction = getRepInstruction(phase)
 
   // Build priority list from non-exempt, tested components
   const priorities = []
@@ -584,8 +577,8 @@ export function generateWeeklyPlan(componentData, targetDate) {
     // Select workouts matching session count (up to what's available)
     const selectedWorkouts = allWorkouts.slice(0, Math.max(sessionsPerWeek, 3))
 
-    const tier = p.percentage < 75 ? TIERS.FAILING
-      : p.percentage <= 80 ? TIERS.MARGINAL
+    const tier = p.percentage < RECOMMENDATION_TIERS.FAILING_BELOW ? TIERS.FAILING
+      : p.percentage <= RECOMMENDATION_TIERS.MARGINAL_BELOW ? TIERS.MARGINAL
         : TIERS.STRONG
 
     return {
@@ -609,6 +602,14 @@ export function generateWeeklyPlan(componentData, targetDate) {
     weeksToTarget,
     urgency,
     urgencyLabel: URGENCY_LABELS[urgency],
+    phase,
+    phaseLabel: PHASE_DISPLAY[phase],
+    phaseDescription: config.description,
+    effortLabel: config.effortLabel,
+    repInstruction,
+    maxEffortAllowed: config.maxEffortAllowed,
+    sessionsPerWeekCap: config.sessionsPerWeek,
+    planWeekNum: Math.max(1, Math.min(16, Math.round(ratio * 15) + 1)),
     planItems,
     schedule,
     bodyCompHabits,

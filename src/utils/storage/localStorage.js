@@ -227,6 +227,7 @@ export function clearAllData() {
     localStorage.removeItem('pfa_completed_days')
     localStorage.removeItem('pfa_show_milestones')
     localStorage.removeItem('pfa_chart_banner_dismissed')
+    localStorage.removeItem('pfa_workout_rpe')
   } catch (error) {
     console.error('Error clearing localStorage:', error)
   }
@@ -308,17 +309,6 @@ export function savePracticeSession(session) {
 export function removePracticeSession(id) {
   const sessions = getPracticeSessions().filter(s => s.id !== id)
   safeSetItem(PRACTICE_SESSIONS_KEY, JSON.stringify(sessions))
-}
-
-/**
- * Clear all practice sessions from localStorage.
- */
-export function clearPracticeSessions() {
-  try {
-    localStorage.removeItem(PRACTICE_SESSIONS_KEY)
-  } catch {
-    // ignore
-  }
 }
 
 // ── Preferred training days ───────────────────────────────────────────────────
@@ -420,7 +410,7 @@ const ALL_KEYS = [
   'pfa_dark_mode', 'pfa_personal_goal', 'pfa_draft', 'pfa_outliers',
   'pfa_exercise_prefs', 'pfa_practice_sessions', 'pfa_preferred_days',
   'pfa_completed_days', 'pfa_show_milestones', 'pfa_chart_banner_dismissed',
-  'pfa_selected_base',
+  'pfa_selected_base', 'pfa_workout_rpe',
 ]
 
 /**

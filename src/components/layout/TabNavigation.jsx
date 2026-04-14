@@ -84,7 +84,7 @@ export default function TabNavigation() {
 
   return (
     <nav
-      className="bg-white shadow-sm border-b border-gray-200"
+      className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700"
       aria-label="Application tabs"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -107,8 +107,8 @@ export default function TabNavigation() {
                 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500
                 ${
                   activeTab === tab.id
-                    ? 'text-blue-700 border-b-2 border-blue-700'
-                    : 'text-gray-500 hover:text-gray-900 hover:border-b-2 hover:border-gray-300'
+                    ? 'text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-b-2 hover:border-gray-300 dark:hover:border-gray-500'
                 }
               `}
             >
