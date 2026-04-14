@@ -97,6 +97,15 @@ Compact codes encode user data for sharing/storage without PII:
 - **practiceSession.js** - PI (Performance Indicator) workouts: 30-sec intervals predicting full-test results; fractional tests at 50%/75%
 - **trainingCalendar.js** - Weekly schedule generation with phase-appropriate workouts
 
+## Authoritative Scoring Reference
+
+The official source of truth for all PFRA scoring charts and tables is the AFPC Fitness Program page:
+
+- **AFPC Fitness Program:** https://www.afpc.af.mil/Career-Management/Fitness-Program/
+- Navigate to the **"PFRA Scoring Charts"** link on that page for the current scoring tables
+
+When scoring data in the codebase conflicts with the official charts, the AFPC page takes precedence.
+
 ## Scoring Model (2026 per DAFMAN 36-2905)
 
 - **Component weights:** Cardio 50%, Body Comp 20%, Strength 15%, Core 15%
