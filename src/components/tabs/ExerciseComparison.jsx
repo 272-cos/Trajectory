@@ -134,14 +134,16 @@ function ComponentComparison({ componentType, currentExercise, currentValue, gen
     const altScoreResult = lookupScore(exercise, equivalentValue, gender, ageBracket)
     if (!altScoreResult) return null
 
+    const altPct = (altScoreResult.points / altScoreResult.maxPoints) * 100
     return {
       exercise,
       value: equivalentValue,
       points: altScoreResult.points,
       maxPoints: altScoreResult.maxPoints,
-      pct: (altScoreResult.points / altScoreResult.maxPoints) * 100,
+      pct: altPct,
       isCurrent: false,
       isEquivalent: true,
+      approxAtCeiling: currentPct >= 99 && altPct < currentPct - 1,
     }
   }).filter(Boolean)
 
@@ -175,6 +177,11 @@ function ComponentComparison({ componentType, currentExercise, currentValue, gen
       <p className="text-[11px] text-gray-400 mt-1.5">
         ~ indicates equivalent performance on alternative exercises at the same score level
       </p>
+      {rows.some(r => r.approxAtCeiling) && (
+        <p className="text-[11px] text-amber-600 mt-0.5">
+          Your current exercise is near maximum - equivalents are approximate at ceiling performance
+        </p>
+      )}
     </div>
   )
 }

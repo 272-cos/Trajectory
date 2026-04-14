@@ -423,7 +423,7 @@ function GapBar({ currentPct, projectedPct, minPct, pass }) {
 
 // ─── Component Projection Card ─────────────────────────────────────────────────
 
-function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem, isTopPriority }) {
+function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem, isTopPriority, allocationTarget }) {
   if (!proj) return null
 
   const weight = COMPONENT_WEIGHTS[compType]
@@ -513,7 +513,7 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem,
 
       {/* Training Focus - inline strategy advice */}
       {strategyItem && strategyItem.status === 'improvable' && (
-        <TrainingFocus item={strategyItem} isTopPriority={isTopPriority} compType={compType} proj={proj} />
+        <TrainingFocus item={strategyItem} isTopPriority={isTopPriority} compType={compType} proj={proj} allocationTarget={allocationTarget} />
       )}
     </div>
   )
@@ -521,7 +521,7 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem,
 
 // ─── Training Focus (inline in ComponentCard) ────────────────────────────────
 
-function TrainingFocus({ item, isTopPriority, compType, proj }) {
+function TrainingFocus({ item, isTopPriority, compType, proj, allocationTarget }) {
   const [expanded, setExpanded] = useState(false)
 
   // Get recommendations for this component
@@ -550,6 +550,21 @@ function TrainingFocus({ item, isTopPriority, compType, proj }) {
 
       {expanded && (
         <div className="mt-2 space-y-2 text-xs">
+          {/* Optimal allocation target */}
+          {allocationTarget && allocationTarget.ptsGain > 0 && (
+            <div className="bg-blue-50 rounded p-2 text-blue-800">
+              <span className="font-medium">
+                Recommended: {allocationTarget.currentPts.toFixed(1)} -{'>'} {allocationTarget.targetPts.toFixed(1)} pts
+              </span>
+              {allocationTarget.displayTarget && (
+                <span className="ml-1 text-blue-600">({allocationTarget.displayTarget})</span>
+              )}
+              {allocationTarget.effortWeeks > 0 && (
+                <span className="ml-1 text-blue-600">~{allocationTarget.effortWeeks} wk</span>
+              )}
+            </div>
+          )}
+
           {/* ROI and next gain */}
           <div className="flex items-center gap-2 flex-wrap text-gray-600">
             <span>
@@ -997,11 +1012,12 @@ export default function ProjectTab() {
     }
 
     try {
-      return strategyEngine({ gender: demographics.gender, ageBracket }, inputs, prefs)
+      const options = personalGoal ? { targetComposite: personalGoal } : {}
+      return strategyEngine({ gender: demographics.gender, ageBracket }, inputs, prefs, options)
     } catch {
       return null
     }
-  }, [demographics, decodedScodes, targetPfaDate, exercisePrefs])
+  }, [demographics, decodedScodes, targetPfaDate, exercisePrefs, personalGoal])
 
   // Weekly training plan input: current component data from most recent S-code
   const weeklyPlan = useMemo(() => {
@@ -1066,9 +1082,17 @@ export default function ProjectTab() {
       if (currentPcts.strength != null) calScores.strength = currentPcts.strength
       if (currentPcts.core != null) calScores.core = currentPcts.core
       if (currentPcts.bodyComp != null) calScores.bodyComp = currentPcts.bodyComp
-      // Approximate composite
-      const vals = [currentPcts.cardio, currentPcts.strength, currentPcts.core, currentPcts.bodyComp].filter(v => v != null)
-      if (vals.length > 0) calScores.composite = vals.reduce((a, b) => a + b, 0) / vals.length
+      // Weighted composite (50-20-15-15 model, matching calculateCompositeScore)
+      const weightMap = { cardio: 50, strength: 15, core: 15, bodyComp: 20 }
+      let earned = 0
+      let possible = 0
+      for (const [comp, pct] of Object.entries(currentPcts)) {
+        if (pct != null && weightMap[comp]) {
+          earned += (pct / 100) * weightMap[comp]
+          possible += weightMap[comp]
+        }
+      }
+      if (possible > 0) calScores.composite = Math.round((earned / possible) * 1000) / 10
     }
 
     try {
@@ -1431,6 +1455,11 @@ export default function ProjectTab() {
                     {COMP_LABELS[strategyData.topPriority.component]} ({EXERCISE_NAMES[strategyData.topPriority.exercise]})
                     - +{strategyData.topPriority.ptsGain.toFixed(1)} pts in ~{strategyData.topPriority.effortWeeks.toFixed(1)} wk
                   </p>
+                  {strategyData.optimalAllocation && strategyData.optimalAllocation.totalEffortWeeks > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Optimal path to {strategyData.optimalAllocation.targetComposite}: ~{strategyData.optimalAllocation.totalEffortWeeks.toFixed(0)} weeks total effort
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -1462,6 +1491,7 @@ export default function ProjectTab() {
               {COMP_ORDER.map(compType => {
                 const strategyItem = strategyData?.ranked?.find(r => r.component === compType) ?? null
                 const isTopPriority = strategyData?.topPriority?.component === compType
+                const allocationTarget = strategyData?.optimalAllocation?.components?.[compType] ?? null
                 return (
                   <ComponentCard
                     key={compType}
@@ -1471,6 +1501,7 @@ export default function ProjectTab() {
                     daysToTarget={daysToTarget}
                     strategyItem={strategyItem}
                     isTopPriority={isTopPriority}
+                    allocationTarget={allocationTarget}
                   />
                 )
               })}

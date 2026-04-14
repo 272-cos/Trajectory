@@ -20,6 +20,7 @@ import {
   IMPROVEMENT_UNITS,
   EFFORT_WEEKS_PER_UNIT,
 } from './constants.js'
+import { effortScaleFactor, computeOptimalAllocation } from './optimalAllocation.js'
 
 // Exercises available per component (walk excluded - pass/fail only, no strategy)
 export const COMPONENT_EXERCISES = {
@@ -61,21 +62,10 @@ function isLowerBetter(exercise) {
   return exercise === EXERCISES.RUN_2MILE || exercise === EXERCISES.WHTR
 }
 
-/**
- * Effort scale factor - diminishing returns near performance ceiling.
- * Sourced from principle #7 in docs/RESEARCH-FITNESS-PROGRAMS.md:
- * "Going from 80% to 90% requires exponentially more effort than 60% to 80%."
- *
- * @param {number} scorePct - currentPts / maxPts (0-1)
- * @returns {number} Multiplier applied to base EFFORT_WEEKS_PER_UNIT
- */
-function effortScaleFactor(scorePct) {
-  if (scorePct < 0.60) return 0.8   // Below minimum - gains come faster from low base
-  if (scorePct < 0.75) return 1.0   // Marginal zone - baseline effort calibrated here
-  if (scorePct < 0.87) return 1.5   // Above passing - appreciably harder
-  if (scorePct < 0.95) return 2.5   // Strong performance - significantly harder
-  return 5.0                         // Near ceiling (>95%) - very diminishing returns
-}
+// effortScaleFactor is now imported from optimalAllocation.js
+// It provides a smooth piecewise-linear curve instead of the old 5-tier step function.
+// Re-export for backward compat with any external consumers.
+export { effortScaleFactor } from './optimalAllocation.js'
 
 /**
  * analyzeNextGain - find the next scoring threshold and compute gain/effort to reach it.
@@ -359,9 +349,11 @@ function analyzeComponent(componentType, exercise, currentValue, gender, ageBrac
  *     bodyComp:  { exercise, value, exempt }
  *   }
  * @param {object} preferences - Locked exercise choices: { cardio: 'hamr', ... }
- * @returns {object} { ranked, topPriority, hasAnyImprovable, summary }
+ * @param {object} options - Optional settings:
+ *   - targetComposite {number}: when provided, includes optimalAllocation in result
+ * @returns {object} { ranked, topPriority, hasAnyImprovable, summary, optimalAllocation? }
  */
-export function strategyEngine(demographics, rawInputs, preferences = {}) {
+export function strategyEngine(demographics, rawInputs, preferences = {}, options = {}) {
   const { gender, ageBracket } = demographics
   const analyses = []
 
@@ -437,12 +429,50 @@ export function strategyEngine(demographics, rawInputs, preferences = {}) {
 
   const topPriority = analyses.find(a => a.status === 'improvable') || null
 
-  return {
+  const result = {
     ranked: analyses,
     topPriority,
     hasAnyImprovable: analyses.some(a => a.status === 'improvable'),
     summary: buildSummary(analyses),
   }
+
+  // Optimal allocation: when a target composite is specified, compute
+  // the minimum-effort path from current scores to that target.
+  if (options.targetComposite != null) {
+    try {
+      const allocationScores = {}
+      for (const comp of componentOrder) {
+        const input = rawInputs[comp]
+        if (!input) continue
+        if (input.exempt) {
+          allocationScores[comp] = { exempt: true }
+          continue
+        }
+        if (input.isWalk) continue
+        if (input.value === null || input.value === undefined || input.value === '') continue
+
+        const exercise = input.exercise
+        const value = typeof input.value === 'number' ? input.value : parseFloat(input.value)
+        if (isNaN(value)) continue
+
+        const scoreResult = lookupScore(exercise, value, gender, ageBracket)
+        allocationScores[comp] = {
+          exercise,
+          value,
+          pts: scoreResult ? scoreResult.points : 0,
+        }
+      }
+      result.optimalAllocation = computeOptimalAllocation(
+        allocationScores,
+        options.targetComposite,
+        demographics
+      )
+    } catch {
+      result.optimalAllocation = null
+    }
+  }
+
+  return result
 }
 
 /**

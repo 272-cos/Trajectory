@@ -3,7 +3,7 @@
  * Provides tiered training suggestions based on component scores
  */
 
-import { COMPONENTS, EXERCISES, COMPONENT_MINIMUMS } from '../scoring/constants.js'
+import { COMPONENTS, EXERCISES, COMPONENT_MINIMUMS, RECOMMENDATION_TIERS } from '../scoring/constants.js'
 import {
   getProgressionRatio,
   getPhaseFromRatio,
@@ -25,8 +25,8 @@ const TIERS = {
  * @returns {string} Tier constant
  */
 function getTier(percentage) {
-  if (percentage < 75) return TIERS.FAILING
-  if (percentage <= 80) return TIERS.MARGINAL
+  if (percentage < RECOMMENDATION_TIERS.FAILING_BELOW) return TIERS.FAILING
+  if (percentage <= RECOMMENDATION_TIERS.MARGINAL_BELOW) return TIERS.MARGINAL
   return TIERS.STRONG
 }
 
@@ -258,27 +258,6 @@ export function getRecommendations(componentType, exercise, percentage, exempt =
   return tierRecs.slice(0, 3)
 }
 
-/**
- * Get tier label for display
- * @param {number} percentage - Component percentage score
- * @returns {string} Display label
- */
-export function getTierLabel(percentage) {
-  if (percentage < 75) return 'BELOW PASSING'
-  if (percentage <= 80) return 'MARGINAL PASS'
-  return 'STRONG PASS'
-}
-
-/**
- * Get tier emoji
- * @param {number} percentage - Component percentage score
- * @returns {string} Emoji
- */
-export function getTierEmoji(percentage) {
-  if (percentage < 75) return '💪'
-  if (percentage <= 80) return '⚡'
-  return '🚀'
-}
 
 // ─── Weekly Training Plan Generator ────────────────────────────────────────────
 
@@ -598,8 +577,8 @@ export function generateWeeklyPlan(componentData, targetDate, totalPlanWeeks) {
     // Select workouts matching session count (up to what's available)
     const selectedWorkouts = allWorkouts.slice(0, Math.max(sessionsPerWeek, 3))
 
-    const tier = p.percentage < 75 ? TIERS.FAILING
-      : p.percentage <= 80 ? TIERS.MARGINAL
+    const tier = p.percentage < RECOMMENDATION_TIERS.FAILING_BELOW ? TIERS.FAILING
+      : p.percentage <= RECOMMENDATION_TIERS.MARGINAL_BELOW ? TIERS.MARGINAL
         : TIERS.STRONG
 
     return {
