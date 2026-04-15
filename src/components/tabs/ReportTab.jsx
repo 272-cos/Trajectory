@@ -18,6 +18,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, formatTime } from '../../utils/scoring/scoringEngine.js'
+import { getMinimumToPass } from '../../utils/scoring/reverseScoring.js'
 import {
   EXERCISES,
   COMPONENTS,
@@ -102,7 +103,7 @@ function decodeAndScore(code, demographics) {
     }
 
     const composite = calculateCompositeScore(components)
-    return { code, decoded, scores: { components, composite }, error: null }
+    return { code, decoded, scores: { components, composite, gender, ageBracket }, error: null }
   } catch (err) {
     return { code, decoded: null, scores: null, error: err.message }
   }
@@ -556,6 +557,17 @@ function AssessmentSection({ entry, index, total }) {
                     2km Walk (pass/fail only - 0 pts to composite)
                     {!comp.pass && <span className="text-red-600 font-medium ml-1">FAIL - Overall FAIL</span>}
                   </p>
+                )}
+                {comp.belowMinimum && !comp.walkOnly && scores?.gender && scores?.ageBracket && (
+                  (() => {
+                    const minInfo = getMinimumToPass(comp.exercise, scores.ageBracket, scores.gender)
+                    if (!minInfo) return null
+                    return (
+                      <p className="text-xs text-red-600 mt-0.5 font-sans">
+                        Need at least {minInfo.displayValue} to pass ({minInfo.minimumPct}% minimum)
+                      </p>
+                    )
+                  })()
                 )}
               </div>
               {!comp.exempt && comp.tested && !comp.walkOnly && comp.points != null && (

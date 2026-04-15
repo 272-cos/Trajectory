@@ -8,6 +8,7 @@ import { encodeSCode, decodeSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS, GENDER, AGE_BRACKETS, VALIDATION } from '../../utils/scoring/constants.js'
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
+import { getMinimumToPass } from '../../utils/scoring/reverseScoring.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
 import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
 import { getTrainingResources } from '../../utils/training/resources.js'
@@ -939,6 +940,16 @@ export default function SelfCheckTab() {
             </div>
           )}
 
+          {/* Minimum-to-pass hint for cardio when below minimum */}
+          {!cardioExempt && (
+            <MinimumToPassHint
+              score={scores?.components.find(c => c.type === COMPONENTS.CARDIO)}
+              exercise={cardioExercise}
+              ageBracket={scores?.ageBracket}
+              gender={scores?.gender}
+            />
+          )}
+
           {/* Exempt: sub-options */}
           {cardioExempt && (
             <WalkSection
@@ -995,6 +1006,15 @@ export default function SelfCheckTab() {
               <p className="text-xs text-amber-600 mt-1">Unusually high count - double check your entry</p>
             )}
           </div>
+          {/* Minimum-to-pass hint for strength when below minimum */}
+          {!strengthExempt && (
+            <MinimumToPassHint
+              score={scores?.components.find(c => c.type === COMPONENTS.STRENGTH)}
+              exercise={strengthExercise}
+              ageBracket={scores?.ageBracket}
+              gender={scores?.gender}
+            />
+          )}
           <TrainingResources component={COMPONENTS.STRENGTH} exercise={strengthExempt ? null : strengthExercise} />
         </ComponentSection>
 
@@ -1060,6 +1080,15 @@ export default function SelfCheckTab() {
               </p>
             )}
           </div>
+          {/* Minimum-to-pass hint for core when below minimum */}
+          {!coreExempt && (
+            <MinimumToPassHint
+              score={scores?.components.find(c => c.type === COMPONENTS.CORE)}
+              exercise={coreExercise}
+              ageBracket={scores?.ageBracket}
+              gender={scores?.gender}
+            />
+          )}
           <TrainingResources component={COMPONENTS.CORE} exercise={coreExempt ? null : coreExercise} />
         </ComponentSection>
 
@@ -1116,6 +1145,15 @@ export default function SelfCheckTab() {
             <p className="text-sm text-gray-600 mt-2">
               WHtR: {calculateWHtR(parseFloat(waistInches), parseFloat(heightInches))?.toFixed(2)}
             </p>
+          )}
+          {/* Minimum-to-pass hint for body comp when below minimum */}
+          {!bodyCompExempt && (
+            <MinimumToPassHint
+              score={scores?.components.find(c => c.type === COMPONENTS.BODY_COMP)}
+              exercise={EXERCISES.WHTR}
+              ageBracket={scores?.ageBracket}
+              gender={scores?.gender}
+            />
           )}
           <TrainingResources component={COMPONENTS.BODY_COMP} />
         </ComponentSection>
@@ -1785,9 +1823,9 @@ function ComponentSection({ title, exempt, onExemptChange, score, children, hide
               </p>
               <div className="flex justify-end items-center gap-1 mt-0.5" aria-hidden="true">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold ${score.pass ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {score.pass ? 'PASS' : 'FAIL'}
+                  {score.pass ? 'PASS' : (score.belowMinimum ? 'FAIL - 0 toward composite' : 'FAIL')}
                 </span>
-                <span className="text-xs text-gray-500">{score.percentage.toFixed(1)}%</span>
+                {score.pass && <span className="text-xs text-gray-500">{score.percentage.toFixed(1)}%</span>}
               </div>
             </div>
           )}
@@ -1806,6 +1844,21 @@ function ComponentSection({ title, exempt, onExemptChange, score, children, hide
       </div>
       {children}
     </div>
+  )
+}
+
+/**
+ * Inline hint shown below an exercise input when the component score is below minimum.
+ * Tells the user what performance they need to pass the component minimum.
+ */
+function MinimumToPassHint({ score, exercise, ageBracket, gender }) {
+  if (!score?.belowMinimum || !ageBracket || !gender) return null
+  const minInfo = getMinimumToPass(exercise, ageBracket, gender)
+  if (!minInfo) return null
+  return (
+    <p className="text-xs text-red-600 mt-2">
+      Need at least {minInfo.displayValue} to pass ({minInfo.minimumPct}% minimum)
+    </p>
   )
 }
 

@@ -857,6 +857,39 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 
 ---
 
+## AFPC Scoring Chart Reconciliation (Apr 2026)
+
+**Source:** `PFRA Scoring Charts.pdf` (effective 1 Mar 2026, extracted Apr 2026)
+**Previous source:** Sep 2025 Provisional tables embedded in `scoringTables.js`
+**Analysis performed:** Apr 2026 via automated diff across all 18 age/gender brackets x 7 scored exercises
+
+### Summary of Findings
+
+| Exercise | Differences Found | Severity |
+|---|---|---|
+| WHtR | None - tables match | None |
+| 2-Mile Run | Point scale differs slightly (PDF: 49.5/49.0 top rows; JS: 49.4/48.8) | Low |
+| HAMR | Point scale AND shuttle thresholds differ (M<25 max: PDF >=87 vs JS >=100) | High |
+| Push-ups | JS over-awards mid-range by 2-4 pts; different row granularity (JS: 38 rows, PDF: 26) | Medium |
+| HRPU | JS awards max pts at 10-12 fewer reps than PDF (critical error) | Critical |
+| Sit-ups | All 18 brackets differ on max threshold (PDF requires 1-14 more reps) | High |
+| CLRC | PDF requires 5-12 more reps to earn 15 pts across brackets | High |
+| Plank | PDF requires 5s more for max pts; JS floor: 7.5 pts vs PDF floor: 2.5 pts | Medium |
+
+### Actions Taken (Sprint 11)
+
+- Reconciliation noted here for Sprint 12 table update sprint
+- Minimum-to-pass thresholds added (`getMinimumToPass()`) using existing provisional tables
+- Below-minimum scoring behavior fixed (zero composite contribution, FAIL cascade)
+
+### Pending Action
+
+- **Sprint 12 blocker:** Replace provisional scoring tables in `scoringTables.js` with final Mar 2026 values from the AFPC PDF before scored PFAs begin (Sep 1, 2026)
+- HRPU and HAMR are the highest-priority fixes (critical/high severity); these affect pass/fail decisions for a large percentage of assessed Airmen
+- WHtR is confirmed correct and requires no update
+
+---
+
 ## Sprint Summary
 
 | Sprint | Tasks | Status | Key Deliverable |
@@ -870,6 +903,7 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 | 8 | 8.1, 8.2, 8.3, 8.4 | ✅ Complete | Strategy engine, stopwatch, HAMR metronome, exercise comparison |
 | 9 | 9.1, 9.2 | ✅ Complete | Curated training resource links, personalized training plans |
 | 10 | 10.1, 10.2, 10.3 | ✅ Complete | Practice mode, training plan calendar, milestone overlays |
+| 11 | 11.1 | ✅ Complete | Scoring correctness: below-min fix, min-to-pass hints, strategy ROI boost, chart diff |
 
 ---
 
@@ -896,4 +930,4 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 - [ ] Migrate dark mode from CSS `!important` overrides (index.css) to Tailwind `dark:` variants
 - [ ] Extract SelfCheckTab sub-components (1,787 lines - scoring panel, practice form, shared controls)
 - [ ] Replace score calculation useEffect with useMemo in SelfCheckTab (eliminates extra render per keystroke)
-- [ ] Verify scoring tables against AFPC final release (current source: "Sep 2025 Provisional")
+- [ ] Update scoring tables to final Mar 2026 AFPC release - see reconciliation note above (HRPU and HAMR critical; must complete before Sep 1 scored PFAs)

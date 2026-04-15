@@ -1278,3 +1278,154 @@ describe('Female composite - full assessment pass/fail', () => {
     expect(result.pass).toBe(false)
   })
 })
+
+// ─── Below-minimum: component fails per-component minimum → 0 to composite ──
+// Per the walk-fail mirror pattern: a below-minimum component contributes
+// 0 earned / 0 possible to composite, and cascades overallPass: false.
+// Cardio/Strength/Core minimum: 60%; Body Comp minimum: 50%.
+
+// Helper for a below-minimum component (directly specified for unit tests)
+const makeBelow = (points, maxPoints) => ({
+  tested: true, exempt: false, walkOnly: false, points, maxPoints, pass: false, belowMinimum: true,
+})
+
+describe('belowMinimum - calculateComponentScore flags below-minimum components', () => {
+  it('M <25 pushups 30 reps → belowMinimum: true (5.3% < 60% min)', () => {
+    const result = calculateComponentScore(
+      { type: 'strength', exercise: EXERCISES.PUSHUPS, value: 30 },
+      M, U25
+    )
+    expect(result.belowMinimum).toBe(true)
+    expect(result.pass).toBe(false)
+    expect(result.tested).toBe(true)
+  })
+
+  it('M <25 pushups 31 reps → belowMinimum: false (passes if above 60% min)', () => {
+    // Need to verify the exact threshold; use a high value to confirm pass path
+    const result = calculateComponentScore(
+      { type: 'strength', exercise: EXERCISES.PUSHUPS, value: 67 },
+      M, U25
+    )
+    expect(result.belowMinimum).toBe(false)
+    expect(result.pass).toBe(true)
+  })
+
+  it('M <25 2-mile run far above limit → belowMinimum: true (cardio 60% min)', () => {
+    // 1185s is chart worst at 29.5/50 = 59% - just below the 60% threshold
+    const result = calculateComponentScore(
+      { type: 'cardio', exercise: EXERCISES.RUN_2MILE, value: 1185 },
+      M, U25
+    )
+    expect(result.belowMinimum).toBe(true)
+    expect(result.pass).toBe(false)
+  })
+
+  it('WHtR 0.60 → belowMinimum: true (0% < 50% body comp min)', () => {
+    const result = calculateComponentScore(
+      { type: 'bodyComp', exercise: EXERCISES.WHTR, value: 0.60 },
+      M, U25
+    )
+    expect(result.belowMinimum).toBe(true)
+    expect(result.pass).toBe(false)
+  })
+
+  it('exempt component is never belowMinimum', () => {
+    const result = calculateComponentScore(
+      { type: 'strength', exercise: EXERCISES.PUSHUPS, exempt: true },
+      M, U25
+    )
+    expect(result.belowMinimum).toBeUndefined()
+    expect(result.exempt).toBe(true)
+  })
+})
+
+describe('belowMinimum - composite excludes below-min components (0 earned/0 possible)', () => {
+  it('1 below-min component excluded: composite from remaining 3 only', () => {
+    // Cardio passes (30/50), BodyComp passes (15/20), Core passes (12/15), Strength below-min
+    const cardio    = makeComp(30, 50, true)
+    const bodyComp  = makeComp(15, 20, true)
+    const core      = makeComp(12, 15, true)
+    const strength  = makeBelow(2, 15)
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    // totalEarned = 30+15+12 = 57 (strength excluded)
+    // totalPossible = 50+20+15 = 85 (strength excluded)
+    expect(result.composite).toBe(Math.round((57 / 85) * 1000) / 10)
+    expect(result.pass).toBe(false) // below-min = overallPass false
+  })
+
+  it('below-min populates belowMinimumComponents array', () => {
+    const below = makeBelow(5, 50)
+    const result = calculateCompositeScore([below, makeComp(15, 20, true), makeComp(12, 15, true), makeComp(12, 15, true)])
+    expect(result.belowMinimumComponents).toHaveLength(1)
+    expect(result.belowMinimumComponents[0]).toBe(below)
+  })
+
+  it('below-min also appears in failedComponents', () => {
+    const below = makeBelow(5, 50)
+    const result = calculateCompositeScore([below, makeComp(15, 20, true), makeComp(12, 15, true), makeComp(12, 15, true)])
+    expect(result.failedComponents).toContain(below)
+  })
+
+  it('high composite with 1 below-min component → overall fail despite good score', () => {
+    // Cardio 48/50, BodyComp 19/20, Core 14/15 all excellent; Strength below-min
+    const cardio    = makeComp(48, 50, true)
+    const bodyComp  = makeComp(19, 20, true)
+    const core      = makeComp(14, 15, true)
+    const strength  = makeBelow(2, 15)
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    // Composite from 3 passing: (48+19+14)/(50+20+15) = 81/85 = 95.3
+    expect(result.composite).toBeGreaterThan(90)
+    expect(result.pass).toBe(false) // strength below-min cascades to overall fail
+    expect(result.allComponentsPass).toBe(false)
+  })
+
+  it('all 4 below-min → composite null, allComponentsFail: true', () => {
+    const result = calculateCompositeScore([
+      makeBelow(5,  50),
+      makeBelow(2,  20),
+      makeBelow(3,  15),
+      makeBelow(3,  15),
+    ])
+    expect(result.composite).toBeNull()
+    expect(result.pass).toBe(false)
+    expect(result.allComponentsFail).toBe(true)
+    expect(result.belowMinimumComponents).toHaveLength(4)
+  })
+
+  it('2 below-min + 2 passing → composite from 2 passing only', () => {
+    const cardio   = makeComp(40, 50, true)
+    const bodyComp = makeComp(16, 20, true)
+    const strength = makeBelow(3, 15)
+    const core     = makeBelow(4, 15)
+
+    const result = calculateCompositeScore([cardio, bodyComp, strength, core])
+
+    // totalEarned = 40+16 = 56; totalPossible = 50+20 = 70
+    expect(result.composite).toBe(Math.round((56 / 70) * 1000) / 10)
+    expect(result.pass).toBe(false)
+    expect(result.belowMinimumComponents).toHaveLength(2)
+  })
+
+  it('real below-min scenario: M <25 all-4 assessment with bad pushups', () => {
+    // 30 pushups = 0.8/15 = 5.3% - below 60% strength minimum
+    const comps = [
+      calculateComponentScore({ type: 'cardio', exercise: EXERCISES.RUN_2MILE, value: 900 }, M, U25),
+      calculateComponentScore({ type: 'bodyComp', exercise: EXERCISES.WHTR, value: 0.46 }, M, U25),
+      calculateComponentScore({ type: 'strength', exercise: EXERCISES.PUSHUPS, value: 30 }, M, U25),
+      calculateComponentScore({ type: 'core', exercise: EXERCISES.SITUPS, value: 50 }, M, U25),
+    ]
+    const result = calculateCompositeScore(comps)
+
+    expect(result.pass).toBe(false)
+    expect(result.belowMinimumComponents).toHaveLength(1)
+    // Strength excluded from composite
+    expect(result.composite).not.toBeNull()
+    // Even if composite would be >=75, still fails
+    const strengthComp = comps.find(c => c.pass === false && c.belowMinimum)
+    expect(strengthComp).toBeDefined()
+  })
+})

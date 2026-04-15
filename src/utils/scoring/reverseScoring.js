@@ -10,8 +10,21 @@
  */
 
 import { getScoringTable } from './scoringTables.js'
-import { EXERCISES, COMPONENT_WEIGHTS } from './constants.js'
+import { EXERCISES, COMPONENTS, COMPONENT_WEIGHTS, COMPONENT_MINIMUMS } from './constants.js'
 import { computeOptimalAllocation } from './optimalAllocation.js'
+
+// Map exercise to its parent component type
+const EXERCISE_TO_COMPONENT = {
+  [EXERCISES.RUN_2MILE]: COMPONENTS.CARDIO,
+  [EXERCISES.HAMR]:      COMPONENTS.CARDIO,
+  [EXERCISES.WALK_2KM]:  COMPONENTS.CARDIO,
+  [EXERCISES.PUSHUPS]:   COMPONENTS.STRENGTH,
+  [EXERCISES.HRPU]:      COMPONENTS.STRENGTH,
+  [EXERCISES.SITUPS]:    COMPONENTS.CORE,
+  [EXERCISES.CLRC]:      COMPONENTS.CORE,
+  [EXERCISES.PLANK]:     COMPONENTS.CORE,
+  [EXERCISES.WHTR]:      COMPONENTS.BODY_COMP,
+}
 
 // ── Exercises included per component (user-selectable alternatives shown) ────
 
@@ -251,4 +264,40 @@ function generatePersonalizedTable(targetComposite, gender, ageBracket, currentS
   rows.currentComposite = allocation.currentComposite
 
   return rows
+}
+
+/**
+ * Get the minimum performance required to pass a component's per-component minimum.
+ *
+ * Returns the threshold performance value (e.g., run time, rep count, ratio) that
+ * earns the minimum passing points for the component:
+ *   - Cardio, Strength, Core: 60% of max pts
+ *   - Body Comp: 50% of max pts
+ *
+ * @param {string} exercise - Exercise type constant (EXERCISES.*)
+ * @param {string} ageBracket - Age bracket constant (AGE_BRACKETS.*)
+ * @param {string} gender - 'M' or 'F'
+ * @returns {{ threshold: number, points: number, minimumPct: number, displayValue: string }|null}
+ */
+export function getMinimumToPass(exercise, ageBracket, gender) {
+  const component = EXERCISE_TO_COMPONENT[exercise]
+  if (!component) return null
+
+  // Walk has no point scoring (pass/fail only) - no minimum threshold concept
+  if (exercise === EXERCISES.WALK_2KM) return null
+
+  const maxPts = COMPONENT_WEIGHTS[component]
+  const minimumPct = COMPONENT_MINIMUMS[component] // e.g. 60 for cardio/strength/core, 50 for bodyComp
+  const targetPts = (minimumPct / 100) * maxPts // minimum points needed
+
+  const result = reverseLookup(exercise, targetPts, gender, ageBracket)
+  if (!result) return null
+
+  return {
+    threshold: result.threshold,
+    points: result.points,
+    minimumPct,
+    displayValue: formatReverseValue(exercise, result.threshold),
+    unit: EXERCISE_UNITS[exercise],
+  }
 }
