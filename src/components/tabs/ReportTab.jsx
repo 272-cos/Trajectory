@@ -28,6 +28,7 @@ import {
   getAgeBracket,
 } from '../../utils/scoring/constants.js'
 import { generateProjection } from '../../utils/projection/projectionEngine.js'
+import { generatePDFAndDownload } from '../../utils/pdf/generateFormPDF.js'
 
 const EXERCISE_LABELS = {
   [EXERCISES.RUN_2MILE]: '2-Mile Run',
@@ -368,8 +369,10 @@ export default function ReportTab() {
           projectionData={projectionData}
           targetPfaDate={targetPfaDate}
           copySuccess={copySuccess}
+          demographics={demographics}
           onCopy={() => handleCopy({ rank, name, unit, dcode, reportEntries, allExempt, includeProjection, projectionData, targetPfaDate, setCopySuccess })}
           onPrint={() => handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includeProjection, projectionData, targetPfaDate })}
+          onDownloadPDF={() => handleDownloadPDF({ demographics, reportEntries })}
         />
       )}
 
@@ -384,7 +387,7 @@ export default function ReportTab() {
 
 // ─── Report Preview ────────────────────────────────────────────────────────────
 
-function ReportPreview({ rank, name, unit, dcode, reportEntries, allExempt, includeProjection, projectionData, targetPfaDate, copySuccess, onCopy, onPrint }) {
+function ReportPreview({ rank, name, unit, dcode, reportEntries, allExempt, includeProjection, projectionData, targetPfaDate, copySuccess, onCopy, onPrint, onDownloadPDF, demographics }) {
   const memberLine = [rank, name].filter(Boolean).join(' ') || '(Not specified)'
   const unitLine = unit || '(Not specified)'
 
@@ -400,6 +403,14 @@ function ReportPreview({ rank, name, unit, dcode, reportEntries, allExempt, incl
             className="px-3 py-2 min-h-[44px] text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             {copySuccess ? 'Copied!' : 'Copy Text'}
+          </button>
+          <button
+            onClick={onDownloadPDF}
+            aria-label="Download assessment as PDF"
+            disabled={!demographics}
+            className="px-3 py-2 min-h-[44px] text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Download PDF
           </button>
           <button
             onClick={onPrint}
@@ -961,5 +972,20 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
   if (printWindow) {
     printWindow.document.write(html)
     printWindow.document.close()
+  }
+}
+
+function handleDownloadPDF({ demographics, reportEntries }) {
+  if (!demographics || reportEntries.length === 0) return
+
+  // Use the most recent (first) assessment for PDF
+  const latestEntry = reportEntries[0]
+  if (!latestEntry) return
+
+  try {
+    generatePDFAndDownload(demographics, latestEntry.decoded, latestEntry.scores, latestEntry.decoded.date)
+  } catch (error) {
+    console.error('PDF generation failed:', error)
+    alert('Failed to generate PDF. Please try again.')
   }
 }
