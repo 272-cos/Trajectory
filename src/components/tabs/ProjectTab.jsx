@@ -22,6 +22,7 @@ import { generateProjection, AMBER_MARGIN } from '../../utils/projection/project
 import { COMPONENT_WEIGHTS, COMPONENT_MINIMUMS, EXERCISES, PASSING_COMPOSITE, COMPONENTS } from '../../utils/scoring/constants.js'
 import { isDiagnosticPeriod, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { calculateWHtR, calculateComponentScore, calculateCompositeScore } from '../../utils/scoring/scoringEngine.js'
+import { getMinimumToPass } from '../../utils/scoring/reverseScoring.js'
 import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS, COMPONENT_EXERCISES } from '../../utils/scoring/strategyEngine.js'
 import { getRecommendations, generateWeeklyPlan } from '../../utils/recommendations/recommendationEngine.js'
 import { getExercisePrefs, saveExercisePrefs, getPracticeSessions, getShowMilestones, setShowMilestones } from '../../utils/storage/localStorage.js'
@@ -423,7 +424,7 @@ function GapBar({ currentPct, projectedPct, minPct, pass }) {
 
 // ─── Component Projection Card ─────────────────────────────────────────────────
 
-function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem, isTopPriority, allocationTarget }) {
+function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem, isTopPriority, allocationTarget, latestDemographics }) {
   if (!proj) return null
 
   const weight = COMPONENT_WEIGHTS[compType]
@@ -510,6 +511,19 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem,
       <div className="mt-1 text-xs text-gray-400">
         Model: {proj.model.replace('_', ' ')}
       </div>
+
+      {/* Minimum-to-pass hint when component is failing */}
+      {!proj.pass && !proj.exempt && latestDemographics && (
+        (() => {
+          const minInfo = getMinimumToPass(proj.exercise, latestDemographics.ageBracket, latestDemographics.gender)
+          if (!minInfo) return null
+          return (
+            <p className="mt-2 text-xs text-red-600">
+              Need at least {minInfo.displayValue} to pass ({minInfo.minimumPct}% minimum)
+            </p>
+          )
+        })()
+      )}
 
       {/* Training Focus - inline strategy advice */}
       {strategyItem && strategyItem.status === 'improvable' && (
@@ -970,6 +984,14 @@ export default function ProjectTab() {
     } catch { /* ignore */ }
 
     return pcts
+  }, [demographics, decodedScodes])
+
+  // Gender and age bracket from the most recent S-code (used for min-to-pass lookups)
+  const latestDemographics = useMemo(() => {
+    if (!demographics || decodedScodes.length === 0) return null
+    const latest = decodedScodes[decodedScodes.length - 1]
+    const age = calculateAge(demographics.dob, latest.date)
+    return { gender: demographics.gender, ageBracket: getAgeBracket(age) }
   }, [demographics, decodedScodes])
 
   // Strategy engine analysis from most recent S-code
@@ -1502,6 +1524,7 @@ export default function ProjectTab() {
                     strategyItem={strategyItem}
                     isTopPriority={isTopPriority}
                     allocationTarget={allocationTarget}
+                    latestDemographics={latestDemographics}
                   />
                 )
               })}

@@ -199,6 +199,9 @@ export function calculateComponentScore(component, gender, ageBracket) {
   const minimum = COMPONENT_MINIMUMS[type] || 0
   // SL-10: 0 reps/seconds always fails the component regardless of points
   const pass = value === 0 ? false : percentage >= minimum
+  // belowMinimum: component was tested and scored but failed its per-component minimum.
+  // These components contribute 0 earned / 0 possible to composite (mirror walk-fail pattern).
+  const belowMinimum = !pass
 
   return {
     tested: true,
@@ -209,6 +212,7 @@ export function calculateComponentScore(component, gender, ageBracket) {
     percentage,
     pass,
     minimum,
+    belowMinimum,
   }
 }
 
@@ -234,6 +238,7 @@ export function calculateCompositeScore(componentResults) {
   const exemptComponents = []
   const walkComponents = []
   const failedComponents = []
+  const belowMinimumComponents = []
 
   componentResults.forEach(result => {
     if (result.exempt) {
@@ -253,20 +258,31 @@ export function calculateCompositeScore(componentResults) {
       return
     }
 
+    // Below-minimum: component scored but failed per-component minimum.
+    // Contributes 0 earned / 0 possible to composite (mirror walk-fail pattern).
+    if (result.belowMinimum) {
+      belowMinimumComponents.push(result)
+      failedComponents.push(result)
+      allComponentsPass = false
+      return
+    }
+
     testedComponents.push(result)
+    // Track failures and allComponentsPass for components that contribute to composite
+    // (belowMinimum components are handled above and excluded from composite entirely)
+    if (!result.pass) {
+      failedComponents.push(result)
+      allComponentsPass = false
+    }
     totalEarned += result.points
     totalPossible += result.maxPoints
-
-    if (!result.pass) {
-      allComponentsPass = false
-      failedComponents.push(result)
-    }
   })
 
   // Can't calculate composite without all components accounted for (tested/exempt/walk)
   const totalComponents = componentResults.length
   const testedOrExempt =
-    testedComponents.length + exemptComponents.length + walkComponents.length
+    testedComponents.length + exemptComponents.length + walkComponents.length +
+    belowMinimumComponents.length
 
   if (testedOrExempt < totalComponents) {
     return {
@@ -278,12 +294,28 @@ export function calculateCompositeScore(componentResults) {
       exemptComponents,
       walkComponents,
       failedComponents,
+      belowMinimumComponents,
       partialAssessment: true,
     }
   }
 
-  // All exempt/walk = special case (no scorable components)
+  // All exempt/walk/below-minimum = no scorable passing components
   if (totalPossible === 0) {
+    // If there are below-minimum components, overall is a FAIL (not ambiguous)
+    if (belowMinimumComponents.length > 0) {
+      return {
+        composite: null,
+        pass: false,
+        totalEarned: 0,
+        totalPossible: 0,
+        testedComponents: [],
+        exemptComponents,
+        walkComponents,
+        failedComponents,
+        belowMinimumComponents,
+        allComponentsFail: true,
+      }
+    }
     return {
       composite: null,
       pass: null,
@@ -293,12 +325,14 @@ export function calculateCompositeScore(componentResults) {
       exemptComponents,
       walkComponents,
       failedComponents: [],
+      belowMinimumComponents: [],
       allExempt: true,
     }
   }
 
   // SL-06: composite = round((earned/possible)*100, 1) - official rounding
   // Round BEFORE the pass check so the displayed value matches the decision.
+  // Only passing-minimum components contribute to composite (belowMinimum excluded).
   const composite = Math.round((totalEarned / totalPossible) * 1000) / 10
   const compositePass = composite >= PASSING_COMPOSITE
   // EC-05: Walk failed = overall FAIL regardless of composite
@@ -314,6 +348,7 @@ export function calculateCompositeScore(componentResults) {
     exemptComponents,
     walkComponents, // SL-07: walk results tracked but excluded from composite
     failedComponents,
+    belowMinimumComponents, // Components that failed per-component minimum (0 to composite)
     compositePass,
     allComponentsPass,
   }

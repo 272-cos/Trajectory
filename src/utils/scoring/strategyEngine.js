@@ -17,6 +17,7 @@ import {
   EXERCISES,
   COMPONENTS,
   COMPONENT_WEIGHTS,
+  COMPONENT_MINIMUMS,
   IMPROVEMENT_UNITS,
   EFFORT_WEEKS_PER_UNIT,
 } from './constants.js'
@@ -412,19 +413,31 @@ export function strategyEngine(demographics, rawInputs, preferences = {}, option
       }
     }
 
+    // Detect if this component is below its per-component minimum.
+    // Components below minimum get a multiplicative ROI boost so they always
+    // rank above passing-but-low components in TOP ROI.
+    const compMinimumPct = COMPONENT_MINIMUMS[comp] || 60
+    const belowMinimum = primary.scorePct * 100 < compMinimumPct
+    // 10x boost ensures failing components sort above all passing ones
+    const boostedRoi = belowMinimum ? primary.roi * 10 : primary.roi
+
     analyses.push({
       ...primary,
+      belowMinimum,
+      boostedRoi,
       alternatives,
       isPreferenceLocked,
       preferenceNote,
     })
   }
 
-  // Rank by ROI (points per week) descending; maxed/ceiling components sorted last
+  // Rank by boosted ROI descending; maxed/ceiling components sorted last.
+  // Below-minimum components have 10x ROI boost so they always outrank
+  // passing-but-low components regardless of absolute ROI value.
   analyses.sort((a, b) => {
     if (a.status !== 'improvable' && b.status === 'improvable') return 1
     if (a.status === 'improvable' && b.status !== 'improvable') return -1
-    return b.roi - a.roi
+    return b.boostedRoi - a.boostedRoi
   })
 
   const topPriority = analyses.find(a => a.status === 'improvable') || null
