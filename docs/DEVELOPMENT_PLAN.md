@@ -870,3 +870,30 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 | 8 | 8.1, 8.2, 8.3, 8.4 | ✅ Complete | Strategy engine, stopwatch, HAMR metronome, exercise comparison |
 | 9 | 9.1, 9.2 | ✅ Complete | Curated training resource links, personalized training plans |
 | 10 | 10.1, 10.2, 10.3 | ✅ Complete | Practice mode, training plan calendar, milestone overlays |
+
+---
+
+## Backlog
+
+### Performance
+- [ ] Replace recharts with lightweight SVG chart component (~100 lines for simple line charts, eliminates 393KB chunk)
+
+### Accessibility
+- [ ] Add focus trap to OnboardingModal (keyboard/screen reader users can Tab behind modal)
+- [ ] Add `aria-expanded` to PlanTab DayDetail accordion toggle buttons
+- [ ] Add screen reader summaries to ProjectTab and HistoryTab charts
+
+### UX
+- [ ] Improve projection confidence labels: 1-point = "Insufficient Data" (not "Emerging"), 2-point = "Preliminary" (not "Established")
+- [ ] Add "Replay Walkthrough" option in Tools tab (onboarding dismissed by Escape is permanent)
+- [ ] Use saved exercise preferences as default values in SelfCheckTab (currently always defaults to run/pushups/situps)
+
+### Features
+- [ ] DAF Form 4446 PDF generation via jsPDF (lazy-loaded) - replaces print-based report with real PDF download that works on iPhone. Mirrors official scorecard layout with digital signature pads. See `.claude-memory/project_daf4446_pdf.md`.
+- [ ] CAC/ID card barcode scanning via zxing-js (lazy-loaded, PDF417 only) - auto-populates report form fields from military ID. See `.claude-memory/project_cac_scan.md`.
+
+### Technical Debt
+- [ ] Migrate dark mode from CSS `!important` overrides (index.css) to Tailwind `dark:` variants
+- [ ] Extract SelfCheckTab sub-components (1,787 lines - scoring panel, practice form, shared controls)
+- [ ] Replace score calculation useEffect with useMemo in SelfCheckTab (eliminates extra render per keystroke)
+- [ ] Verify scoring tables against AFPC final release (current source: "Sep 2025 Provisional")
