@@ -36,24 +36,22 @@ const TRIPLE_GAP = 0.15    // seconds between triple beep starts
 
 // ── Countdown audio parameters ───────────────────────────────────────────────
 // Synth tones only - no human voice, no audio files.
-// Pattern: 3 long tones ... 2 long tones ... 1 distinct tone ... ascending sweep
-const CD_FREQ = 440           // Hz - deep horn tone for "3" and "2" signals
-const CD_DIFF_FREQ = 660      // Hz - distinct higher tone for "1" signal
-const CD_TONE_DURATION = 0.4  // seconds per countdown tone (long vs 70ms shuttle beeps)
-const CD_TONE_GAP = 0.2       // seconds between tones within a group
-const CD_GROUP_GAP = 0.4      // seconds between groups (after last tone of group ends)
+// Pattern: simple 3-2-1-GO four-signal cadence, unambiguous and easy to follow
+const CD_FREQ = 440           // Hz - 440Hz triangle tone for 3, 2, 1 signals
+const CD_TONE_DURATION = 0.4  // seconds per countdown tone
+const CD_TONE_INTERVAL = 1.0  // seconds between signal starts (one every second)
 const SWEEP_START = 660       // Hz - "go" sweep start frequency
 const SWEEP_END = 1320        // Hz - "go" sweep end frequency
 const SWEEP_DURATION = 0.6    // seconds for ascending sweep
-const POST_SWEEP_PAUSE = 0.5  // seconds of silence after sweep before first shuttle
+const POST_SWEEP_PAUSE = 0.1  // seconds of silence after sweep before first shuttle
 
 // Total countdown duration:
-// Group "3": tones at 0.0, 0.6, 1.2 (each 0.4s) -> ends at 1.6
-// Group "2": tones at 2.0, 2.6 (each 0.4s) -> ends at 3.0
-// Group "1": tone at 3.4 (0.4s) -> ends at 3.8
-// Sweep: at 4.2 (0.6s) -> ends at 4.8
-// + POST_SWEEP_PAUSE -> shuttle timer starts at 5.3
-const COUNTDOWN_TOTAL_S = 4.8 + POST_SWEEP_PAUSE // ~5.3s
+// Signal "3": at t=0.0 (0.4s duration)
+// Signal "2": at t=1.0 (0.4s duration)
+// Signal "1": at t=2.0 (0.4s duration)
+// Sweep "GO": at t=3.0 (0.6s duration) -> ends at 3.6
+// + POST_SWEEP_PAUSE -> shuttle timer starts at 3.7s
+const COUNTDOWN_TOTAL_S = 3.0 + SWEEP_DURATION + POST_SWEEP_PAUSE // ~3.7s
 
 /**
  * Schedule a single beep tone into the AudioContext.
@@ -115,37 +113,31 @@ function scheduleSweepTone(ctx, when) {
  * Returns an array of gain nodes (for silencing on skip).
  *
  * Timeline (seconds from `t0`):
- *   0.0, 0.6, 1.2   - three 440Hz triangle tones ("3")
- *   2.0, 2.6         - two   440Hz triangle tones ("2")
- *   3.4              - one   660Hz sawtooth tone  ("1" - distinct)
- *   4.2              - ascending 660->1320Hz sweep ("go")
- *   5.3              - first shuttle interval begins
+ *   0.0              - 440Hz triangle tone, 0.4s ("3")
+ *   1.0              - 440Hz triangle tone, 0.4s ("2")
+ *   2.0              - 440Hz triangle tone, 0.4s ("1")
+ *   3.0              - ascending 660->1320Hz sweep, 0.6s ("GO")
+ *   3.7              - first shuttle interval begins
  */
 function scheduleCountdown(ctx) {
   const t0 = ctx.currentTime + 0.05 // small lookahead
   const gains = []
 
-  // "3" - three horn tones
-  const step = CD_TONE_DURATION + CD_TONE_GAP // 0.6s per tone slot
+  // Signal "3" - at t=0.0
   gains.push(scheduleCountdownTone(ctx, t0, CD_FREQ, CD_TONE_DURATION))
-  gains.push(scheduleCountdownTone(ctx, t0 + step, CD_FREQ, CD_TONE_DURATION))
-  gains.push(scheduleCountdownTone(ctx, t0 + step * 2, CD_FREQ, CD_TONE_DURATION))
 
-  // "2" - two horn tones (starts at 2.0s)
-  const g2Start = t0 + step * 2 + CD_TONE_DURATION + CD_GROUP_GAP // 1.2 + 0.4 + 0.4 = 2.0
-  gains.push(scheduleCountdownTone(ctx, g2Start, CD_FREQ, CD_TONE_DURATION))
-  gains.push(scheduleCountdownTone(ctx, g2Start + step, CD_FREQ, CD_TONE_DURATION))
+  // Signal "2" - at t=1.0
+  gains.push(scheduleCountdownTone(ctx, t0 + CD_TONE_INTERVAL, CD_FREQ, CD_TONE_DURATION))
 
-  // "1" - one distinct tone (starts at 3.4s)
-  const g1Start = g2Start + step + CD_TONE_DURATION + CD_GROUP_GAP // 2.6 + 0.4 + 0.4 = 3.4
-  gains.push(scheduleCountdownTone(ctx, g1Start, CD_DIFF_FREQ, CD_TONE_DURATION, 'sawtooth'))
+  // Signal "1" - at t=2.0
+  gains.push(scheduleCountdownTone(ctx, t0 + CD_TONE_INTERVAL * 2, CD_FREQ, CD_TONE_DURATION))
 
-  // "Go" - ascending sweep (starts at 4.2s)
-  const sweepStart = g1Start + CD_TONE_DURATION + CD_GROUP_GAP // 3.4 + 0.4 + 0.4 = 4.2
+  // Signal "GO" - ascending sweep at t=3.0
+  const sweepStart = t0 + CD_TONE_INTERVAL * 3
   gains.push(scheduleSweepTone(ctx, sweepStart))
 
-  // Haptic: long pulse for each group
-  if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200, 300, 200, 100, 200, 300, 300, 300, 400])
+  // Haptic feedback: three short pulses (for 3-2-1) + one long pulse (for GO)
+  if (navigator.vibrate) navigator.vibrate([100, 100, 100, 100, 100, 100, 400])
 
   return gains
 }
@@ -520,7 +512,7 @@ export default function HamrMetronome() {
         <div className="mb-6 flex flex-col items-center justify-center py-8">
           <div className="text-lg font-semibold text-gray-700 mb-2">Get ready...</div>
           <div className="text-sm text-gray-500">Listen for the countdown tones</div>
-          <div className="mt-4 text-xs text-gray-400">3 tones - 2 tones - 1 tone - GO</div>
+          <div className="mt-4 text-xs text-gray-400">Listen: 3 - 2 - 1 - GO</div>
         </div>
       )}
 
