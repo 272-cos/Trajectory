@@ -1,0 +1,3 @@
+- [DAF Form 4446 PDF Generation](project_daf4446_pdf.md) - Future: replace print report with jsPDF mirroring DAF 4446 scorecard + digital signatures
+- [CAC/ID Card Scanning](project_cac_scan.md) - Future: scan CAC barcode via camera to auto-populate report form fields (zxing-js, client-side only)
+- [Commit plans into the repo](feedback_plan_artifacts.md) - Plans go to docs/plans/ and get committed + pushed, not just left in /root/.claude/plans/
