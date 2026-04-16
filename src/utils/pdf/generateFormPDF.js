@@ -377,6 +377,11 @@ export function downloadPDF(doc, filename = 'pfa-assessment.pdf') {
  */
 export function generatePDFAndDownload(demographics, decoded, scores, assessmentDate = new Date()) {
   const pdf = generateFormPDF(demographics, decoded, scores)
-  const dateStr = assessmentDate.toISOString().split('T')[0]
+  const dateObj = assessmentDate instanceof Date
+    ? assessmentDate
+    : new Date(String(assessmentDate) + 'T12:00:00')
+  const dateStr = (dateObj instanceof Date && !Number.isNaN(dateObj.getTime()))
+    ? dateObj.toISOString().split('T')[0]
+    : new Date().toISOString().split('T')[0]
   downloadPDF(pdf, `pfa-assessment-${dateStr}.pdf`)
 }

@@ -1339,9 +1339,9 @@ describe('belowMinimum - calculateComponentScore flags below-minimum components'
   })
 })
 
-describe('belowMinimum - composite excludes below-min components (0 earned/0 possible)', () => {
-  it('1 below-min component excluded: composite from remaining 3 only', () => {
-    // Cardio passes (30/50), BodyComp passes (15/20), Core passes (12/15), Strength below-min
+describe('belowMinimum - cascades to overall fail; composite remains truthful (DAFMAN)', () => {
+  it('1 below-min component still contributes to composite; overall fails', () => {
+    // Cardio passes (30/50), BodyComp passes (15/20), Core passes (12/15), Strength below-min (2/15)
     const cardio    = makeComp(30, 50, true)
     const bodyComp  = makeComp(15, 20, true)
     const core      = makeComp(12, 15, true)
@@ -1349,9 +1349,8 @@ describe('belowMinimum - composite excludes below-min components (0 earned/0 pos
 
     const result = calculateCompositeScore([cardio, bodyComp, strength, core])
 
-    // totalEarned = 30+15+12 = 57 (strength excluded)
-    // totalPossible = 50+20+15 = 85 (strength excluded)
-    expect(result.composite).toBe(Math.round((57 / 85) * 1000) / 10)
+    // totalEarned = 30+15+12+2 = 59; totalPossible = 50+20+15+15 = 100
+    expect(result.composite).toBe(Math.round((59 / 100) * 1000) / 10)
     expect(result.pass).toBe(false) // below-min = overallPass false
   })
 
@@ -1369,7 +1368,7 @@ describe('belowMinimum - composite excludes below-min components (0 earned/0 pos
   })
 
   it('high composite with 1 below-min component → overall fail despite good score', () => {
-    // Cardio 48/50, BodyComp 19/20, Core 14/15 all excellent; Strength below-min
+    // Cardio 48/50, BodyComp 19/20, Core 14/15 all excellent; Strength below-min (2/15)
     const cardio    = makeComp(48, 50, true)
     const bodyComp  = makeComp(19, 20, true)
     const core      = makeComp(14, 15, true)
@@ -1377,26 +1376,27 @@ describe('belowMinimum - composite excludes below-min components (0 earned/0 pos
 
     const result = calculateCompositeScore([cardio, bodyComp, strength, core])
 
-    // Composite from 3 passing: (48+19+14)/(50+20+15) = 81/85 = 95.3
-    expect(result.composite).toBeGreaterThan(90)
+    // Composite includes all 4: (48+19+14+2)/100 = 83.0
+    // Still >= 75 numerically, but pass cascades to false via component minimum
+    expect(result.composite).toBe(83.0)
     expect(result.pass).toBe(false) // strength below-min cascades to overall fail
     expect(result.allComponentsPass).toBe(false)
   })
 
-  it('all 4 below-min → composite null, allComponentsFail: true', () => {
+  it('all 4 below-min → composite reflects actual earned points; pass false', () => {
     const result = calculateCompositeScore([
       makeBelow(5,  50),
       makeBelow(2,  20),
       makeBelow(3,  15),
       makeBelow(3,  15),
     ])
-    expect(result.composite).toBeNull()
+    // totalEarned = 5+2+3+3 = 13; totalPossible = 100
+    expect(result.composite).toBe(13.0)
     expect(result.pass).toBe(false)
-    expect(result.allComponentsFail).toBe(true)
     expect(result.belowMinimumComponents).toHaveLength(4)
   })
 
-  it('2 below-min + 2 passing → composite from 2 passing only', () => {
+  it('2 below-min + 2 passing → composite includes all components', () => {
     const cardio   = makeComp(40, 50, true)
     const bodyComp = makeComp(16, 20, true)
     const strength = makeBelow(3, 15)
@@ -1404,8 +1404,8 @@ describe('belowMinimum - composite excludes below-min components (0 earned/0 pos
 
     const result = calculateCompositeScore([cardio, bodyComp, strength, core])
 
-    // totalEarned = 40+16 = 56; totalPossible = 50+20 = 70
-    expect(result.composite).toBe(Math.round((56 / 70) * 1000) / 10)
+    // totalEarned = 40+16+3+4 = 63; totalPossible = 100
+    expect(result.composite).toBe(63.0)
     expect(result.pass).toBe(false)
     expect(result.belowMinimumComponents).toHaveLength(2)
   })
@@ -1422,9 +1422,9 @@ describe('belowMinimum - composite excludes below-min components (0 earned/0 pos
 
     expect(result.pass).toBe(false)
     expect(result.belowMinimumComponents).toHaveLength(1)
-    // Strength excluded from composite
+    // Strength still contributes to composite (DAFMAN behavior)
     expect(result.composite).not.toBeNull()
-    // Even if composite would be >=75, still fails
+    // Even if composite would be >=75, still fails via component minimum cascade
     const strengthComp = comps.find(c => c.pass === false && c.belowMinimum)
     expect(strengthComp).toBeDefined()
   })

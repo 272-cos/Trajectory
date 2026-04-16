@@ -21,6 +21,7 @@ import { calculateComponentScore, calculateCompositeScore, calculateWHtR, format
 import { getOutliers, toggleOutlier, saveDraft, getPracticeSessions, removePracticeSession } from '../../utils/storage/localStorage.js'
 import ShareModal from '../shared/ShareModal.jsx'
 import { PI_EXERCISE_LABELS, formatSecondsMMSS } from '../../utils/training/practiceSession.js'
+import { generatePDFAndDownload } from '../../utils/pdf/generateFormPDF.js'
 
 const BASE_URL = import.meta.env.BASE_URL
 
@@ -318,6 +319,15 @@ export default function HistoryTab() {
       await navigator.clipboard.writeText(code)
     } catch {
       // Silently fail on clipboard errors
+    }
+  }
+
+  const handleDownloadPDF = (entry) => {
+    if (!demographics || !entry?.decoded || !entry?.scores) return
+    try {
+      generatePDFAndDownload(demographics, entry.decoded, entry.scores, entry.decoded.date)
+    } catch (err) {
+      console.error('PDF generation failed:', err)
     }
   }
 
@@ -627,6 +637,7 @@ export default function HistoryTab() {
               onCopy={() => copyCode(entry.code)}
               onEdit={entry.decoded ? () => handleEditAssessment(entry.decoded) : null}
               onShare={dcode ? () => setShareState({ url: buildShareUrl(dcode, entry.code), title: 'Share Assessment' }) : null}
+              onDownloadPDF={demographics && entry.scores ? () => handleDownloadPDF(entry) : null}
             />
           ))}
         </div>
@@ -874,6 +885,7 @@ function AssessmentCard({
   onCopy,
   onEdit,
   onShare,
+  onDownloadPDF,
 }) {
   const { code, decoded, scores, error } = entry
   const [expanded, setExpanded] = useState(false)
@@ -1026,6 +1038,15 @@ function AssessmentCard({
                 className="px-2 py-2 min-h-[44px] text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 Share
+              </button>
+            )}
+            {onDownloadPDF && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDownloadPDF() }}
+                aria-label="Download this assessment as a PDF"
+                className="px-2 py-2 min-h-[44px] text-xs bg-green-100 hover:bg-green-200 text-green-800 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-green-400"
+              >
+                PDF
               </button>
             )}
           </div>

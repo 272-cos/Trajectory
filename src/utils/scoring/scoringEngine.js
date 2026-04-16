@@ -259,21 +259,18 @@ export function calculateCompositeScore(componentResults) {
     }
 
     // Below-minimum: component scored but failed per-component minimum.
-    // Contributes 0 earned / 0 possible to composite (mirror walk-fail pattern).
+    // Tracked separately for UI hints and pass cascade, but earned points
+    // STILL contribute to composite (DAFMAN composite is sum of earned points).
     if (result.belowMinimum) {
       belowMinimumComponents.push(result)
       failedComponents.push(result)
       allComponentsPass = false
-      return
-    }
-
-    testedComponents.push(result)
-    // Track failures and allComponentsPass for components that contribute to composite
-    // (belowMinimum components are handled above and excluded from composite entirely)
-    if (!result.pass) {
+    } else if (!result.pass) {
       failedComponents.push(result)
       allComponentsPass = false
     }
+
+    testedComponents.push(result)
     totalEarned += result.points
     totalPossible += result.maxPoints
   })
@@ -281,8 +278,7 @@ export function calculateCompositeScore(componentResults) {
   // Can't calculate composite without all components accounted for (tested/exempt/walk)
   const totalComponents = componentResults.length
   const testedOrExempt =
-    testedComponents.length + exemptComponents.length + walkComponents.length +
-    belowMinimumComponents.length
+    testedComponents.length + exemptComponents.length + walkComponents.length
 
   if (testedOrExempt < totalComponents) {
     return {
@@ -299,23 +295,8 @@ export function calculateCompositeScore(componentResults) {
     }
   }
 
-  // All exempt/walk/below-minimum = no scorable passing components
+  // All exempt/walk = no scorable components (EC-03)
   if (totalPossible === 0) {
-    // If there are below-minimum components, overall is a FAIL (not ambiguous)
-    if (belowMinimumComponents.length > 0) {
-      return {
-        composite: null,
-        pass: false,
-        totalEarned: 0,
-        totalPossible: 0,
-        testedComponents: [],
-        exemptComponents,
-        walkComponents,
-        failedComponents,
-        belowMinimumComponents,
-        allComponentsFail: true,
-      }
-    }
     return {
       composite: null,
       pass: null,
@@ -330,9 +311,9 @@ export function calculateCompositeScore(componentResults) {
     }
   }
 
-  // SL-06: composite = round((earned/possible)*100, 1) - official rounding
-  // Round BEFORE the pass check so the displayed value matches the decision.
-  // Only passing-minimum components contribute to composite (belowMinimum excluded).
+  // SL-06: composite = round((earned/possible)*100, 1) - official rounding.
+  // All tested components contribute, including below-min (DAFMAN composite is
+  // sum of earned points). Below-min is gated separately via allComponentsPass.
   const composite = Math.round((totalEarned / totalPossible) * 1000) / 10
   const compositePass = composite >= PASSING_COMPOSITE
   // EC-05: Walk failed = overall FAIL regardless of composite
