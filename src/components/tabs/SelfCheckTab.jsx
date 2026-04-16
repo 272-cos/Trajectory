@@ -622,11 +622,11 @@ export default function SelfCheckTab() {
     return null
   })()
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (pdfDisabledReason) return
     try {
       const decoded = buildDecodedForPDF()
-      generatePDFAndDownload(demographics, decoded, scores, decoded.date)
+      await generatePDFAndDownload(demographics, decoded, scores, decoded.date)
     } catch (err) {
       console.error('PDF generation failed:', err)
       setError('Could not generate PDF. Check your inputs and try again.')

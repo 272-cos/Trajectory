@@ -8,6 +8,24 @@ Trajectory is a mobile-first USAF PFA readiness tracker (`/mnt/cephfs/shared/pro
 
 **Intended outcome.** Polish-sprint PR on `claude/kitchen-sink-polish-sprint` that lands Tasks 1-7 and 9-10 (Task 8 absorbed into Task 2), keeps all 790 tests green, stays lint-clean at zero warnings, introduces no new em/en dashes, and surfaces no codec jargon in UI.
 
+## Sprint-level completion tracker
+
+- [x] Task 1 - Scoring correctness + PFRA chart diff + minimum-to-pass surfacing (shipped `bdded00`)
+- [ ] Task 2 - Unified ExercisePreferencePicker
+- [ ] Task 3 - Full-state backup and restore
+- [ ] Task 4 - Calendar days freedom + overtraining modal + constant-load scaling
+- [ ] Task 5 - Pill selector standardization
+- [ ] Task 6 - Milestones relocation
+- [ ] Task 7 - ROI math transparency
+- [x] Task 9 - HAMR countdown cadence simplification (shipped `4de016c`)
+- [ ] Task 10 - AFPC research stream
+- [x] **Added mid-sprint:** AF Form 4446 PDF generator (`504aa51`, `5d7cc85`, `729edf1`, `57ea675`, `8a1595c`) - pdf-lib AcroForm with 4 PKCS#7 signature widgets. Wired into SelfCheck + History tabs (`3c34a25`).
+- [x] **Added mid-sprint:** Q11 scoring duplication audit - see [`docs/SCORING-DUPLICATION-MAP.md`](../SCORING-DUPLICATION-MAP.md) (828 lines, 134 touch points across 32 files). Prerequisite for the downstream rewrite items below.
+- [ ] All 790 existing + new tests green
+- [ ] `npm run lint` zero warnings
+- [ ] Grep sweep clean (no em/en dashes, no codec jargon, no internal tracking IDs)
+- [ ] Sprint PR merged to `main`
+
 ## Confirmed facts (from code + live HTML snapshot + user)
 
 - Five tabs at top: Profile, Self-Check, Trajectory, History, Tools (`src/components/layout/TabNavigation.jsx:9-15`).
@@ -46,14 +64,16 @@ Trajectory is a mobile-first USAF PFA readiness tracker (`/mnt/cephfs/shared/pro
 
 ### Task 1 - Scoring correctness + PFRA chart diff + minimum-to-pass surfacing (L)
 
+- [x] **Task 1 complete** (shipped `bdded00 feat: scoring correctness - below-min fix, min-to-pass hints, ROI boost, chart diff`)
+
 Fix the below-minimum bug, surface minimum-to-pass on failure, diff local tables against the official PDF.
 
 **Scope.**
-1. Parse `PFRA Scoring Charts.pdf` at repo root, diff against `scoringTables.js`. Reconciliation note goes into `docs/DEVELOPMENT_PLAN.md` under a new "AFPC chart reconciliation" subsection. If diffs exist, fix table values in the same PR as the test-fixture updates.
-2. In `scoringEngine.js`, when a component scores below its DAFMAN minimum: display the raw score, tag "FAIL - 0 toward composite", contribute 0 to composite, and cascade to `overallPass: false`. Mirror the walk-fail precedent at `scoringEngine.js:304-305`.
-3. Add `getMinimumToPass(exercise, age, gender)` wrapper in `reverseScoring.js` that returns the performance value meeting the 60% component minimum (50% for body comp).
-4. Wire the minimum-to-pass display into SelfCheckTab (inline under each failing exercise input), ProjectTab (inline in each failing component card), and ReportTab (inline in per-component section).
-5. Reweight strategy engine so failing components outrank passing-but-low ones in TOP ROI (multiplicative boost on the ROI score when the component is below minimum).
+- [ ] Parse `PFRA Scoring Charts.pdf` at repo root, diff against `scoringTables.js`. Reconciliation note goes into `docs/DEVELOPMENT_PLAN.md` under a new "AFPC chart reconciliation" subsection. If diffs exist, fix table values in the same PR as the test-fixture updates.
+- [ ] In `scoringEngine.js`, when a component scores below its DAFMAN minimum: display the raw score, tag "FAIL - 0 toward composite", contribute 0 to composite, and cascade to `overallPass: false`. Mirror the walk-fail precedent at `scoringEngine.js:304-305`.
+- [ ] Add `getMinimumToPass(exercise, age, gender)` wrapper in `reverseScoring.js` that returns the performance value meeting the 60% component minimum (50% for body comp).
+- [ ] Wire the minimum-to-pass display into SelfCheckTab (inline under each failing exercise input), ProjectTab (inline in each failing component card), and ReportTab (inline in per-component section).
+- [ ] Reweight strategy engine so failing components outrank passing-but-low ones in TOP ROI (multiplicative boost on the ROI score when the component is below minimum).
 
 **Files.**
 - `PFRA Scoring Charts.pdf` (read-only source)
@@ -71,17 +91,19 @@ Fix the below-minimum bug, surface minimum-to-pass on failure, diff local tables
 
 ### Task 2 - Unified ExercisePreferencePicker (L, absorbs original Tasks 8, 9, 10, 11)
 
+- [ ] **Task 2 complete**
+
 Single preference component serving both PlanTab (formerly "PFA Events") and Trajectory's "Training Exercise Preferences". Wires to calendar and reverse-scoring.
 
 **Scope.**
-1. New `src/components/shared/ExercisePreferencePicker.jsx` using PlanTab's existing preference panel style (`PlanTab.jsx:1011,1330-1372`) as canonical.
-2. Categories: Cardio (run / HAMR / 2km walk), Strength (push-ups / HRPU), Core (sit-ups / CLRC / plank), Body Comp (WHtR). CLRC explicitly selectable - resolves original Task 8.
-3. Rename PlanTab label "PFA Events" to "PFA Event Preferences".
-4. Replace Trajectory's "Training Exercise Preferences" block (`ProjectTab.jsx:1333`) with the new component.
-5. Extend `normalizePfaPreferences` in `exercisePreferences.js` so CLRC / HRPU / 2km-walk are explicit keys with migration-safe defaults.
-6. Preference writes drive: `trainingCalendar.js` session-exercise picks, `reverseScoring.js` targets used for min-to-pass, `strategyEngine.js` ROI lane selection. Single source of truth in context state.
-7. Defaulting: when `pfaPreferences` is unset, read the newest S-code and infer its recorded exercises; only fall back to run / push-ups / sit-ups / WHtR when no assessments exist.
-8. Audit and either wire or delete every cosmetic button in the preference panels on PlanTab and ProjectTab.
+- [ ] New `src/components/shared/ExercisePreferencePicker.jsx` using PlanTab's existing preference panel style (`PlanTab.jsx:1011,1330-1372`) as canonical.
+- [ ] Categories: Cardio (run / HAMR / 2km walk), Strength (push-ups / HRPU), Core (sit-ups / CLRC / plank), Body Comp (WHtR). CLRC explicitly selectable - resolves original Task 8.
+- [ ] Rename PlanTab label "PFA Events" to "PFA Event Preferences".
+- [ ] Replace Trajectory's "Training Exercise Preferences" block (`ProjectTab.jsx:1333`) with the new component.
+- [ ] Extend `normalizePfaPreferences` in `exercisePreferences.js` so CLRC / HRPU / 2km-walk are explicit keys with migration-safe defaults.
+- [ ] Preference writes drive: `trainingCalendar.js` session-exercise picks, `reverseScoring.js` targets used for min-to-pass, `strategyEngine.js` ROI lane selection. Single source of truth in context state.
+- [ ] Defaulting: when `pfaPreferences` is unset, read the newest S-code and infer its recorded exercises; only fall back to run / push-ups / sit-ups / WHtR when no assessments exist.
+- [ ] Audit and either wire or delete every cosmetic button in the preference panels on PlanTab and ProjectTab.
 
 **Files.**
 - `src/components/shared/ExercisePreferencePicker.jsx` (NEW)
@@ -99,14 +121,16 @@ Single preference component serving both PlanTab (formerly "PFA Events") and Tra
 
 ### Task 3 - Full-state backup and restore (M)
 
+- [ ] **Task 3 complete**
+
 Replace the non-functional PlanTab Regenerate button with a Back-Up action; build export + restore.
 
 **Scope.**
-1. Define backup JSON shape: `{ version, exportedAt, dcode, scodes, pfaPreferences, preferredDays, targetPfaDate, phaseState, sessionProgress, intensityScaling, onboardingFlags, showMilestones, overtrainingAck }`.
-2. Extend HistoryTab's existing JSON export (`HistoryTab.jsx:324-389`) to cover the full state rather than just scodes.
-3. Replace PlanTab's Regenerate button (`PlanTab.jsx:850-855`) with a "Back Up" button that invokes the same export.
-4. Add restore via file picker: `<input type="file" accept="application/json">` + schema-version validation + blocking overwrite-confirm modal before write.
-5. Expose `exportFullState()` and `importFullState(obj)` helpers in `localStorage.js`.
+- [ ] Define backup JSON shape: `{ version, exportedAt, dcode, scodes, pfaPreferences, preferredDays, targetPfaDate, phaseState, sessionProgress, intensityScaling, onboardingFlags, showMilestones, overtrainingAck }`.
+- [ ] Extend HistoryTab's existing JSON export (`HistoryTab.jsx:324-389`) to cover the full state rather than just scodes.
+- [ ] Replace PlanTab's Regenerate button (`PlanTab.jsx:850-855`) with a "Back Up" button that invokes the same export.
+- [ ] Add restore via file picker: `<input type="file" accept="application/json">` + schema-version validation + blocking overwrite-confirm modal before write.
+- [ ] Expose `exportFullState()` and `importFullState(obj)` helpers in `localStorage.js`.
 
 **Files.**
 - `src/components/tabs/HistoryTab.jsx:324-389,479` (extend export UI, add import)
@@ -120,14 +144,16 @@ Replace the non-functional PlanTab Regenerate button with a Back-Up action; buil
 
 ### Task 4 - Calendar days freedom + overtraining modal + constant-load scaling (M)
 
+- [ ] **Task 4 complete**
+
 Allow 3-7 training days; show a blocking modal once per profile on first selection above 3; phase engine keeps per-session load constant.
 
 **Scope.**
-1. Remove the three `preferredDays.length !== 3` gates in `PlanTab.jsx:549,668,678`.
-2. Allow selection of 3-7 days. No upper cap beyond 7.
-3. First time a user selects >3 days, fire a blocking modal: `"Rest is integral to the plan. The biggest risk is injury forcing time off."` Single ack persisted at `pfa_overtraining_ack` in localStorage. Do not re-prompt after ack.
-4. `phaseEngine.js`: keep per-session volume invariant; weekly volume scales linearly with day count. Do NOT pro-rate. Audit session-generation first, document current behavior in a short note in `docs/DECISIONS.md`.
-5. `trainingCalendar.js`: layout respects variable day count; avoid back-to-back hard sessions by default when count permits.
+- [ ] Remove the three `preferredDays.length !== 3` gates in `PlanTab.jsx:549,668,678`.
+- [ ] Allow selection of 3-7 days. No upper cap beyond 7.
+- [ ] First time a user selects >3 days, fire a blocking modal: `"Rest is integral to the plan. The biggest risk is injury forcing time off."` Single ack persisted at `pfa_overtraining_ack` in localStorage. Do not re-prompt after ack.
+- [ ] `phaseEngine.js`: keep per-session volume invariant; weekly volume scales linearly with day count. Do NOT pro-rate. Audit session-generation first, document current behavior in a short note in `docs/DECISIONS.md`.
+- [ ] `trainingCalendar.js`: layout respects variable day count; avoid back-to-back hard sessions by default when count permits.
 
 **Files.**
 - `src/components/tabs/PlanTab.jsx:549,668,678,921-1005`
@@ -142,12 +168,14 @@ Allow 3-7 training days; show a blocking modal once per profile on first selecti
 
 ### Task 5 - Pill selector standardization (M)
 
+- [ ] **Task 5 complete**
+
 One canonical pill component used everywhere.
 
 **Scope.**
-1. Audit every inline pill/segmented-control pattern. Grep already flagged SelfCheckTab, PlanTab, ProjectTab, ExerciseComparison, OnboardingModal, Header, HintBanner, RunPacer, InstallPrompt, HamrMetronome, ReportTab.
-2. Extract `<PillGroup>` and `<PillToggle>` into `src/components/shared/`. Single-select, multi-select, and boolean toggle variants supported.
-3. Replace all ad-hoc pill markup with the shared component. Tailwind class names consolidated.
+- [ ] Audit every inline pill/segmented-control pattern. Grep already flagged SelfCheckTab, PlanTab, ProjectTab, ExerciseComparison, OnboardingModal, Header, HintBanner, RunPacer, InstallPrompt, HamrMetronome, ReportTab.
+- [ ] Extract `<PillGroup>` and `<PillToggle>` into `src/components/shared/`. Single-select, multi-select, and boolean toggle variants supported.
+- [ ] Replace all ad-hoc pill markup with the shared component. Tailwind class names consolidated.
 
 **Files.**
 - `src/components/shared/PillGroup.jsx` (NEW)
@@ -162,13 +190,15 @@ One canonical pill component used everywhere.
 
 ### Task 6 - Milestones relocation (S)
 
+- [ ] **Task 6 complete**
+
 Move `<AchievementBadges>` from ProfileTab to HistoryTab, below Export/Import.
 
 **Scope.**
-1. Remove the AchievementBadges section from ProfileTab's render tree.
-2. Render it in HistoryTab directly below the Export/Import controls at `HistoryTab.jsx:479`.
-3. Storage key `pfa_show_milestones` is unchanged. Context plumbing untouched.
-4. ProjectTab's chart-overlay milestones (separate concept: taper/mock-test/fractional-test markers) are untouched.
+- [ ] Remove the AchievementBadges section from ProfileTab's render tree.
+- [ ] Render it in HistoryTab directly below the Export/Import controls at `HistoryTab.jsx:479`.
+- [ ] Storage key `pfa_show_milestones` is unchanged. Context plumbing untouched.
+- [ ] ProjectTab's chart-overlay milestones (separate concept: taper/mock-test/fractional-test markers) are untouched.
 
 **Files.**
 - `src/components/tabs/ProfileTab.jsx` (remove AchievementBadges render)
@@ -181,15 +211,17 @@ Move `<AchievementBadges>` from ProfileTab to HistoryTab, below Export/Import.
 
 ### Task 7 - ROI math transparency (M)
 
+- [ ] **Task 7 complete**
+
 Replace Trajectory's "Personalized Weekly Training Plan" collapsible with an ROI breakdown panel.
 
 **Scope.**
-1. Delete the "Personalized Weekly Training Plan" collapsible at `ProjectTab.jsx:609-651`. It duplicates PlanTab poorly.
-2. In its place, render `<ROIBreakdownPanel>` showing:
-   - (a) Per-component: current points, projected points, delta, and points-per-standard-improvement unit (e.g., "every 30s off the run = +4 pts").
-   - (b) Composite contribution formula: `sum(componentPoints * weight) / 100` with live values substituted.
-   - (c) ROI ranking derivation: marginal-cost curve per component explaining why Component X ranks above Component Y.
-3. Walkthrough copy alongside each section: what the number means, why it matters, what the user can act on.
+- [ ] Delete the "Personalized Weekly Training Plan" collapsible at `ProjectTab.jsx:609-651`. It duplicates PlanTab poorly.
+- [ ] In its place, render `<ROIBreakdownPanel>` showing:
+  - (a) Per-component: current points, projected points, delta, and points-per-standard-improvement unit (e.g., "every 30s off the run = +4 pts").
+  - (b) Composite contribution formula: `sum(componentPoints * weight) / 100` with live values substituted.
+  - (c) ROI ranking derivation: marginal-cost curve per component explaining why Component X ranks above Component Y.
+- [ ] Walkthrough copy alongside each section: what the number means, why it matters, what the user can act on.
 
 **Files.**
 - `src/components/tabs/ProjectTab.jsx:609-651,653` (remove Weekly Training Plan block)
@@ -207,19 +239,21 @@ CLRC library addition is folded into Task 2 (picker exposes it; entries confirme
 
 ### Task 9 - HAMR countdown cadence simplification (S, no binary assets this sprint)
 
+- [x] **Task 9 complete** (shipped `4de016c feat(task-9,pdf): HAMR cadence simplification + AF Form 1067 PDF generation`)
+
 The current cadence emits seven signals (3 + 2 + 1 + sweep) which the user reports as too many and hard to read. Reduce to a clear Mario-Kart-style "3-2-1-GO" - four total signals - without changing timbre. User plans a sampled audio replacement in a future pass; this sprint is cadence only.
 
 **Scope.**
-1. Replace `scheduleCountdown` in `HamrMetronome.jsx:124-151` with a four-signal pattern:
-   - Tone 1 at t=0.0: 440Hz triangle, 0.4s ("3")
-   - Tone 2 at t=1.0: 440Hz triangle, 0.4s ("2")
-   - Tone 3 at t=2.0: 440Hz triangle, 0.4s ("1")
-   - Final sweep at t=3.0: ascending 660->1320Hz over 0.6s ("GO")
-   - Post-sweep pause then shuttle starts (total countdown ~4.1s, down from ~5.3s).
-2. Update `COUNTDOWN_TOTAL_S` constant to reflect the new total duration.
-3. Update the timeline-comment block at `HamrMetronome.jsx:51-56,114-123` to match.
-4. Simplify `navigator.vibrate` haptic pattern at line 148 to three short pulses plus one long (matches the new four-signal cadence).
-5. Preserve `scheduleCountdownTone`, `scheduleSweepTone`, and the skip/silence path - only the orchestration changes.
+- [ ] Replace `scheduleCountdown` in `HamrMetronome.jsx:124-151` with a four-signal pattern:
+  - Tone 1 at t=0.0: 440Hz triangle, 0.4s ("3")
+  - Tone 2 at t=1.0: 440Hz triangle, 0.4s ("2")
+  - Tone 3 at t=2.0: 440Hz triangle, 0.4s ("1")
+  - Final sweep at t=3.0: ascending 660->1320Hz over 0.6s ("GO")
+  - Post-sweep pause then shuttle starts (total countdown ~4.1s, down from ~5.3s).
+- [ ] Update `COUNTDOWN_TOTAL_S` constant to reflect the new total duration.
+- [ ] Update the timeline-comment block at `HamrMetronome.jsx:51-56,114-123` to match.
+- [ ] Simplify `navigator.vibrate` haptic pattern at line 148 to three short pulses plus one long (matches the new four-signal cadence).
+- [ ] Preserve `scheduleCountdownTone`, `scheduleSweepTone`, and the skip/silence path - only the orchestration changes.
 
 **Files.**
 - `src/components/tools/HamrMetronome.jsx:38-56,114-151`
@@ -230,14 +264,16 @@ The current cadence emits seven signals (3 + 2 + 1 + sweep) which the user repor
 
 ### Task 10 - AFPC research stream (M, docs only)
 
+- [ ] **Task 10 complete**
+
 Recon https://www.afpc.af.mil/Career-Management/Fitness-Program/ and feed future sprints.
 
 **Scope.**
-1. Fetch the AFPC Fitness Program page + PFRA scoring charts link.
-2. Produce three appended subsections in `docs/DEVELOPMENT_PLAN.md` under a new "AFPC recon (lower-priority candidate sprints)" heading:
-   - (a) Table diff summary (complements Task 1's PDF diff with any web-only content).
-   - (b) Exercises and policies we do not yet support, grouped by user value and feature similarity.
-   - (c) Harvested official UI phrasing candidates.
+- [ ] Fetch the AFPC Fitness Program page + PFRA scoring charts link.
+- [ ] Produce three appended subsections in `docs/DEVELOPMENT_PLAN.md` under a new "AFPC recon (lower-priority candidate sprints)" heading:
+  - (a) Table diff summary (complements Task 1's PDF diff with any web-only content).
+  - (b) Exercises and policies we do not yet support, grouped by user value and feature similarity.
+  - (c) Harvested official UI phrasing candidates.
 
 **Files.**
 - `docs/DEVELOPMENT_PLAN.md` (append section)
@@ -248,37 +284,115 @@ Recon https://www.afpc.af.mil/Career-Management/Fitness-Program/ and feed future
 
 ## Execution order
 
-- **Wave A (foundations, parallel).** Task 1, Task 5.
+- [ ] **Wave A (foundations, parallel).** Task 1, Task 5.
   Task 1 resolves the PDF diff question and lands the scoring/reverse-scoring APIs the rest depends on. Task 5 produces `<PillGroup>` for Task 2 to consume.
-- **Wave B (preferences + backup, sequential).** Task 2, then Task 3.
+- [ ] **Wave B (preferences + backup, sequential).** Task 2, then Task 3.
   Task 2 sets the preference shape; Task 3's backup schema captures it.
-- **Wave C (calendar + relocation + ROI, parallel).** Task 4, Task 6, Task 7.
+- [ ] **Wave C (calendar + relocation + ROI, parallel).** Task 4, Task 6, Task 7.
   Task 7 depends on Task 1's failing-component ROI; Task 4 depends on Task 2's pill style.
-- **Wave D (audio + research, parallel).** Task 9, Task 10.
+- [ ] **Wave D (audio + research, parallel).** Task 9, Task 10.
 
 ## Validation
 
 **Per task.**
-- Task 1: add `scoringEngine.test.js` cases for below-min zero-composite + `overallPass: false`; `reverseScoring.test.js` cases for `getMinimumToPass` across all exercises and both genders; manual browser check that SelfCheckTab/Trajectory/ReportTab show "FAIL - 0 toward composite" labels with minimum-to-pass hints.
-- Task 2: new `exercisePreferences.test.js` round-trip covering CLRC / HRPU / 2km-walk; manual preview where picker selection changes reverse-scoring targets in Trajectory and practice-session exercise in the calendar; grep confirms "PFA Events" -> "PFA Event Preferences".
-- Task 3: `localStorage.test.js` round-trip for `exportFullState`/`importFullState`; manual full-wipe + restore on the dev server to confirm the app reopens identically.
-- Task 4: `phaseEngine.test.js` asserts per-session volume is day-count-invariant; manual flow picks 5 days -> modal fires; picks 5 again -> no modal; picks 7 -> no additional friction.
-- Task 5: visual diff of all 11 touched files; lint zero warnings; no behavior tests needed.
-- Task 6: manual check that ProfileTab no longer renders AchievementBadges; HistoryTab shows it below Export/Import; ProjectTab chart overlay untouched.
-- Task 7: snapshot test on `<ROIBreakdownPanel>`; manual spot-check that displayed numbers match `optimalAllocation.getAllocation()` output.
-- Task 9: manual listen on iOS Safari and Chrome desktop; confirm four-signal 3-2-1-GO cadence is unambiguous and total countdown duration is ~4.1s; haptic pattern matches the new signal count.
-- Task 10: `docs/DEVELOPMENT_PLAN.md` has the new section with all three subsections populated.
+- [ ] Task 1: add `scoringEngine.test.js` cases for below-min zero-composite + `overallPass: false`; `reverseScoring.test.js` cases for `getMinimumToPass` across all exercises and both genders; manual browser check that SelfCheckTab/Trajectory/ReportTab show "FAIL - 0 toward composite" labels with minimum-to-pass hints.
+- [ ] Task 2: new `exercisePreferences.test.js` round-trip covering CLRC / HRPU / 2km-walk; manual preview where picker selection changes reverse-scoring targets in Trajectory and practice-session exercise in the calendar; grep confirms "PFA Events" -> "PFA Event Preferences".
+- [ ] Task 3: `localStorage.test.js` round-trip for `exportFullState`/`importFullState`; manual full-wipe + restore on the dev server to confirm the app reopens identically.
+- [ ] Task 4: `phaseEngine.test.js` asserts per-session volume is day-count-invariant; manual flow picks 5 days -> modal fires; picks 5 again -> no modal; picks 7 -> no additional friction.
+- [ ] Task 5: visual diff of all 11 touched files; lint zero warnings; no behavior tests needed.
+- [ ] Task 6: manual check that ProfileTab no longer renders AchievementBadges; HistoryTab shows it below Export/Import; ProjectTab chart overlay untouched.
+- [ ] Task 7: snapshot test on `<ROIBreakdownPanel>`; manual spot-check that displayed numbers match `optimalAllocation.getAllocation()` output.
+- [ ] Task 9: manual listen on iOS Safari and Chrome desktop; confirm four-signal 3-2-1-GO cadence is unambiguous and total countdown duration is ~4.1s; haptic pattern matches the new signal count.
+- [ ] Task 10: `docs/DEVELOPMENT_PLAN.md` has the new section with all three subsections populated.
 
 **Global gates (every PR).**
-- `npm run lint` zero warnings.
-- `npm test` all 790 existing + newly-added tests pass.
-- `npm run dev` launches and every tab renders without console error.
-- Grep sweep: no new em dashes (`–`) or en dashes (`—`); no "D-code" / "S-code" leaking into user-facing strings; no internal tracking IDs (`TR-`, `PG-`, `CS-`, `IV-`, `RP-`) in UI text.
+- [ ] `npm run lint` zero warnings.
+- [ ] `npm test` all 790 existing + newly-added tests pass.
+- [ ] `npm run dev` launches and every tab renders without console error.
+- [ ] Grep sweep: no new em dashes (`–`) or en dashes (`—`); no "D-code" / "S-code" leaking into user-facing strings; no internal tracking IDs (`TR-`, `PG-`, `CS-`, `IV-`, `RP-`) in UI text.
 
 ## Deliverables
 
-- Nine code-touching tasks landed (Task 8 absorbed into Task 2).
-- `docs/DEVELOPMENT_PLAN.md` appended with AFPC recon section.
-- `docs/DECISIONS.md` appended with the phase-engine constant-per-session decision.
-- This plan at `/root/.claude/plans/functional-squishing-squid.md`.
-- One planning entry added to `docs/DEVELOPMENT_PLAN.md` backlog referencing this plan.
+- [ ] Nine code-touching tasks landed (Task 8 absorbed into Task 2).
+- [ ] `docs/DEVELOPMENT_PLAN.md` appended with AFPC recon section.
+- [ ] `docs/DECISIONS.md` appended with the phase-engine constant-per-session decision.
+- [ ] This plan at `/root/.claude/plans/functional-squishing-squid.md`.
+- [ ] One planning entry added to `docs/DEVELOPMENT_PLAN.md` backlog referencing this plan.
+
+## Mid-sprint additions (not in original plan, landed anyway)
+
+Two workstreams appeared mid-sprint, got executed, and now belong in the status ledger so someone re-opening this plan doesn't think they're missing.
+
+### A - AF Form 4446 PDF generation
+
+- [x] `src/utils/pdf/generateFormPDF.js` migrated from jsPDF visual replica to `pdf-lib` AcroForm (1013 lines).
+- [x] Four PKCS#7 signature widgets wired: `pfra_admin_sig`, `member_sig`, `fac_ufac_sig`, `commander_sig`. Each has a `/SigFieldLock /Include` array pinning the subset of fields that widget locks.
+- [x] CAC auto-fill via document-level JavaScript - signer CN (`LAST.FIRST.MIDDLE.EDIPI`) populates name fields on sign.
+- [x] Member-testing checkboxes (Accept as Official / Accept as DPFRA attempt / Dispute results), DNF, eligible-diagnostic, FAC/UFAC validity radios, POC block (`Controlled by: AF/A1P`, `POC: AF.A1P.Workflow@us.af.mil`), verbatim Privacy Act authority block, 3x waist measurement fields + average, body-fat percentage.
+- [x] Integrated into SelfCheckTab and HistoryTab download actions (`3c34a25`).
+- [x] Scored WHtR value persisted (not recomputed from raw) to keep display consistent with composite (`729edf1`).
+- [x] Unauthorized watermark / disclaimer removed (`8a1595c`) - see memory entry `feedback_no_unauthorized_additions.md`.
+
+Reusable tooling produced this session, **intentionally kept uncommitted** (user directive: "Keep don't commit beyond scope"):
+- `scripts/pdf-to-html-form.mjs` - reusable PDF to HTML-form converter. Text PDFs via `pdftotext -bbox-layout`; image PDFs via `tesseract ... tsv` when `--tesseract` flag and binary are present; background-only fallback otherwise. Emits `<output>.html` + `<output>-assets/` (rendered PNGs via `pdftoppm`). Tested on our own generator output (68 fields inferred). Not yet tested on an image-only official PDF - tesseract was not installed on this node.
+
+### B - Q11 scoring duplication audit
+
+- [x] `docs/SCORING-DUPLICATION-MAP.md` produced - 828 lines, 134 scoring touch points across 32 files, grouped ENGINE (5) / AGGREGATION (8) / DISPLAY (43) / PROJECTION (12) / GAP-ROI (18) / TRAINING (5) / PDF (15) / CODEC (4) / TESTS (22) / DOCS (2).
+- **Headline findings:**
+  - Off-chart clamping is **not** externally duplicated - all 3 clamp handlers live inside `scoringEngine.js` (lines 88-91, 101-104, and a defensive clamp in `projectionEngine`). Clean starting point for the internal/external split.
+  - Codec persists **raw performance values only** - no calculated points stored. Silent rescore of historical S-codes is therefore safe under any table rewrite.
+  - **Incidental hotspots** (not on the split's critical path but in the blast radius): `.toFixed(1)` repeated 15+ times with no shared formatter; hardcoded `75.0` in 3 UI locations instead of `PASSING_COMPOSITE`; pass/fail rendered 47 times with no central helper.
+  - **Critical preserved behavior:** a component below its DAFMAN minimum still contributes its earned points to the composite (it just caps overall pass at false). Any rewrite must keep this - the engine enforces it at line 264.
+  - **Blast radius for the external/internal split: 23 files** - 7 DISPLAY entry points, 6 AGGREGATION/COMPOSITE readers, 4 PROJECTION consumers, 2 strategy/reverse-scoring engines, PDF export, test suite. Refactor difficulty: MEDIUM. Clean API boundaries exist.
+
+This audit is the prerequisite for the four Downstream Items below.
+
+## Downstream items (post-sprint, prerequisite = Q11 audit above)
+
+Four workstreams surfaced by the SCORING-STRATEGY-DISCUSSION.md boss directive (external DAFMAN-literal score vs internal continuous score with linear extrapolation below chart floor). These are **out of scope for this sprint's PR** but tracked here so they aren't lost.
+
+### D1 - Engine rewrite: `calculateOfficialScore` + `calculateInternalScore` (L)
+
+- [ ] Split `scoringEngine.js` into a two-number model. External score is the DAFMAN-literal display/composite/PDF number; internal score is a signed continuous number used for projection, ROI, and training emphasis only.
+- [ ] Below the chart floor, the external score is 0 and pass-gate is false; the internal score is a linear extrapolation using the slope of the last 2 chart rows, **floored at 2x chart height below the floor** (hard cap to prevent runaway negative numbers).
+- [ ] Above the chart ceiling, both scores clamp to max (EC-01 unchanged).
+- [ ] Internal scores **must never surface in user-facing UI** - they are a computation-layer concept. Sanity check: grep for `internalScore` usages and confirm every one is in projection/ROI/training code, not display.
+- [ ] Prerequisite for D2, D3, D4. Blast radius = 23 files per the duplication map.
+
+### D2 - Table rewrite: PFRA verbatim transcription (M)
+
+- [ ] Replace all 126 scored tables (9 age brackets x 2 genders x 7 exercises) in `scoringTables.js` with verbatim values from `PFRA Scoring Charts.pdf`. Zero deviations.
+- [ ] Preserve anomalies (non-monotonic rows, bracket-over-bracket inversions, boundary oddities) with source-line comments citing the chart page and row.
+- [ ] Can run parallel to D1 if treated as data-only (tables are pure lookup data; engine consumes them identically).
+- [ ] Test net: `scoringEngine.test.js` + `strategyEngine.test.js` + `optimalAllocation.test.js` fixtures all need regeneration because current tables disagree with PFRA across the board. Expect commit to bundle table + fixture updates atomically (same pattern as `bdded00`).
+
+### D3 - Anomalies doc: `docs/SCORING-ANOMALIES.md` (S)
+
+- [ ] Depends on D2. Document F-01 through F-05 anomalies with chart citations so the transcription is audit-defensible.
+- [ ] Each anomaly gets: chart reference (page/row/bracket), observed value, what a monotonic table would say, why we preserved the chart value anyway (DAFMAN literal adherence), and a link from the corresponding source-line comment in `scoringTables.js`.
+- [ ] Cross-linked from both `scoringTables.js` header and `CLAUDE.md` under the Authoritative Scoring Reference section.
+
+### D4 - `gapEngine.js`: gap/distance math separated from ROI math (M)
+
+- [ ] Depends on D1 (needs internal score to compute "distance below floor" cleanly without clamping at 0).
+- [ ] New module `src/utils/scoring/gapEngine.js` owns: distance-below-floor, distance-to-next-threshold, distance-to-next-bracket-boundary, distance-to-composite-pass. All in both domain units (e.g., seconds, reps) and point-space.
+- [ ] `strategyEngine.js` keeps ROI/effort/week math only. Pulls from gapEngine where it currently inlines gap computations.
+- [ ] New `gapEngine.test.js` covers the 4 distance primitives across all exercises and both genders.
+
+### Recommended execution order
+
+```
+  Q11 audit (done)
+       |
+       v
+     D1 ------------+
+       |            |
+       v            v
+     D4           D2
+                    |
+                    v
+                   D3
+```
+
+D1 first (API contract for the two-number model). D2 can start in parallel once the engine's external/internal interfaces are stable. D4 requires D1's internal score. D3 requires D2's transcription to cite specific rows. Target: each as its own PR, not a mega-bundle - the test-fixture churn in D2 alone justifies isolation.

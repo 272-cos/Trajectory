@@ -1,17 +1,32 @@
 /**
- * AF Form 4446 PDF Generator (20260327)
+ * AF Form 4446 PDF Generator (20260327) - pdf-lib build
  * AIR FORCE PHYSICAL FITNESS READINESS ASSESSMENT SCORE CARD
  * Per DAFMAN 36-2905 (Change 1, 22 Jan 2026)
  *
- * NO PII: Rank, Name, Unit, DSQ ID, Duty Phone left blank.
- * Fills: Sex, Age, PFRA Date, exercise measurements, scores, composite.
+ * Output: real AcroForm PDF with 4 PKCS#7 signature widgets, each pre-wired
+ * with a /SigFieldLock dictionary so any compliant reader (Adobe, etc.) seals
+ * the appropriate cells when the signature is applied.
  *
- * Complexity: O(1) - fixed number of components (max 4), no iteration over unbounded data.
- * Work elimination: level 1 (guard/short-circuit for missing components).
- * Concurrency: none - pure function, no shared state.
+ * Sig fields:
+ *   pfra_admin_sig - locks all test data (Part II + every exercise row + DNF/Notes/Total)
+ *   member_sig     - locks 3 acknowledgement checkboxes + member sig date + next pfra due
+ *   fac_ufac_sig   - locks fac_ufac_name + fac_ufac_date + fac_ufac_validity
+ *   commander_sig  - locks commander_name + commander_date
+ *
+ * Doc-level JS (Adobe Reader): on open, scans signed sigs and auto-fills the
+ * adjacent Name + Date fields from the signer cert. CAC CN convention is
+ * LAST.FIRST.MIDDLE.EDIPI; we split on '.' to derive the printable name.
+ *
+ * Public API is async (returns Promise<Uint8Array>):
+ *   generateFormPDF(demographics, decoded, scores) -> Uint8Array
+ *   generatePDFAndDownload(...) -> Promise<void>
+ *   downloadPDFBytes(bytes, filename) -> void
  */
 
-import { jsPDF } from 'jspdf'
+import {
+  PDFDocument, StandardFonts, rgb,
+  PDFName, PDFString, PDFNumber,
+} from 'pdf-lib'
 import {
   EXERCISES,
   DIAGNOSTIC_PERIOD_START,
@@ -19,129 +34,348 @@ import {
   calculateAge,
 } from '../scoring/constants.js'
 
-// ---- Layout constants (mm, letter = 215.9 x 279.4) ----
+// -------------------- Layout constants (points, 1 pt = 1/72") --------------------
 
-const PAGE_MARGIN = 10
-const PAGE_WIDTH = 215.9
-const CONTENT_WIDTH = PAGE_WIDTH - 2 * PAGE_MARGIN
-const LINE_THIN = 0.25
+const PAGE_W = 612            // letter
+const PAGE_H = 792
+const MARGIN = 28             // ~10mm
+const CONTENT_W = PAGE_W - 2 * MARGIN
+const LINE_THIN = 0.7
+const RADIO_R = 2.4
+const CHECKBOX = 9
+const ROW_H = 22
+const HEADER_ROW_H = 15
+const PART_H = 13
+const PART_II_H = 28
 
-// Font sizes
 const FONT_TITLE = 11
-const FONT_SECTION_HEADER = 9
-const FONT_CELL_LABEL = 7
-const FONT_CELL_VALUE = 8
+const FONT_PART = 9
+const FONT_CATEGORY = 9
+const FONT_LABEL = 7
+const FONT_VALUE = 8
 const FONT_SMALL = 6
-const FONT_PRIVACY = 5.5
+const FONT_PRIVACY_TITLE = 7.5
+const FONT_PRIVACY_BODY = 6
+const FONT_ACK = 6.5
+const FONT_CUI = 8
 
-// Row heights
-const ROW_H = 8
-const HEADER_ROW_H = 6
+const GREY = [220 / 255, 220 / 255, 220 / 255]
+const BLACK = [0, 0, 0]
+const WHITE = [1, 1, 1]
 
-// ---- Helpers ----
+// -------------------- Field name constants (load-bearing - lock dicts depend on them) --------------------
 
-/** Draw a bordered cell with optional label (top) and value (center-bottom). */
-function drawCell(doc, x, y, w, h, label, value, opts = {}) {
-  doc.setDrawColor(0, 0, 0)
-  doc.setLineWidth(LINE_THIN)
-  doc.rect(x, y, w, h)
+const FIELDS = {
+  // Demographics (Part I)
+  rank_name: 'rank_name',
+  unit: 'unit',
+  dod_id: 'dod_id',
+  duty_phone: 'duty_phone',
+  sex: 'sex',
+  age: 'age',
+  // Part II - test admin
+  fsq_date: 'fsq_date',
+  pfra_date: 'pfra_date',
+  eligible_diagnostic: 'eligible_diagnostic',
+  height_inches: 'height_inches',
+  weight_lbs: 'weight_lbs',
+  // Bottom row
+  dnf: 'dnf',
+  notes: 'notes',
+  total_score: 'total_score',
+  // Acknowledgement
+  member_accept_official: 'member_accept_official',
+  member_accept_dpfra: 'member_accept_dpfra',
+  member_dispute: 'member_dispute',
+  member_signature_date: 'member_signature_date',
+  next_pfra_due: 'next_pfra_due',
+  pfra_admin_name: 'pfra_admin_name',
+  pfra_admin_date: 'pfra_admin_date',
+  pfra_admin_injury: 'pfra_admin_injury',
+  fac_ufac_name: 'fac_ufac_name',
+  fac_ufac_date: 'fac_ufac_date',
+  fac_ufac_validity: 'fac_ufac_validity',
+  commander_name: 'commander_name',
+  commander_date: 'commander_date',
+  // Signature widgets
+  member_sig: 'member_sig',
+  pfra_admin_sig: 'pfra_admin_sig',
+  fac_ufac_sig: 'fac_ufac_sig',
+  commander_sig: 'commander_sig',
+}
 
-  if (label) {
-    doc.setFontSize(opts.labelSize || FONT_CELL_LABEL)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0)
-    doc.text(label, x + 1, y + 3)
-  }
-
-  if (value != null && value !== '') {
-    doc.setFontSize(opts.valueSize || FONT_CELL_VALUE)
-    doc.setFont('helvetica', opts.bold ? 'bold' : 'normal')
-    doc.setTextColor(0, 0, 0)
-    const valY = label ? y + h - 1.5 : y + h / 2 + 1
-    doc.text(String(value), x + 1.5, valY)
+// Per-exercise field generator (keeps lock-list construction trivial)
+const EXERCISE_KEYS = ['waist', 'bodyfat', 'pushup', 'hrpu', 'situp', 'clrc', 'plank', 'run', 'hamr', 'walk']
+function exFields(key) {
+  return {
+    exempt: `${key}_exempt`,
+    expiration: `${key}_expiration`,
+    measurement: `${key}_measurement`,
+    min_met: `${key}_min_met`,
+    score: `${key}_score`,
   }
 }
 
-/** Draw a section header bar (dark background, white text). */
-function drawSectionHeader(doc, x, y, w, h, text) {
-  doc.setFillColor(0, 0, 0)
-  doc.rect(x, y, w, h, 'F')
-  doc.setFontSize(FONT_SECTION_HEADER)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text(text, x + 2, y + h - 1.5)
-}
+// Special measurement fields (not all exercises use a single measurement field)
+const WAIST_FIELDS = ['waist_w1', 'waist_w2', 'waist_w3', 'waist_avg']
+const BODYFAT_PCT = 'bodyfat_pct'
 
-/** Draw a component header row (Exercise | Exempt | Expiration | Measurement | Min Value Met? | Score). */
-function drawComponentHeader(doc, x, y, w) {
-  const h = HEADER_ROW_H
-  doc.setFillColor(220, 220, 220)
-  doc.rect(x, y, w, h, 'FD')
-  doc.setDrawColor(0, 0, 0)
-  doc.setLineWidth(LINE_THIN)
-
-  doc.setFontSize(FONT_CELL_LABEL)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(0, 0, 0)
-
-  const cols = getComponentCols(w)
-  const headers = ['Exercise', 'Exempt', 'Expiration', 'Measurement', 'Min Value Met?', 'Score']
-  let cx = x
-  for (let i = 0; i < cols.length; i++) {
-    doc.rect(cx, y, cols[i], h)
-    doc.text(headers[i], cx + 1, y + h - 1.5)
-    cx += cols[i]
-  }
-  return y + h
-}
-
-/** Column widths for component exercise rows. */
-function getComponentCols(totalW) {
-  // Exercise(30%) | Exempt(8%) | Expiration(12%) | Measurement(28%) | Min Met(12%) | Score(10%)
-  return [
-    totalW * 0.30,
-    totalW * 0.08,
-    totalW * 0.12,
-    totalW * 0.28,
-    totalW * 0.12,
-    totalW * 0.10,
+function allTestDataFields() {
+  const list = [
+    FIELDS.fsq_date, FIELDS.pfra_date, FIELDS.eligible_diagnostic,
+    FIELDS.height_inches, FIELDS.weight_lbs,
   ]
+  for (const k of EXERCISE_KEYS) {
+    const f = exFields(k)
+    list.push(f.exempt, f.expiration, f.min_met, f.score)
+    if (k === 'waist') list.push(...WAIST_FIELDS)
+    else if (k === 'bodyfat') list.push(BODYFAT_PCT)
+    else list.push(f.measurement)
+  }
+  list.push(FIELDS.dnf, FIELDS.notes, FIELDS.total_score)
+  return list
 }
 
-/** Draw one exercise row within a component table. */
-function drawExerciseRow(doc, x, y, w, exerciseName, measureLabel, data) {
-  const h = ROW_H
-  const cols = getComponentCols(w)
-
-  let cx = x
-  // Exercise name
-  drawCell(doc, cx, y, cols[0], h, null, exerciseName)
-  cx += cols[0]
-
-  // Exempt (Y/N or blank)
-  drawCell(doc, cx, y, cols[1], h, null, data.exempt ?? '')
-  cx += cols[1]
-
-  // Expiration (blank - we do not have this data)
-  drawCell(doc, cx, y, cols[2], h, null, '')
-  cx += cols[2]
-
-  // Measurement
-  const measText = data.measurement != null ? `${measureLabel}: ${data.measurement}` : ''
-  drawCell(doc, cx, y, cols[3], h, null, measText)
-  cx += cols[3]
-
-  // Min Value Met?
-  drawCell(doc, cx, y, cols[4], h, null, data.minMet ?? '')
-  cx += cols[4]
-
-  // Score
-  drawCell(doc, cx, y, cols[5], h, null, data.score ?? '')
-
-  return y + h
+const SIG_LOCKS = {
+  pfra_admin_sig: () => [
+    ...allTestDataFields(),
+    FIELDS.pfra_admin_name, FIELDS.pfra_admin_date, FIELDS.pfra_admin_injury,
+  ],
+  member_sig: () => [
+    FIELDS.member_accept_official, FIELDS.member_accept_dpfra, FIELDS.member_dispute,
+    FIELDS.member_signature_date, FIELDS.next_pfra_due,
+  ],
+  fac_ufac_sig: () => [
+    FIELDS.fac_ufac_name, FIELDS.fac_ufac_date, FIELDS.fac_ufac_validity,
+  ],
+  commander_sig: () => [
+    FIELDS.commander_name, FIELDS.commander_date,
+  ],
 }
 
-/** Format seconds to mm:ss. */
+// -------------------- Coordinate helpers (top-y -> pdf-lib bottom-y) --------------------
+
+function topY(y) { return PAGE_H - y }
+
+// -------------------- Drawing primitives --------------------
+
+function setRect(page, x, yTop, w, h, opts = {}) {
+  const args = {
+    x, y: topY(yTop + h), width: w, height: h,
+    borderColor: rgb(...BLACK),
+    borderWidth: opts.borderWidth ?? LINE_THIN,
+  }
+  if (opts.fill) args.color = rgb(...opts.fill)
+  page.drawRectangle(args)
+}
+
+function fillRect(page, x, yTop, w, h, color) {
+  page.drawRectangle({
+    x, y: topY(yTop + h), width: w, height: h,
+    color: rgb(...color),
+  })
+}
+
+function drawText(page, text, x, yTop, opts = {}) {
+  const size = opts.size ?? FONT_VALUE
+  const font = opts.font
+  // For "yTop" semantics: draw text so its top edge sits at yTop. Approx baseline = yTop + ascender(=~0.78*size)
+  const baseline = yTop + size * 0.78
+  page.drawText(String(text), {
+    x, y: topY(baseline),
+    font, size,
+    color: rgb(...(opts.color ?? BLACK)),
+    maxWidth: opts.maxWidth,
+  })
+}
+
+function drawTextCentered(page, text, cx, yTop, opts = {}) {
+  const size = opts.size ?? FONT_VALUE
+  const font = opts.font
+  const w = font.widthOfTextAtSize(String(text), size)
+  drawText(page, text, cx - w / 2, yTop, opts)
+}
+
+function drawTextRight(page, text, xRight, yTop, opts = {}) {
+  const size = opts.size ?? FONT_VALUE
+  const font = opts.font
+  const w = font.widthOfTextAtSize(String(text), size)
+  drawText(page, text, xRight - w, yTop, opts)
+}
+
+function drawLine(page, x1, y1Top, x2, y2Top, thickness = 0.5) {
+  page.drawLine({
+    start: { x: x1, y: topY(y1Top) },
+    end: { x: x2, y: topY(y2Top) },
+    color: rgb(...BLACK),
+    thickness,
+  })
+}
+
+function drawCircle(page, cx, cyTop, r, fill = false) {
+  page.drawCircle({
+    x: cx, y: topY(cyTop),
+    size: r,
+    borderColor: rgb(...BLACK),
+    borderWidth: LINE_THIN,
+    color: fill ? rgb(...BLACK) : undefined,
+  })
+}
+
+function drawSquareCheckbox(page, x, yTop, checked = false) {
+  setRect(page, x, yTop, CHECKBOX, CHECKBOX)
+  if (checked) {
+    drawLine(page, x + 1.5, yTop + 1.5, x + CHECKBOX - 1.5, yTop + CHECKBOX - 1.5, 1)
+    drawLine(page, x + CHECKBOX - 1.5, yTop + 1.5, x + 1.5, yTop + CHECKBOX - 1.5, 1)
+  }
+}
+
+// -------------------- Form-field helpers --------------------
+
+function placeTextField(form, page, name, x, yTop, w, h, defaultValue = '') {
+  const tf = form.createTextField(name)
+  if (defaultValue) tf.setText(defaultValue)
+  tf.addToPage(page, {
+    x, y: topY(yTop + h), width: w, height: h,
+    borderWidth: 0,
+    backgroundColor: undefined,
+  })
+  return tf
+}
+
+function placeCheckbox(form, page, name, x, yTop, size, checked = false) {
+  const cb = form.createCheckBox(name)
+  if (checked) cb.check()
+  cb.addToPage(page, {
+    x, y: topY(yTop + size), width: size, height: size,
+    borderWidth: 0,
+  })
+  return cb
+}
+
+function placeYesNoRadio(form, page, name, x, yTop, w, h, selected = null) {
+  // Selected: 'Y' | 'N' | null
+  const r = form.createRadioGroup(name)
+  const yesX = x + 4
+  const noX = x + 22
+  const cy = yTop + h / 2
+  // Draw circles + labels visually (the radio widgets are transparent overlays)
+  drawCircle(page, yesX, cy, RADIO_R, selected === 'Y')
+  drawText(page, 'Yes', yesX + RADIO_R + 1.5, cy - FONT_LABEL / 2, { size: FONT_LABEL, font: page.helv })
+  drawCircle(page, noX, cy, RADIO_R, selected === 'N')
+  drawText(page, 'No', noX + RADIO_R + 1.5, cy - FONT_LABEL / 2, { size: FONT_LABEL, font: page.helv })
+  // Add hidden radio options
+  r.addOptionToPage('Yes', page, {
+    x: yesX - RADIO_R, y: topY(cy + RADIO_R), width: 2 * RADIO_R, height: 2 * RADIO_R, borderWidth: 0,
+  })
+  r.addOptionToPage('No', page, {
+    x: noX - RADIO_R, y: topY(cy + RADIO_R), width: 2 * RADIO_R, height: 2 * RADIO_R, borderWidth: 0,
+  })
+  if (selected === 'Y') r.select('Yes')
+  if (selected === 'N') r.select('No')
+  return r
+}
+
+// -------------------- Signature widget (low-level pdf-lib) --------------------
+
+/**
+ * Add an unsigned PDF signature widget to a page with a /SigFieldLock /Include
+ * dictionary listing the fields that should be sealed when the signature is applied.
+ *
+ * Returns the field reference (for inclusion in AcroForm.Fields).
+ */
+function addSignatureField(pdfDoc, page, name, x, yTop, w, h, lockFieldNames) {
+  const ctx = pdfDoc.context
+  const yBottom = topY(yTop + h)
+
+  // SigFieldLock dict
+  const lockDict = ctx.obj({
+    Type: PDFName.of('SigFieldLock'),
+    Action: PDFName.of('Include'),
+    Fields: ctx.obj(lockFieldNames.map(n => PDFString.of(n))),
+  })
+
+  // Signature widget annotation + field (combined)
+  const sigDict = ctx.obj({
+    Type: PDFName.of('Annot'),
+    Subtype: PDFName.of('Widget'),
+    FT: PDFName.of('Sig'),
+    T: PDFString.of(name),
+    Rect: ctx.obj([x, yBottom, x + w, yBottom + h]),
+    P: page.ref,
+    F: PDFNumber.of(4),               // Print
+    Lock: lockDict,
+    SV: ctx.obj({
+      Type: PDFName.of('SV'),
+      Filter: PDFName.of('Adobe.PPKLite'),
+      SubFilter: ctx.obj([PDFName.of('adbe.pkcs7.detached')]),
+    }),
+  })
+  const sigRef = ctx.register(sigDict)
+
+  // Add to page Annots
+  const annots = page.node.Annots() ?? ctx.obj([])
+  annots.push(sigRef)
+  page.node.set(PDFName.of('Annots'), annots)
+
+  return sigRef
+}
+
+// -------------------- Document JS (Adobe Reader auto-populate) --------------------
+
+const DOC_JS = `
+function _splitCacName(cn) {
+  if (!cn) return null;
+  // CAC convention: LAST.FIRST.MIDDLE.EDIPI  (or LAST.FIRST.EDIPI)
+  var parts = cn.split(".");
+  if (parts.length < 3) return cn;
+  var last = parts[0];
+  var first = parts[1];
+  var middle = (parts.length >= 4) ? parts[2] : "";
+  return first + " " + (middle ? middle + " " : "") + last;
+}
+function _autoFillFromSig(sigName, nameField, dateField) {
+  try {
+    var sf = this.getField(sigName);
+    if (!sf) return;
+    var info = sf.signatureInfo();
+    if (!info) return;
+    var name = _splitCacName(info.subjectCN || info.name || "");
+    if (nameField && name) {
+      var nf = this.getField(nameField);
+      if (nf && (!nf.value || nf.value === "")) nf.value = name;
+    }
+    if (dateField && info.date) {
+      var df = this.getField(dateField);
+      if (df && (!df.value || df.value === "")) df.value = util.printd("mm/dd/yyyy", info.date);
+    }
+  } catch (e) { /* swallow - reader-script errors must not block doc open */ }
+}
+function _scanAllSigs() {
+  _autoFillFromSig("member_sig",      null,                "member_signature_date");
+  _autoFillFromSig("pfra_admin_sig",  "pfra_admin_name",   "pfra_admin_date");
+  _autoFillFromSig("fac_ufac_sig",    "fac_ufac_name",     "fac_ufac_date");
+  _autoFillFromSig("commander_sig",   "commander_name",    "commander_date");
+}
+_scanAllSigs();
+`
+
+function attachDocJS(pdfDoc) {
+  const ctx = pdfDoc.context
+  const jsAction = ctx.obj({
+    S: PDFName.of('JavaScript'),
+    JS: PDFString.of(DOC_JS),
+  })
+  const jsActionRef = ctx.register(jsAction)
+  const namedJs = ctx.obj({
+    Names: ctx.obj([PDFString.of('TrajectoryAutoFill'), jsActionRef]),
+  })
+  const names = ctx.obj({ JavaScript: namedJs })
+  pdfDoc.catalog.set(PDFName.of('Names'), names)
+}
+
+// -------------------- Layout-level helpers --------------------
+
 function fmtTime(seconds) {
   if (seconds == null) return ''
   const m = Math.floor(seconds / 60)
@@ -149,7 +383,6 @@ function fmtTime(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-/** Format a date for form display (MM/DD/YYYY). */
 function fmtDate(date) {
   if (!date) return ''
   const d = date instanceof Date ? date : new Date(String(date) + 'T12:00:00')
@@ -160,7 +393,6 @@ function fmtDate(date) {
   return `${mm}/${dd}/${yyyy}`
 }
 
-/** Check if a date falls in the diagnostic period. */
 function isInDiagnosticPeriod(date) {
   if (!date) return false
   const d = date instanceof Date ? date : new Date(String(date) + 'T12:00:00')
@@ -169,45 +401,30 @@ function isInDiagnosticPeriod(date) {
   return d >= start && d <= end
 }
 
-/**
- * Resolve a component from the scores.components array by type.
- * Returns the component object or null.
- */
 function findComponent(scores, type) {
   if (!scores?.components) return null
   return scores.components.find(c => c.type === type) ?? null
 }
 
-/**
- * Build exercise row data from a component match.
- * @param {Object|null} comp - component from scores
- * @returns {{ exempt: string, measurement: string|null, minMet: string, score: string }}
- */
 function buildRowData(comp) {
-  if (!comp) return { exempt: '', measurement: null, minMet: '', score: '' }
-  if (comp.exempt) return { exempt: 'Y', measurement: null, minMet: '', score: '' }
-
+  if (!comp) return { exempt: null, measurement: null, minMet: null, score: '' }
+  if (comp.exempt) return { exempt: 'Y', measurement: null, minMet: null, score: '' }
   const exempt = 'N'
   let measurement = null
-  let minMet = ''
+  let minMet = null
   let score = ''
-
-  if (comp.tested && comp.value != null) {
-    measurement = formatCompValue(comp)
-    minMet = comp.pass ? 'Y' : 'N'
-    score = comp.points != null ? comp.points.toFixed(1) : ''
-  }
-
   if (comp.walkOnly) {
     measurement = comp.value != null ? fmtTime(comp.value) : ''
     minMet = comp.pass ? 'Y' : 'N'
     score = comp.pass ? 'P' : 'F'
+  } else if (comp.tested && comp.value != null) {
+    measurement = formatCompValue(comp)
+    minMet = comp.pass ? 'Y' : 'N'
+    score = comp.points != null ? comp.points.toFixed(1) : ''
   }
-
   return { exempt, measurement, minMet, score }
 }
 
-/** Format a component's raw value for display. */
 function formatCompValue(comp) {
   if (!comp?.exercise || comp.value == null) return ''
   switch (comp.exercise) {
@@ -224,314 +441,573 @@ function formatCompValue(comp) {
   }
 }
 
-// ---- Main generators ----
+function componentCols(totalW) {
+  // Exercise | Exempt | Expiration | Measurement | Min Value Met? | Score
+  return [totalW * 0.22, totalW * 0.11, totalW * 0.14, totalW * 0.30, totalW * 0.13, totalW * 0.10]
+}
 
-/**
- * generateFormPDF - Create AF Form 4446 PDF from assessment data
- * @param {Object} demographics - { dob, gender }
- * @param {Object} decoded - Decoded assessment data (from S-code)
- * @param {Object} scores - { components[], composite }
- * @returns {jsPDF} PDF document
- */
-export function generateFormPDF(demographics, decoded, scores) {
+function wrap(font, text, size, maxWidth) {
+  // Greedy word-wrap returning array of lines.
+  const words = String(text).split(/\s+/)
+  const lines = []
+  let cur = ''
+  for (const w of words) {
+    const trial = cur ? cur + ' ' + w : w
+    if (font.widthOfTextAtSize(trial, size) <= maxWidth) cur = trial
+    else { if (cur) lines.push(cur); cur = w }
+  }
+  if (cur) lines.push(cur)
+  return lines
+}
+
+// -------------------- Main generator --------------------
+
+export async function generateFormPDF(demographics, decoded, scores) {
   if (!demographics || !decoded || !scores) {
     throw new Error('Missing required parameters for PDF generation')
   }
 
-  const doc = new jsPDF({ unit: 'mm', format: 'letter' })
-  const pageHeight = doc.internal.pageSize.getHeight()
-  const m = PAGE_MARGIN
-  const w = CONTENT_WIDTH
+  const pdfDoc = await PDFDocument.create()
+  pdfDoc.setTitle('AF Form 4446 - PFRA Score Card')
+  pdfDoc.setProducer('Trajectory PFRA Tracker')
+
+  const helv = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const helvBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+  const helvItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique)
+  const helvBoldItalic = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique)
+
+  const page = pdfDoc.addPage([PAGE_W, PAGE_H])
+  page.helv = helv  // attach for radio helper convenience
+
+  const form = pdfDoc.getForm()
+  // No NeedAppearances: we draw the visible state ourselves so flat printing mirrors the form.
 
   const age = calculateAge(demographics.dob, decoded.date)
   const gender = demographics.gender === 'M' ? 'Male' : 'Female'
-  const pfraDate = fmtDate(decoded.date)
+  const pfraDateStr = fmtDate(decoded.date)
   const diagnostic = isInDiagnosticPeriod(decoded.date)
 
-  let y = m
+  let y = MARGIN
 
-  // ---- Title block ----
-  doc.setFontSize(FONT_TITLE)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(0, 0, 0)
-  doc.text('AIR FORCE PHYSICAL FITNESS READINESS ASSESSMENT SCORE CARD', PAGE_WIDTH / 2, y + 5, { align: 'center' })
-  y += 8
+  // ---- CUI banner top ----
+  drawTextCentered(page, 'CUI (when filled in)', PAGE_W / 2, y, { size: FONT_CUI, font: helvBold })
+  y += FONT_CUI + 2
 
-  // ---- Privacy Act Statement ----
-  doc.setFontSize(FONT_CELL_LABEL)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(0, 0, 0)
-  doc.text('Privacy Act Statement', m, y + 3)
-  y += 4
+  // ---- Title ----
+  drawTextCentered(page, 'AIR FORCE PHYSICAL FITNESS READINESS ASSESSMENT SCORE CARD',
+    PAGE_W / 2, y, { size: FONT_TITLE, font: helvBold })
+  y += FONT_TITLE + 3
 
-  doc.setFontSize(FONT_PRIVACY)
-  doc.setFont('helvetica', 'normal')
-  const privacyText = [
-    'AUTHORITY: 10 U.S.C. 8013, Secretary of the Air Force; and DAFMAN 36-2905, Air Force Physical Fitness Program.',
-    'PURPOSE: To document physical fitness readiness assessment results for Air Force members.',
-    'ROUTINE USES: Information may be disclosed to DoD officials with a need to know.',
-    'DISCLOSURE: Voluntary; however, failure to provide data may result in inability to process fitness assessment.',
-  ]
-  for (const line of privacyText) {
-    doc.text(line, m, y + 3, { maxWidth: w })
-    y += 3
-  }
-  y += 1
+  // ---- Privacy Act block ----
+  const privacyH = drawPrivacyAct(page, helv, helvBold, MARGIN, y, CONTENT_W)
+  y += privacyH
 
-  // ---- PART I. MEMBER COMPLETES ----
-  y = drawSectionRow(doc, m, y, w, 'PART I. MEMBER COMPLETES')
+  // ---- PART I header ----
+  fillRect(page, MARGIN, y, CONTENT_W, PART_H, BLACK)
+  drawTextCentered(page, 'PART I. MEMBER COMPLETES', PAGE_W / 2, y + 2, { size: FONT_PART, font: helvBold, color: WHITE })
+  y += PART_H
 
-  // Row: Rank | Name | Unit | DSQ ID | Duty Phone | Sex | Age
-  const partICols = [w * 0.10, w * 0.20, w * 0.20, w * 0.14, w * 0.14, w * 0.10, w * 0.12]
-  const partILabels = ['Rank', 'Name', 'Unit', 'DSQ ID', 'Duty Phone', 'Sex', 'Age']
-  const partIValues = ['', '', '', '', '', gender, String(age)]
-  let cx2 = m
+  // Row: Rank/Name | Unit | DoD ID | Duty Phone | Sex | Age
+  const partICols = [CONTENT_W * 0.30, CONTENT_W * 0.22, CONTENT_W * 0.16, CONTENT_W * 0.14, CONTENT_W * 0.09, CONTENT_W * 0.09]
+  const partILabels = ['Rank / Name:', 'Unit:', 'DoD ID:', 'Duty Phone:', 'Sex:', 'Age:']
+  const partIFields = [FIELDS.rank_name, FIELDS.unit, FIELDS.dod_id, FIELDS.duty_phone, FIELDS.sex, FIELDS.age]
+  const partIDefaults = ['', '', '', '', gender, String(age)]
+  let cx = MARGIN
   for (let i = 0; i < partICols.length; i++) {
-    drawCell(doc, cx2, y, partICols[i], ROW_H, partILabels[i], partIValues[i])
-    cx2 += partICols[i]
+    setRect(page, cx, y, partICols[i], ROW_H)
+    drawText(page, partILabels[i], cx + 2, y + 2, { size: FONT_LABEL, font: helv })
+    placeTextField(form, page, partIFields[i],
+      cx + 1, y + FONT_LABEL + 4, partICols[i] - 2, ROW_H - FONT_LABEL - 5, partIDefaults[i])
+    cx += partICols[i]
   }
   y += ROW_H
 
-  // ---- PART II. TEST ADMINISTRATOR COMPLETES ----
-  y = drawSectionRow(doc, m, y, w, 'PART II. TEST ADMINISTRATOR COMPLETES')
+  // ---- PART II header ----
+  fillRect(page, MARGIN, y, CONTENT_W, PART_H, BLACK)
+  drawTextCentered(page, 'PART II. TEST ADMINISTRATOR COMPLETES', PAGE_W / 2, y + 2, { size: FONT_PART, font: helvBold, color: WHITE })
+  y += PART_H
 
-  // Row: FSQ Date | PFRA Date | Eligible for Diagnostic PFRA? | Height (in) | Weight (lbs)
-  const partIIaCols = [w * 0.15, w * 0.15, w * 0.30, w * 0.20, w * 0.20]
-  const partIIaLabels = ['FSQ Date', 'PFRA Date', 'Eligible for Diagnostic PFRA?', 'Height (inches)', 'Weight (lbs)']
-
-  // Compute height from decoded bodyComp if available
+  // Row: FSQ Date | PFRA Date | Eligible (with footnote + radio) | Height | Weight
+  const partIIaCols = [CONTENT_W * 0.14, CONTENT_W * 0.14, CONTENT_W * 0.38, CONTENT_W * 0.17, CONTENT_W * 0.17]
+  cx = MARGIN
+  // FSQ Date
+  setRect(page, cx, y, partIIaCols[0], PART_II_H)
+  drawText(page, 'FSQ Date:', cx + 2, y + 2, { size: FONT_LABEL, font: helv })
+  placeTextField(form, page, FIELDS.fsq_date, cx + 1, y + FONT_LABEL + 4, partIIaCols[0] - 2, PART_II_H - FONT_LABEL - 5)
+  cx += partIIaCols[0]
+  // PFRA Date
+  setRect(page, cx, y, partIIaCols[1], PART_II_H)
+  drawText(page, 'PFRA Date:', cx + 2, y + 2, { size: FONT_LABEL, font: helv })
+  placeTextField(form, page, FIELDS.pfra_date, cx + 1, y + FONT_LABEL + 4, partIIaCols[1] - 2, PART_II_H - FONT_LABEL - 5, pfraDateStr)
+  cx += partIIaCols[1]
+  // Eligible Diagnostic
+  setRect(page, cx, y, partIIaCols[2], PART_II_H)
+  drawText(page, 'Eligible for Diagnostic PFRA?', cx + 2, y + 2, { size: FONT_LABEL, font: helv })
+  drawText(page, '(Before 16th day of due month/Previous', cx + 2, y + FONT_LABEL + 5, { size: FONT_SMALL, font: helvItalic })
+  drawText(page, 'month TR, IMA, DSG)', cx + 2, y + FONT_LABEL + FONT_SMALL + 7, { size: FONT_SMALL, font: helvItalic })
+  placeYesNoRadio(form, page, FIELDS.eligible_diagnostic,
+    cx + partIIaCols[2] * 0.55, y, partIIaCols[2] * 0.45, PART_II_H, diagnostic ? 'Y' : 'N')
+  cx += partIIaCols[2]
+  // Height
+  setRect(page, cx, y, partIIaCols[3], PART_II_H)
+  drawText(page, 'Height (inches):', cx + 2, y + 2, { size: FONT_LABEL, font: helv })
   const heightStr = decoded.bodyComp?.heightInches ? String(decoded.bodyComp.heightInches) : ''
-  const partIIaValues = ['', pfraDate, '', heightStr, '']
+  placeTextField(form, page, FIELDS.height_inches, cx + 1, y + FONT_LABEL + 4, partIIaCols[3] - 2, PART_II_H - FONT_LABEL - 5, heightStr)
+  cx += partIIaCols[3]
+  // Weight
+  setRect(page, cx, y, partIIaCols[4], PART_II_H)
+  drawText(page, 'Weight (lbs):', cx + 2, y + 2, { size: FONT_LABEL, font: helv })
+  placeTextField(form, page, FIELDS.weight_lbs, cx + 1, y + FONT_LABEL + 4, partIIaCols[4] - 2, PART_II_H - FONT_LABEL - 5)
+  y += PART_II_H
 
-  cx2 = m
-  for (let i = 0; i < partIIaCols.length; i++) {
-    if (i === 2) {
-      // Diagnostic checkbox cell - special handling
-      drawDiagnosticCell(doc, cx2, y, partIIaCols[i], ROW_H, diagnostic)
-    } else {
-      drawCell(doc, cx2, y, partIIaCols[i], ROW_H, partIIaLabels[i], partIIaValues[i])
-    }
-    cx2 += partIIaCols[i]
-  }
-  y += ROW_H
-
-  // ---- Body Composition section ----
-  y = drawSectionRow(doc, m, y, w, 'Body Composition')
-  y = drawComponentHeader(doc, m, y, w)
-
+  // ---- Body Composition ----
+  y = drawComponentHeader(page, helvBold, helvBoldItalic, MARGIN, y, CONTENT_W, 'Body Composition')
   const bodyComp = findComponent(scores, 'bodyComp')
   const bodyData = buildRowData(bodyComp)
+  y = drawWaistRow(page, form, helv, MARGIN, y, CONTENT_W, bodyData, decoded, bodyComp)
+  y = drawBodyFatRow(page, form, helv, MARGIN, y, CONTENT_W)
 
-  // Waist Circumference row - fill WHtR as measurement
-  const waistMeas = decoded.bodyComp?.waistInches ? String(decoded.bodyComp.waistInches) : ''
-  const waistRow = {
-    ...bodyData,
-    measurement: waistMeas || bodyData.measurement,
-  }
-  y = drawExerciseRow(doc, m, y, w, 'Waist Circumference', 'Waist', waistRow)
-
-  // Body Fat Assessment row (blank - we do not collect this)
-  y = drawExerciseRow(doc, m, y, w, 'Body Fat Assessment', 'Results (%)', { exempt: '', measurement: null, minMet: '', score: '' })
-
-  // ---- Strength section ----
-  y = drawSectionRow(doc, m, y, w, 'Strength')
-  y = drawComponentHeader(doc, m, y, w)
-
+  // ---- Strength ----
+  y = drawComponentHeader(page, helvBold, helvBoldItalic, MARGIN, y, CONTENT_W, 'Strength')
   const strength = findComponent(scores, 'strength')
+  const pushupData = (strength && strength.exercise === EXERCISES.PUSHUPS) ? buildRowData(strength) : { exempt: null, measurement: null, minMet: null, score: '' }
+  y = drawExerciseRow(page, form, helv, helvBold, MARGIN, y, CONTENT_W, 'Push-up', 'Reps', 'pushup', pushupData)
+  const hrpuData = (strength && strength.exercise === EXERCISES.HRPU) ? buildRowData(strength) : { exempt: null, measurement: null, minMet: null, score: '' }
+  y = drawExerciseRow(page, form, helv, helvBold, MARGIN, y, CONTENT_W, 'Hand-Release Push-up (HRPU)', 'Reps', 'hrpu', hrpuData)
 
-  // Push-up row
-  const pushData = (strength && strength.exercise === EXERCISES.PUSHUPS)
-    ? buildRowData(strength)
-    : { exempt: '', measurement: null, minMet: '', score: '' }
-  y = drawExerciseRow(doc, m, y, w, 'Push-up (1-min)', 'Reps', pushData)
-
-  // HRPU row
-  const hrpuData = (strength && strength.exercise === EXERCISES.HRPU)
-    ? buildRowData(strength)
-    : { exempt: '', measurement: null, minMet: '', score: '' }
-  y = drawExerciseRow(doc, m, y, w, 'Hand-Release Push-up (2-min)', 'Reps', hrpuData)
-
-  // ---- Endurance (Core) section ----
-  y = drawSectionRow(doc, m, y, w, 'Endurance')
-  y = drawComponentHeader(doc, m, y, w)
-
+  // ---- Endurance ----
+  y = drawComponentHeader(page, helvBold, helvBoldItalic, MARGIN, y, CONTENT_W, 'Endurance')
   const core = findComponent(scores, 'core')
+  const situpData = (core && core.exercise === EXERCISES.SITUPS) ? buildRowData(core) : { exempt: null, measurement: null, minMet: null, score: '' }
+  y = drawExerciseRow(page, form, helv, helvBold, MARGIN, y, CONTENT_W, 'Sit-up', 'Reps', 'situp', situpData)
+  const clrcData = (core && core.exercise === EXERCISES.CLRC) ? buildRowData(core) : { exempt: null, measurement: null, minMet: null, score: '' }
+  y = drawExerciseRow(page, form, helv, helvBold, MARGIN, y, CONTENT_W, 'Cross-Leg Reverse Crunch (CLRC)', 'Reps', 'clrc', clrcData)
+  const plankData = (core && core.exercise === EXERCISES.PLANK) ? buildRowData(core) : { exempt: null, measurement: null, minMet: null, score: '' }
+  y = drawExerciseRow(page, form, helv, helvBold, MARGIN, y, CONTENT_W, 'Timed Forearm Plank', 'Time', 'plank', plankData)
 
-  // Sit-up row
-  const situpData = (core && core.exercise === EXERCISES.SITUPS)
-    ? buildRowData(core)
-    : { exempt: '', measurement: null, minMet: '', score: '' }
-  y = drawExerciseRow(doc, m, y, w, 'Sit-up (1-min)', 'Reps', situpData)
-
-  // CLRC row
-  const clrcData = (core && core.exercise === EXERCISES.CLRC)
-    ? buildRowData(core)
-    : { exempt: '', measurement: null, minMet: '', score: '' }
-  y = drawExerciseRow(doc, m, y, w, 'Cross-Leg Reverse Crunch (2-min)', 'Reps', clrcData)
-
-  // Plank row
-  const plankData = (core && core.exercise === EXERCISES.PLANK)
-    ? buildRowData(core)
-    : { exempt: '', measurement: null, minMet: '', score: '' }
-  y = drawExerciseRow(doc, m, y, w, 'Timed Forearm Plank', 'Time', plankData)
-
-  // ---- Cardio section ----
-  y = drawSectionRow(doc, m, y, w, 'Cardio')
-  y = drawComponentHeader(doc, m, y, w)
-
+  // ---- Cardio ----
+  y = drawComponentHeader(page, helvBold, helvBoldItalic, MARGIN, y, CONTENT_W, 'Cardio')
   const cardio = findComponent(scores, 'cardio')
+  const runData = (cardio && cardio.exercise === EXERCISES.RUN_2MILE) ? buildRowData(cardio) : { exempt: null, measurement: null, minMet: null, score: '' }
+  y = drawExerciseRow(page, form, helv, helvBold, MARGIN, y, CONTENT_W, '2 Mile Run', 'Time', 'run', runData)
+  const hamrData = (cardio && cardio.exercise === EXERCISES.HAMR) ? buildRowData(cardio) : { exempt: null, measurement: null, minMet: null, score: '' }
+  y = drawExerciseRow(page, form, helv, helvBold, MARGIN, y, CONTENT_W, '20 Meter HAMR', 'Shuttles', 'hamr', hamrData)
+  const walkData = (cardio && (cardio.walkOnly || cardio.exercise === EXERCISES.WALK_2KM)) ? buildRowData(cardio) : { exempt: null, measurement: null, minMet: null, score: '' }
+  y = drawExerciseRow(page, form, helv, helvBold, MARGIN, y, CONTENT_W, '2 KM Walk', 'Time', 'walk', walkData)
 
-  // 2 Mile Run
-  const runData = (cardio && cardio.exercise === EXERCISES.RUN_2MILE)
-    ? buildRowData(cardio)
-    : { exempt: '', measurement: null, minMet: '', score: '' }
-  y = drawExerciseRow(doc, m, y, w, '2 Mile Run', 'Time', runData)
+  // ---- DNF / Notes / Total ----
+  const dnfW = CONTENT_W * 0.20
+  const notesW = CONTENT_W * 0.55
+  const totalW = CONTENT_W * 0.25
+  setRect(page, MARGIN, y, dnfW, ROW_H)
+  // Square checkbox: visual + form widget
+  const cbY = y + (ROW_H - CHECKBOX) / 2
+  drawSquareCheckbox(page, MARGIN + 3, cbY, false)
+  placeCheckbox(form, page, FIELDS.dnf, MARGIN + 3, cbY, CHECKBOX, false)
+  drawText(page, 'Did Not Finish', MARGIN + 3 + CHECKBOX + 3, y + ROW_H / 2 - 4, { size: FONT_LABEL, font: helv })
+  drawText(page, '(DNF)', MARGIN + 3 + CHECKBOX + 3, y + ROW_H / 2 + 2, { size: FONT_LABEL, font: helv })
 
-  // 20 Meter HAMR
-  const hamrData = (cardio && cardio.exercise === EXERCISES.HAMR)
-    ? buildRowData(cardio)
-    : { exempt: '', measurement: null, minMet: '', score: '' }
-  y = drawExerciseRow(doc, m, y, w, '20 Meter HAMR', 'Shuttles', hamrData)
+  setRect(page, MARGIN + dnfW, y, notesW, ROW_H)
+  drawText(page, 'Notes:', MARGIN + dnfW + 2, y + 2, { size: FONT_LABEL, font: helv })
+  placeTextField(form, page, FIELDS.notes, MARGIN + dnfW + 1, y + FONT_LABEL + 4, notesW - 2, ROW_H - FONT_LABEL - 5)
 
-  // 2 KM Walk
-  const walkData = (cardio && cardio.walkOnly)
-    ? buildRowData(cardio)
-    : (cardio && cardio.exercise === EXERCISES.WALK_2KM)
-      ? buildRowData(cardio)
-      : { exempt: '', measurement: null, minMet: '', score: '' }
-  y = drawExerciseRow(doc, m, y, w, '2 KM Walk', 'Time', walkData)
-
-  // ---- DNF / Notes / Total Score row ----
-  const dnfW = w * 0.20
-  const notesW = w * 0.55
-  const totalW = w * 0.25
-
-  // DNF checkbox
-  drawCell(doc, m, y, dnfW, ROW_H, null, 'Did Not Finish (DNF):  [ ]')
-
-  // Notes
-  drawCell(doc, m + dnfW, y, notesW, ROW_H, 'Notes', '')
-
-  // Total Score
-  const compositeVal = scores.composite?.composite != null
-    ? scores.composite.composite.toFixed(1)
-    : ''
-  drawCell(doc, m + dnfW + notesW, y, totalW, ROW_H, 'Total Score', compositeVal, { bold: true })
+  setRect(page, MARGIN + dnfW + notesW, y, totalW, ROW_H)
+  drawText(page, 'Total Score:', MARGIN + dnfW + notesW + 2, y + 2, { size: FONT_LABEL, font: helvBold })
+  const compositeVal = scores.composite?.composite != null ? scores.composite.composite.toFixed(1) : ''
+  placeTextField(form, page, FIELDS.total_score, MARGIN + dnfW + notesW + 1, y + FONT_LABEL + 4, totalW - 2, ROW_H - FONT_LABEL - 5, compositeVal)
   y += ROW_H
 
   // ---- PART III. ACKNOWLEDGEMENT ----
-  y = drawSectionRow(doc, m, y, w, 'PART III. ACKNOWLEDGEMENT')
+  fillRect(page, MARGIN, y, CONTENT_W, PART_H, BLACK)
+  drawTextCentered(page, 'PART III. ACKNOWLEDGEMENT', PAGE_W / 2, y + 2, { size: FONT_PART, font: helvBold, color: WHITE })
+  y += PART_H
 
-  // Member testing acknowledgement
-  y = drawAcknowledgementBlock(doc, m, y, w, 'MEMBER TESTING:', 'I have been briefed on and accept the results of this assessment.', ['Signature', 'Date', 'Next PFRA Due'])
-
-  // PFRA Administrator
-  y = drawAcknowledgementBlock(doc, m, y, w, 'PFRA ADMINISTRATOR:', '', ['Name/Signature', 'Date'])
-
-  // FAC/UFAC
-  y = drawAcknowledgementBlock(doc, m, y, w, 'FAC/UFAC:', 'Results valid / invalid due to injury or illness.', ['Name/Signature', 'Date'])
-
-  // Unit Commander
-  y = drawAcknowledgementBlock(doc, m, y, w, 'UNIT COMMANDER:', '', ['Name/Signature', 'Date'])
+  y = drawMemberTesting(page, form, helv, helvBold, helvItalic, MARGIN, y, CONTENT_W)
+  y = drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, MARGIN, y, CONTENT_W)
+  y = drawFacUfacBlock(page, form, helv, helvBold, helvItalic, MARGIN, y, CONTENT_W)
+  y = drawUnitCommanderBlock(page, form, helv, helvBold, helvItalic, MARGIN, y, CONTENT_W)
 
   // ---- Footer ----
-  const footerY = pageHeight - 6
-  doc.setFontSize(FONT_SMALL)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(0, 0, 0)
-  doc.text('AF Form 4446, 20260327', m, footerY)
-  doc.text('CUI (when filled in)', PAGE_WIDTH / 2, footerY, { align: 'center' })
-  doc.text('Prescribed by: AFMAN36-2905', PAGE_WIDTH - m, footerY, { align: 'right' })
-
-  return doc
-}
-
-/** Draw a dark section header row spanning full width. */
-function drawSectionRow(doc, x, y, w, text) {
-  const h = HEADER_ROW_H
-  drawSectionHeader(doc, x, y, w, h, text)
-  return y + h
-}
-
-/** Draw the diagnostic checkbox cell. */
-function drawDiagnosticCell(doc, x, y, w, h, isDiagnostic) {
-  doc.setDrawColor(0, 0, 0)
-  doc.setLineWidth(LINE_THIN)
-  doc.rect(x, y, w, h)
-
-  doc.setFontSize(FONT_CELL_LABEL)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(0, 0, 0)
-  doc.text('Eligible for Diagnostic PFRA?', x + 1, y + 3)
-
-  doc.setFontSize(FONT_CELL_VALUE)
-  const yesBox = isDiagnostic ? '[X]' : '[ ]'
-  const noBox = isDiagnostic ? '[ ]' : '[X]'
-  doc.text(`Yes ${yesBox}   No ${noBox}`, x + 1.5, y + h - 1.5)
-}
-
-/**
- * Draw an acknowledgement block (label, description, signature fields).
- * Signature fields are blank bordered cells in a row.
- */
-function drawAcknowledgementBlock(doc, x, y, w, label, description, fields) {
-  const rowH = 7
-
-  // Label + description
-  doc.setDrawColor(0, 0, 0)
-  doc.setLineWidth(LINE_THIN)
-
-  if (description) {
-    doc.rect(x, y, w, rowH)
-    doc.setFontSize(FONT_CELL_LABEL)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
-    doc.text(label, x + 1, y + 3)
-    doc.setFont('helvetica', 'normal')
-    doc.text(description, x + 1, y + rowH - 1.5, { maxWidth: w - 2 })
-    y += rowH
-  } else {
-    doc.rect(x, y, w, 4)
-    doc.setFontSize(FONT_CELL_LABEL)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
-    doc.text(label, x + 1, y + 3)
-    y += 4
+  const footerY = PAGE_H - 18
+  drawTextCentered(page, 'CUI (when filled in)', PAGE_W / 2, footerY + 6, { size: FONT_CUI, font: helvBold })
+  drawText(page, 'AF Form 4446, 20260327', MARGIN, footerY, { size: FONT_SMALL, font: helvBold })
+  drawText(page, 'Prescribed by: AFMAN36-2905', MARGIN, footerY + 8, { size: FONT_SMALL, font: helv })
+  const pocLines = [
+    'Controlled by: AF/A1P',
+    'CUI Category: PVCY',
+    'LDC: FEDCON',
+    'POC: AF.A1P.Workflow@us.af.mil',
+  ]
+  for (let i = 0; i < pocLines.length; i++) {
+    drawTextRight(page, pocLines[i], PAGE_W - MARGIN, footerY - 12 + i * 7, { size: FONT_SMALL, font: helv })
   }
 
-  // Signature fields row
-  const fieldW = w / fields.length
-  for (let i = 0; i < fields.length; i++) {
-    drawCell(doc, x + i * fieldW, y, fieldW, rowH, fields[i], '')
+  // ---- Add 4 signature widgets with /Lock dicts ----
+  // Stash sig field rectangles during the ack-block draws via a side-channel on the page.
+  const sigRefs = []
+  for (const [name, locator] of Object.entries(page._sigLocators || {})) {
+    const ref = addSignatureField(pdfDoc, page, name, locator.x, locator.y, locator.w, locator.h, SIG_LOCKS[name]())
+    sigRefs.push(ref)
   }
-  y += rowH
 
-  return y
+  // Register sig fields in AcroForm.Fields (alongside the AcroForm fields pdf-lib already created)
+  const acroFormDict = form.acroForm.dict
+  const fieldsArr = acroFormDict.get(PDFName.of('Fields'))
+  if (fieldsArr) {
+    for (const r of sigRefs) fieldsArr.push(r)
+  }
+  acroFormDict.set(PDFName.of('SigFlags'), PDFNumber.of(3))   // SignaturesExist + AppendOnly
+
+  // ---- Doc-level JS (Adobe Reader auto-populate from CAC cert) ----
+  attachDocJS(pdfDoc)
+
+  return await pdfDoc.save({ useObjectStreams: false })
 }
 
-/**
- * downloadPDF - Trigger PDF download in browser
- * @param {jsPDF} doc - PDF document
- * @param {string} filename - Download filename
- */
-export function downloadPDF(doc, filename = 'pfa-assessment.pdf') {
-  doc.save(filename)
+// -------------------- Block helpers --------------------
+
+function drawPrivacyAct(page, helv, helvBold, x, yTop, w) {
+  const pairs = [
+    ['AUTHORITY:', 'Title 10 United States Code 9013, Secretary of the Air Force; AFMAN 36-2905, Department of the Air Force Physical Fitness Readiness Program and Policy.'],
+    ['PURPOSE:', 'Information is used to positively identify an individual prior to administration of the Air Force Physical Fitness Readiness Assessment (PFRA).'],
+    ['ROUTINE USES:', 'In addition to those disclosures generally permitted under 5 U.S.C. 552a(b) of the Privacy Act, these records or information contained therein may specifically be disclosed outside the DoD as a routine use pursuant to 5 U.S.C. 552a(b)(3); Blanket Routine Uses applies.'],
+    ['DISCLOSURE:', 'Failure to provide the requested information will result in non-administration of the Fitness Assessment.'],
+  ]
+  // Pre-measure so the box height fits content
+  let totalLines = 0
+  const wrapped = []
+  for (const [label, body] of pairs) {
+    const labelW = helvBold.widthOfTextAtSize(label + ' ', FONT_PRIVACY_BODY)
+    const lines = wrap(helv, body, FONT_PRIVACY_BODY, w - 4 - labelW)
+    wrapped.push({ label, body, lines, labelW })
+    totalLines += Math.max(1, lines.length)
+  }
+  const lineH = FONT_PRIVACY_BODY + 1.5
+  const titleH = FONT_PRIVACY_TITLE + 3
+  const blockH = titleH + totalLines * lineH + 4
+
+  setRect(page, x, yTop, w, blockH)
+  drawTextCentered(page, 'Privacy Act Statement', x + w / 2, yTop + 2, { size: FONT_PRIVACY_TITLE, font: helvBold })
+
+  let py = yTop + titleH
+  for (const { label, lines, labelW } of wrapped) {
+    drawText(page, label, x + 2, py, { size: FONT_PRIVACY_BODY, font: helvBold })
+    for (let i = 0; i < lines.length; i++) {
+      const lx = i === 0 ? x + 2 + labelW : x + 2 + labelW
+      drawText(page, lines[i], lx, py + i * lineH, { size: FONT_PRIVACY_BODY, font: helv })
+    }
+    py += Math.max(1, lines.length) * lineH
+  }
+  return blockH
 }
 
-/**
- * generatePDFAndDownload - Convenience wrapper: generate and download
- * @param {Object} demographics - { dob, gender }
- * @param {Object} decoded - Decoded assessment data
- * @param {Object} scores - { components[], composite }
- * @param {Date} assessmentDate - Date for filename
- */
-export function generatePDFAndDownload(demographics, decoded, scores, assessmentDate = new Date()) {
-  const pdf = generateFormPDF(demographics, decoded, scores)
+function drawComponentHeader(page, helvBold, helvBoldItalic, x, yTop, w, categoryName) {
+  const cols = componentCols(w)
+  const headers = [null, 'Exempt', 'Expiration', 'Measurement', 'Min Value Met?', 'Score']
+  let cx = x
+  for (let i = 0; i < cols.length; i++) {
+    setRect(page, cx, yTop, cols[i], HEADER_ROW_H, { fill: GREY })
+    if (i === 0) {
+      drawTextCentered(page, categoryName, cx + cols[i] / 2, yTop + (HEADER_ROW_H - FONT_CATEGORY) / 2, { size: FONT_CATEGORY, font: helvBoldItalic })
+      const tw = helvBoldItalic.widthOfTextAtSize(categoryName, FONT_CATEGORY)
+      drawLine(page, cx + cols[i] / 2 - tw / 2, yTop + HEADER_ROW_H - 1.5, cx + cols[i] / 2 + tw / 2, yTop + HEADER_ROW_H - 1.5, 0.5)
+    } else {
+      drawTextCentered(page, headers[i], cx + cols[i] / 2, yTop + (HEADER_ROW_H - FONT_LABEL) / 2, { size: FONT_LABEL, font: helvBold })
+    }
+    cx += cols[i]
+  }
+  return yTop + HEADER_ROW_H
+}
+
+function drawWaistRow(page, form, helv, x, yTop, w, data, decoded, bodyComp) {
+  const cols = componentCols(w)
+  const h = ROW_H
+  let cx = x
+  // Exercise name
+  setRect(page, cx, yTop, cols[0], h)
+  drawTextCentered(page, 'Waist Circumference', cx + cols[0] / 2, yTop + h / 2 - 4, { size: FONT_VALUE, font: helv })
+  cx += cols[0]
+  // Exempt radio
+  setRect(page, cx, yTop, cols[1], h)
+  placeYesNoRadio(form, page, exFields('waist').exempt, cx, yTop, cols[1], h, data.exempt)
+  cx += cols[1]
+  // Expiration
+  setRect(page, cx, yTop, cols[2], h)
+  placeTextField(form, page, exFields('waist').expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
+  cx += cols[2]
+  // Measurement: 1: __ 2: __ 3: __ Average: __  (4 fields)
+  setRect(page, cx, yTop, cols[3], h)
+  const slotW = cols[3] / 4
+  const labels = ['1:', '2:', '3:', 'Average:']
+  const waistAvgVal = decoded.bodyComp?.waistInches ? String(decoded.bodyComp.waistInches) : ''
+  const fieldVals = ['', '', '', waistAvgVal]
+  for (let i = 0; i < 4; i++) {
+    drawText(page, labels[i], cx + i * slotW + 2, yTop + h / 2 - 3, { size: FONT_VALUE, font: helv })
+    const lw = helv.widthOfTextAtSize(labels[i], FONT_VALUE)
+    placeTextField(form, page, WAIST_FIELDS[i], cx + i * slotW + 2 + lw + 1, yTop + 2, slotW - lw - 4, h - 4, fieldVals[i])
+  }
+  cx += cols[3]
+  // Min Met
+  setRect(page, cx, yTop, cols[4], h)
+  placeYesNoRadio(form, page, exFields('waist').min_met, cx, yTop, cols[4], h, data.minMet)
+  cx += cols[4]
+  // Score (display + field)
+  setRect(page, cx, yTop, cols[5], h)
+  const scoredWHtR = bodyComp?.value
+  const scoreVal = scoredWHtR != null ? scoredWHtR.toFixed(2) : (data.score || '')
+  placeTextField(form, page, exFields('waist').score, cx + 1, yTop + 2, cols[5] - 2, h - 4, scoreVal)
+  return yTop + h
+}
+
+function drawBodyFatRow(page, form, helv, x, yTop, w) {
+  const cols = componentCols(w)
+  const h = ROW_H
+  let cx = x
+  setRect(page, cx, yTop, cols[0], h)
+  drawTextCentered(page, 'Body Fat Assessment', cx + cols[0] / 2, yTop + h / 2 - 4, { size: FONT_VALUE, font: helv })
+  cx += cols[0]
+  setRect(page, cx, yTop, cols[1], h)
+  placeYesNoRadio(form, page, exFields('bodyfat').exempt, cx, yTop, cols[1], h, null)
+  cx += cols[1]
+  setRect(page, cx, yTop, cols[2], h)
+  placeTextField(form, page, exFields('bodyfat').expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
+  cx += cols[2]
+  setRect(page, cx, yTop, cols[3], h)
+  drawText(page, 'Results (%):', cx + 2, yTop + h / 2 - 3, { size: FONT_VALUE, font: helv })
+  const lw = helv.widthOfTextAtSize('Results (%):', FONT_VALUE)
+  placeTextField(form, page, BODYFAT_PCT, cx + 2 + lw + 1, yTop + 2, cols[3] - lw - 6, h - 4)
+  cx += cols[3]
+  setRect(page, cx, yTop, cols[4], h)
+  placeYesNoRadio(form, page, exFields('bodyfat').min_met, cx, yTop, cols[4], h, null)
+  cx += cols[4]
+  setRect(page, cx, yTop, cols[5], h)
+  placeTextField(form, page, exFields('bodyfat').score, cx + 1, yTop + 2, cols[5] - 2, h - 4)
+  return yTop + h
+}
+
+function drawExerciseRow(page, form, helv, helvBold, x, yTop, w, exerciseName, measureLabel, key, data) {
+  const cols = componentCols(w)
+  const h = ROW_H
+  const f = exFields(key)
+  let cx = x
+  // Exercise name
+  setRect(page, cx, yTop, cols[0], h)
+  drawTextCentered(page, exerciseName, cx + cols[0] / 2, yTop + h / 2 - 4, { size: FONT_VALUE, font: helv })
+  cx += cols[0]
+  // Exempt radio
+  setRect(page, cx, yTop, cols[1], h)
+  placeYesNoRadio(form, page, f.exempt, cx, yTop, cols[1], h, data.exempt)
+  cx += cols[1]
+  // Expiration
+  setRect(page, cx, yTop, cols[2], h)
+  placeTextField(form, page, f.expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
+  cx += cols[2]
+  // Measurement (label + input)
+  setRect(page, cx, yTop, cols[3], h)
+  drawText(page, `${measureLabel}:`, cx + 2, yTop + h / 2 - 3, { size: FONT_VALUE, font: helv })
+  const lw = helv.widthOfTextAtSize(`${measureLabel}:`, FONT_VALUE)
+  placeTextField(form, page, f.measurement, cx + 2 + lw + 1, yTop + 2, cols[3] - lw - 6, h - 4, data.measurement ?? '')
+  cx += cols[3]
+  // Min Met radio
+  setRect(page, cx, yTop, cols[4], h)
+  placeYesNoRadio(form, page, f.min_met, cx, yTop, cols[4], h, data.minMet)
+  cx += cols[4]
+  // Score
+  setRect(page, cx, yTop, cols[5], h)
+  placeTextField(form, page, f.score, cx + 1, yTop + 2, cols[5] - 2, h - 4, data.score || '')
+  return yTop + h
+}
+
+function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
+  const labelW = w * 0.18
+  const rightW = w * 0.18
+  const middleW = w - labelW - rightW
+  const checklistH = 32
+  const sigH = 18
+
+  // Label cell (covers both rows)
+  setRect(page, x, yTop, labelW, checklistH + sigH)
+  drawText(page, 'MEMBER TESTING:', x + 2, yTop + 2, { size: FONT_LABEL, font: helvBold })
+
+  // Middle checkbox list
+  setRect(page, x + labelW, yTop, middleW, checklistH)
+  const items = [
+    ['Accept results as Official PFRA and acknowledge results reflects my performance', FIELDS.member_accept_official],
+    ['(If Applicable) Accept as DPFRA attempt IAW AFMAN 36-2905, 3.5.2.5', FIELDS.member_accept_dpfra],
+    ['Dispute results IAW AFMAN 36-2905, 3.11.5.3. Member may appeal results IAW 8.2.', FIELDS.member_dispute],
+  ]
+  const listX = x + labelW + 3
+  for (let i = 0; i < items.length; i++) {
+    const ly = yTop + 5 + i * 9
+    drawSquareCheckbox(page, listX, ly, false)
+    placeCheckbox(form, page, items[i][1], listX, ly, CHECKBOX, false)
+    drawText(page, items[i][0], listX + CHECKBOX + 3, ly + 1, { size: FONT_ACK, font: helvItalic })
+  }
+
+  // Right cell: Next PFRA Due
+  setRect(page, x + labelW + middleW, yTop, rightW, checklistH)
+  drawText(page, 'Next PFRA Due:', x + labelW + middleW + 2, yTop + 2, { size: FONT_LABEL, font: helv })
+  placeTextField(form, page, FIELDS.next_pfra_due,
+    x + labelW + middleW + 1, yTop + FONT_LABEL + 4, rightW - 2, checklistH - FONT_LABEL - 5)
+
+  // Signature row
+  const sigY = yTop + checklistH
+  // Signature widget cell
+  setRect(page, x + labelW, sigY, middleW + rightW * 0.7, sigH)
+  drawText(page, 'Signature:', x + labelW + 2, sigY + 2, { size: FONT_LABEL, font: helvItalic })
+  // Signature widget will be added later via addSignatureField; stash locator
+  page._sigLocators = page._sigLocators || {}
+  page._sigLocators[FIELDS.member_sig] = {
+    x: x + labelW + 1, y: sigY + FONT_LABEL + 4,
+    w: middleW + rightW * 0.7 - 2, h: sigH - FONT_LABEL - 5,
+  }
+  // Date cell
+  const dateX = x + labelW + middleW + rightW * 0.7
+  const dateW = w - (dateX - x)
+  setRect(page, dateX, sigY, dateW, sigH)
+  drawText(page, 'Date:', dateX + 2, sigY + 2, { size: FONT_LABEL, font: helvItalic })
+  placeTextField(form, page, FIELDS.member_signature_date, dateX + 1, sigY + FONT_LABEL + 4, dateW - 2, sigH - FONT_LABEL - 5)
+
+  return sigY + sigH
+}
+
+function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
+  const labelW = w * 0.18
+  const rowH = 18
+  const bodyH = 24
+
+  // Label cell (covers both rows)
+  setRect(page, x, yTop, labelW, rowH + bodyH)
+  drawText(page, 'PFRA', x + 2, yTop + 2, { size: FONT_LABEL, font: helvBold })
+  drawText(page, 'ADMINISTRATOR:', x + 2, yTop + FONT_LABEL + 4, { size: FONT_LABEL, font: helvBold })
+
+  // Top row: Sig | Date
+  const sigW = w * 0.62
+  const dateW = w - labelW - sigW
+  setRect(page, x + labelW, yTop, sigW, rowH)
+  drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  // Sig widget locator (for admin sig)
+  page._sigLocators = page._sigLocators || {}
+  page._sigLocators[FIELDS.pfra_admin_sig] = {
+    x: x + labelW + 1, y: yTop + FONT_LABEL + 4,
+    w: sigW - 2, h: rowH - FONT_LABEL - 5,
+  }
+  // Visible name field for auto-fill
+  placeTextField(form, page, FIELDS.pfra_admin_name, x + labelW + 1, yTop + FONT_LABEL + 4, sigW - 2, rowH - FONT_LABEL - 5)
+
+  setRect(page, x + labelW + sigW, yTop, dateW, rowH)
+  drawText(page, 'Date:', x + labelW + sigW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  placeTextField(form, page, FIELDS.pfra_admin_date, x + labelW + sigW + 1, yTop + FONT_LABEL + 4, dateW - 2, rowH - FONT_LABEL - 5)
+
+  // Body row: checkbox + paragraph
+  const bodyY = yTop + rowH
+  setRect(page, x + labelW, bodyY, w - labelW, bodyH)
+  drawSquareCheckbox(page, x + labelW + 3, bodyY + 3, false)
+  placeCheckbox(form, page, FIELDS.pfra_admin_injury, x + labelW + 3, bodyY + 3, CHECKBOX, false)
+  const bodyText = 'Member experienced an injury or illness during this PFRA & was advised to pursue evaluation at a Medical Treatment Facility. This PFRA will become official unless rendered invalid by the Unit/CC. If no request to invalidate this PFRA or request to await medical review is not received by the FAC from the Unit/CC, the PFRA will become official on the 6th duty day(conclusion of next UTA for non-AGR ARC) IAW AFMAN 36-2905, 3.12.'
+  const lines = wrap(helvItalic, bodyText, FONT_ACK, w - labelW - CHECKBOX - 12)
+  for (let i = 0; i < lines.length; i++) {
+    drawText(page, lines[i], x + labelW + CHECKBOX + 8, bodyY + 3 + i * (FONT_ACK + 1.5), { size: FONT_ACK, font: helvItalic })
+  }
+  return bodyY + bodyH
+}
+
+function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
+  const labelW = w * 0.18
+  const rowH = 18
+  const bodyH = 14
+
+  setRect(page, x, yTop, labelW, rowH + bodyH)
+  drawText(page, 'FAC/UFAC:', x + 2, yTop + 2, { size: FONT_LABEL, font: helvBold })
+
+  const sigW = w * 0.62
+  const dateW = w - labelW - sigW
+  setRect(page, x + labelW, yTop, sigW, rowH)
+  drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  page._sigLocators = page._sigLocators || {}
+  page._sigLocators[FIELDS.fac_ufac_sig] = {
+    x: x + labelW + 1, y: yTop + FONT_LABEL + 4,
+    w: sigW - 2, h: rowH - FONT_LABEL - 5,
+  }
+  placeTextField(form, page, FIELDS.fac_ufac_name, x + labelW + 1, yTop + FONT_LABEL + 4, sigW - 2, rowH - FONT_LABEL - 5)
+
+  setRect(page, x + labelW + sigW, yTop, dateW, rowH)
+  drawText(page, 'Date:', x + labelW + sigW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  placeTextField(form, page, FIELDS.fac_ufac_date, x + labelW + sigW + 1, yTop + FONT_LABEL + 4, dateW - 2, rowH - FONT_LABEL - 5)
+
+  // Validity row
+  const bodyY = yTop + rowH
+  setRect(page, x + labelW, bodyY, w - labelW, bodyH)
+  drawSquareCheckbox(page, x + labelW + 3, bodyY + 2, false)
+  placeCheckbox(form, page, FIELDS.fac_ufac_validity, x + labelW + 3, bodyY + 2, CHECKBOX, false)
+  // "I have received and considered ... [valid / invalid] due to injury/illness"
+  const tx = x + labelW + CHECKBOX + 8
+  const ty = bodyY + 4
+  const prefix = 'I have received and considered the provided medical documentation and render this test ['
+  drawText(page, prefix, tx, ty, { size: FONT_ACK, font: helv })
+  const pw = helv.widthOfTextAtSize(prefix, FONT_ACK)
+  drawText(page, 'valid', tx + pw, ty, { size: FONT_ACK, font: helvBold })
+  const vw = helvBold.widthOfTextAtSize('valid', FONT_ACK)
+  drawText(page, ' / ', tx + pw + vw, ty, { size: FONT_ACK, font: helv })
+  const sw = helv.widthOfTextAtSize(' / ', FONT_ACK)
+  drawText(page, 'invalid', tx + pw + vw + sw, ty, { size: FONT_ACK, font: helvBold })
+  const iw = helvBold.widthOfTextAtSize('invalid', FONT_ACK)
+  drawText(page, '] due to injury/illness', tx + pw + vw + sw + iw, ty, { size: FONT_ACK, font: helv })
+  return bodyY + bodyH
+}
+
+function drawUnitCommanderBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
+  const labelW = w * 0.18
+  const rowH = 18
+  setRect(page, x, yTop, labelW, rowH)
+  drawText(page, 'UNIT COMMANDER:', x + 2, yTop + rowH / 2 - 3, { size: FONT_LABEL, font: helvBold })
+
+  const sigW = w * 0.62
+  const dateW = w - labelW - sigW
+  setRect(page, x + labelW, yTop, sigW, rowH)
+  drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  page._sigLocators = page._sigLocators || {}
+  page._sigLocators[FIELDS.commander_sig] = {
+    x: x + labelW + 1, y: yTop + FONT_LABEL + 4,
+    w: sigW - 2, h: rowH - FONT_LABEL - 5,
+  }
+  placeTextField(form, page, FIELDS.commander_name, x + labelW + 1, yTop + FONT_LABEL + 4, sigW - 2, rowH - FONT_LABEL - 5)
+
+  setRect(page, x + labelW + sigW, yTop, dateW, rowH)
+  drawText(page, 'Date:', x + labelW + sigW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  placeTextField(form, page, FIELDS.commander_date, x + labelW + sigW + 1, yTop + FONT_LABEL + 4, dateW - 2, rowH - FONT_LABEL - 5)
+  return yTop + rowH
+}
+
+// -------------------- Public download wrappers --------------------
+
+export function downloadPDFBytes(bytes, filename = 'pfa-assessment.pdf') {
+  const blob = new Blob([bytes], { type: 'application/pdf' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+// Back-compat: jsPDF callers used downloadPDF(doc, filename). Now the doc is bytes.
+export function downloadPDF(bytesOrDoc, filename = 'pfa-assessment.pdf') {
+  if (bytesOrDoc instanceof Uint8Array) return downloadPDFBytes(bytesOrDoc, filename)
+  // jsPDF instance fallback (legacy)
+  if (bytesOrDoc && typeof bytesOrDoc.save === 'function') return bytesOrDoc.save(filename)
+  throw new Error('downloadPDF: unrecognized PDF input')
+}
+
+export async function generatePDFAndDownload(demographics, decoded, scores, assessmentDate = new Date()) {
+  const bytes = await generateFormPDF(demographics, decoded, scores)
   const dateObj = assessmentDate instanceof Date
     ? assessmentDate
     : new Date(String(assessmentDate) + 'T12:00:00')
   const dateStr = (dateObj instanceof Date && !Number.isNaN(dateObj.getTime()))
     ? dateObj.toISOString().split('T')[0]
     : new Date().toISOString().split('T')[0]
-  downloadPDF(pdf, `pfa-assessment-${dateStr}.pdf`)
+  downloadPDFBytes(bytes, `pfa-assessment-${dateStr}.pdf`)
 }
