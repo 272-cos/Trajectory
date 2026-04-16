@@ -322,10 +322,10 @@ export default function HistoryTab() {
     }
   }
 
-  const handleDownloadPDF = (entry) => {
+  const handleDownloadPDF = async (entry) => {
     if (!demographics || !entry?.decoded || !entry?.scores) return
     try {
-      generatePDFAndDownload(demographics, entry.decoded, entry.scores, entry.decoded.date)
+      await generatePDFAndDownload(demographics, entry.decoded, entry.scores, entry.decoded.date)
     } catch (err) {
       console.error('PDF generation failed:', err)
     }

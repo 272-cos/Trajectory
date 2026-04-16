@@ -72,47 +72,36 @@ const mockScores = {
 }
 
 describe('generateFormPDF', () => {
-  it('should create a jsPDF document', () => {
-    const pdf = generateFormPDF(mockDemographics, mockDecoded, mockScores)
-    expect(pdf).toBeDefined()
-    expect(pdf.internal).toBeDefined()
-    expect(pdf.internal.pageSize).toBeDefined()
+  it('should produce a PDF byte array', async () => {
+    const bytes = await generateFormPDF(mockDemographics, mockDecoded, mockScores)
+    expect(bytes).toBeInstanceOf(Uint8Array)
+    expect(bytes.length).toBeGreaterThan(1000)
+    // PDF magic header
+    expect(String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3])).toBe('%PDF')
   })
 
-  it('should have letter size dimensions', () => {
-    const pdf = generateFormPDF(mockDemographics, mockDecoded, mockScores)
-    const width = pdf.internal.pageSize.getWidth()
-    const height = pdf.internal.pageSize.getHeight()
-    // Letter: 8.5" x 11" = 215.9 x 279.4 mm
-    expect(width).toBeCloseTo(215.9, 1)
-    expect(height).toBeCloseTo(279.4, 1)
+  it('should reject if demographics is missing', async () => {
+    await expect(generateFormPDF(null, mockDecoded, mockScores))
+      .rejects.toThrow('Missing required parameters')
   })
 
-  it('should throw error if demographics is missing', () => {
-    expect(() => {
-      generateFormPDF(null, mockDecoded, mockScores)
-    }).toThrow('Missing required parameters')
+  it('should reject if decoded is missing', async () => {
+    await expect(generateFormPDF(mockDemographics, null, mockScores))
+      .rejects.toThrow('Missing required parameters')
   })
 
-  it('should throw error if decoded is missing', () => {
-    expect(() => {
-      generateFormPDF(mockDemographics, null, mockScores)
-    }).toThrow('Missing required parameters')
+  it('should reject if scores is missing', async () => {
+    await expect(generateFormPDF(mockDemographics, mockDecoded, null))
+      .rejects.toThrow('Missing required parameters')
   })
 
-  it('should throw error if scores is missing', () => {
-    expect(() => {
-      generateFormPDF(mockDemographics, mockDecoded, null)
-    }).toThrow('Missing required parameters')
-  })
-
-  it('should handle female gender correctly', () => {
+  it('should handle female gender correctly', async () => {
     const femaleDemographics = { ...mockDemographics, gender: 'F' }
-    const pdf = generateFormPDF(femaleDemographics, mockDecoded, mockScores)
-    expect(pdf).toBeDefined()
+    const bytes = await generateFormPDF(femaleDemographics, mockDecoded, mockScores)
+    expect(bytes).toBeInstanceOf(Uint8Array)
   })
 
-  it('should handle composite failures', () => {
+  it('should handle composite failures', async () => {
     const failingScores = {
       ...mockScores,
       composite: {
@@ -120,11 +109,11 @@ describe('generateFormPDF', () => {
         pass: false,
       },
     }
-    const pdf = generateFormPDF(mockDemographics, mockDecoded, failingScores)
-    expect(pdf).toBeDefined()
+    const bytes = await generateFormPDF(mockDemographics, mockDecoded, failingScores)
+    expect(bytes).toBeInstanceOf(Uint8Array)
   })
 
-  it('should handle exempt components', () => {
+  it('should handle exempt components', async () => {
     const exemptScores = {
       components: [
         {
@@ -137,11 +126,11 @@ describe('generateFormPDF', () => {
       ],
       composite: mockScores.composite,
     }
-    const pdf = generateFormPDF(mockDemographics, mockDecoded, exemptScores)
-    expect(pdf).toBeDefined()
+    const bytes = await generateFormPDF(mockDemographics, mockDecoded, exemptScores)
+    expect(bytes).toBeInstanceOf(Uint8Array)
   })
 
-  it('should handle walk-only cardio component', () => {
+  it('should handle walk-only cardio component', async () => {
     const walkScores = {
       components: [
         {
@@ -156,20 +145,14 @@ describe('generateFormPDF', () => {
       ],
       composite: mockScores.composite,
     }
-    const pdf = generateFormPDF(mockDemographics, mockDecoded, walkScores)
-    expect(pdf).toBeDefined()
-  })
-
-  it('should have a valid save method', () => {
-    const pdf = generateFormPDF(mockDemographics, mockDecoded, mockScores)
-    expect(typeof pdf.save).toBe('function')
+    const bytes = await generateFormPDF(mockDemographics, mockDecoded, walkScores)
+    expect(bytes).toBeInstanceOf(Uint8Array)
   })
 })
 
 describe('downloadPDF', () => {
-  it('should have a save method', () => {
+  it('should be a function', () => {
     expect(typeof downloadPDF).toBe('function')
-    // Note: we can't test the actual download in jsdom without mocking window.open or similar
-    // Just verify the function exists and accepts the right parameters
+    // Cannot exercise the actual download path in jsdom without mocking the DOM URL APIs.
   })
 })

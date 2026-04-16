@@ -975,7 +975,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
   }
 }
 
-function handleDownloadPDF({ demographics, reportEntries }) {
+async function handleDownloadPDF({ demographics, reportEntries }) {
   if (!demographics || reportEntries.length === 0) return
 
   // Use the most recent (first) assessment for PDF
@@ -983,7 +983,7 @@ function handleDownloadPDF({ demographics, reportEntries }) {
   if (!latestEntry) return
 
   try {
-    generatePDFAndDownload(demographics, latestEntry.decoded, latestEntry.scores, latestEntry.decoded.date)
+    await generatePDFAndDownload(demographics, latestEntry.decoded, latestEntry.scores, latestEntry.decoded.date)
   } catch (error) {
     console.error('PDF generation failed:', error)
     alert('Failed to generate PDF. Please try again.')
