@@ -322,15 +322,15 @@ export function generateFormPDF(demographics, decoded, scores) {
   const bodyComp = findComponent(scores, 'bodyComp')
   const bodyData = buildRowData(bodyComp)
 
-  // Waist Circumference row - show waist inches + WHtR + score
+  // Waist Circumference row - show waist inches + scored WHtR
   const waist = decoded.bodyComp?.waistInches
-  const height = decoded.bodyComp?.heightInches
+  const scoredWHtR = bodyComp?.value
   let waistMeas = ''
   if (waist) {
     waistMeas = `${waist} in`
-    if (height) waistMeas += `  WHtR: ${(waist / height).toFixed(2)}`
-  } else if (bodyData.measurement) {
-    waistMeas = `WHtR: ${bodyData.measurement}`
+    if (scoredWHtR != null) waistMeas += `  WHtR: ${scoredWHtR.toFixed(2)}`
+  } else if (scoredWHtR != null) {
+    waistMeas = `WHtR: ${scoredWHtR.toFixed(2)}`
   }
   const waistRow = {
     ...bodyData,
