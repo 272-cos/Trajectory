@@ -5,7 +5,6 @@
  *
  * NO PII: Rank, Name, Unit, DSQ ID, Duty Phone left blank.
  * Fills: Sex, Age, PFRA Date, exercise measurements, scores, composite.
- * Watermarked UNOFFICIAL ESTIMATE.
  *
  * Complexity: O(1) - fixed number of components (max 4), no iteration over unbounded data.
  * Work elimination: level 1 (guard/short-circuit for missing components).
@@ -33,9 +32,7 @@ const FONT_SECTION_HEADER = 9
 const FONT_CELL_LABEL = 7
 const FONT_CELL_VALUE = 8
 const FONT_SMALL = 6
-const FONT_WATERMARK = 48
 const FONT_PRIVACY = 5.5
-const WATERMARK_OPACITY = 0.08
 
 // Row heights
 const ROW_H = 8
@@ -253,36 +250,12 @@ export function generateFormPDF(demographics, decoded, scores) {
 
   let y = m
 
-  // ---- UNOFFICIAL ESTIMATE watermark ----
-  doc.saveGraphicsState()
-  // jsPDF GState for transparency
-  const gs = new doc.GState({ opacity: WATERMARK_OPACITY })
-  doc.setGState(gs)
-  doc.setFontSize(FONT_WATERMARK)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 0, 0)
-  // Rotate text diagonally across the page
-  const cx = PAGE_WIDTH / 2
-  const cy = pageHeight / 2
-  doc.text('UNOFFICIAL ESTIMATE', cx, cy, {
-    align: 'center',
-    angle: 45,
-  })
-  doc.restoreGraphicsState()
-
   // ---- Title block ----
   doc.setFontSize(FONT_TITLE)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(0, 0, 0)
   doc.text('AIR FORCE PHYSICAL FITNESS READINESS ASSESSMENT SCORE CARD', PAGE_WIDTH / 2, y + 5, { align: 'center' })
   y += 8
-
-  // Unofficial disclaimer (red, smaller)
-  doc.setFontSize(FONT_CELL_VALUE)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 0, 0)
-  doc.text('UNOFFICIAL ESTIMATE - NOT AN OFFICIAL SCORE', PAGE_WIDTH / 2, y + 3, { align: 'center' })
-  y += 6
 
   // ---- Privacy Act Statement ----
   doc.setFontSize(FONT_CELL_LABEL)
