@@ -13,6 +13,7 @@ import ExerciseComparison from './ExerciseComparison.jsx'
 import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
 import { getTrainingResources } from '../../utils/training/resources.js'
 import { BASE_REGISTRY } from '../../utils/codec/bitpack.js'
+import { generatePDFAndDownload } from '../../utils/pdf/generateFormPDF.js'
 import ShareModal from '../shared/ShareModal.jsx'
 import HintBanner from '../shared/HintBanner.jsx'
 import {
@@ -570,6 +571,65 @@ export default function SelfCheckTab() {
       setTimeout(() => setSuccess(''), 2000)
     } catch {
       setError('Failed to copy to clipboard')
+    }
+  }
+
+  // Build a decoded-shape assessment object from the current form state for
+  // PDF generation. Mirrors the structure produced by decodeSCode() so the
+  // shared generator in utils/pdf/generateFormPDF.js works without changes.
+  const buildDecodedForPDF = () => {
+    let cardio = null
+    if (!cardioExempt && cardioValue) {
+      let cardioVal
+      if (cardioExercise === EXERCISES.RUN_2MILE) cardioVal = parseTime(cardioValue)
+      else if (cardioExercise === EXERCISES.HAMR) cardioVal = cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10)
+      cardio = { exercise: cardioExercise, value: cardioVal, exempt: false }
+    } else if (cardioExempt && walkSelected && walkTime) {
+      cardio = { exercise: EXERCISES.WALK_2KM, value: parseTime(walkTime), exempt: false, walkPass }
+    } else if (cardioExempt) {
+      cardio = { exercise: cardioExercise, value: null, exempt: true }
+    }
+
+    const strength = !strengthExempt && strengthValue
+      ? { exercise: strengthExercise, value: parseInt(strengthValue, 10), exempt: false }
+      : strengthExempt
+        ? { exercise: strengthExercise, value: null, exempt: true }
+        : null
+
+    const core = !coreExempt && coreValue
+      ? { exercise: coreExercise, value: coreExercise === EXERCISES.PLANK ? parseTime(coreValue) : parseInt(coreValue, 10), exempt: false }
+      : coreExempt
+        ? { exercise: coreExercise, value: null, exempt: true }
+        : null
+
+    const bodyComp = !bodyCompExempt && heightInches && waistInches
+      ? { heightInches: parseFloat(heightInches), waistInches: parseFloat(waistInches), exempt: false }
+      : bodyCompExempt
+        ? { heightInches: null, waistInches: null, exempt: true }
+        : null
+
+    return { date: assessmentDate, cardio, strength, core, bodyComp, isDiagnostic }
+  }
+
+  // Determine whether Save PDF is available and, if not, why.
+  // Requires a profile (for age bracket + gender) and at least one scored
+  // component so the generator has something to render.
+  const pdfDisabledReason = (() => {
+    if (!hasDemographics) return 'Set up your profile (DOB and gender) to generate a PDF.'
+    if (!scores || !scores.components || scores.components.length === 0) {
+      return 'Enter at least one component result to generate a PDF.'
+    }
+    return null
+  })()
+
+  const handleDownloadPDF = () => {
+    if (pdfDisabledReason) return
+    try {
+      const decoded = buildDecodedForPDF()
+      generatePDFAndDownload(demographics, decoded, scores, decoded.date)
+    } catch (err) {
+      console.error('PDF generation failed:', err)
+      setError('Could not generate PDF. Check your inputs and try again.')
     }
   }
 
@@ -1197,16 +1257,25 @@ export default function SelfCheckTab() {
 
       {/* Action bar - sticky on mobile */}
       <div className="bg-white rounded-lg shadow-md p-6 sticky bottom-0 z-10 sm:static sm:shadow-md shadow-lg">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={handleGenerateSCode}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="flex-1 min-w-[160px] bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Save Assessment
           </button>
           <button
+            onClick={handleDownloadPDF}
+            disabled={!!pdfDisabledReason}
+            aria-label={pdfDisabledReason || 'Save assessment as PDF'}
+            title={pdfDisabledReason || 'Save assessment as PDF'}
+            className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Save PDF
+          </button>
+          <button
             onClick={handleClearForm}
-            className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="px-4 py-3 min-h-[44px] bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             Clear
           </button>
