@@ -60,6 +60,7 @@ const FONT_ACK = 6.5
 const FONT_CUI = 8
 
 const GREY = [220 / 255, 220 / 255, 220 / 255]
+const FIELD_BG = [0.85, 0.9, 1.0]   // light blue tint matching 4446 fillable cells
 const BLACK = [0, 0, 0]
 const WHITE = [1, 1, 1]
 
@@ -235,6 +236,8 @@ function drawSquareCheckbox(page, x, yTop, checked = false) {
 function placeTextField(form, page, name, x, yTop, w, h, defaultValue = '') {
   const tf = form.createTextField(name)
   if (defaultValue) tf.setText(defaultValue)
+  // Draw field background tint matching 4446 fillable cells
+  fillRect(page, x, yTop, w, h, FIELD_BG)
   tf.addToPage(page, {
     x, y: topY(yTop + h), width: w, height: h,
     borderWidth: 0,
@@ -255,6 +258,7 @@ function placeCheckbox(form, page, name, x, yTop, size, checked = false) {
 
 function placeYesNoRadio(form, page, name, x, yTop, w, h, selected = null) {
   // Selected: 'Y' | 'N' | null
+  fillRect(page, x + 1, yTop + 1, w - 2, h - 2, FIELD_BG)
   const r = form.createRadioGroup(name)
   const yesX = x + 4
   const noX = x + 22
@@ -736,15 +740,22 @@ function drawWaistRow(page, form, helv, x, yTop, w, data, decoded, bodyComp) {
   placeTextField(form, page, exFields('waist').expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
   cx += cols[2]
   // Measurement: 1: __ 2: __ 3: __ Average: __  (4 fields)
+  // 1/2/3 are manual-entry; Average is the only measured value — give it most space
   setRect(page, cx, yTop, cols[3], h)
-  const slotW = cols[3] / 4
+  const smallSlotW = cols[3] * 0.18  // 1:, 2:, 3: each get 18%
+  const avgSlotW = cols[3] - 3 * smallSlotW  // Average gets remaining 46%
+  const slotWidths = [smallSlotW, smallSlotW, smallSlotW, avgSlotW]
   const labels = ['1:', '2:', '3:', 'Average:']
+  const labelSizes = [FONT_SMALL, FONT_SMALL, FONT_SMALL, FONT_SMALL]
   const waistAvgVal = decoded.bodyComp?.waistInches ? String(decoded.bodyComp.waistInches) : ''
   const fieldVals = ['', '', '', waistAvgVal]
+  let sx = cx
   for (let i = 0; i < 4; i++) {
-    drawText(page, labels[i], cx + i * slotW + 2, yTop + h / 2 - 3, { size: FONT_VALUE, font: helv })
-    const lw = helv.widthOfTextAtSize(labels[i], FONT_VALUE)
-    placeTextField(form, page, WAIST_FIELDS[i], cx + i * slotW + 2 + lw + 1, yTop + 2, slotW - lw - 4, h - 4, fieldVals[i])
+    const ls = labelSizes[i]
+    drawText(page, labels[i], sx + 1, yTop + h / 2 - 3, { size: ls, font: helv })
+    const lw = helv.widthOfTextAtSize(labels[i], ls)
+    placeTextField(form, page, WAIST_FIELDS[i], sx + lw + 2, yTop + 2, slotWidths[i] - lw - 3, h - 4, fieldVals[i])
+    sx += slotWidths[i]
   }
   cx += cols[3]
   // Min Met
@@ -790,9 +801,21 @@ function drawExerciseRow(page, form, helv, helvBold, x, yTop, w, exerciseName, m
   const h = ROW_H
   const f = exFields(key)
   let cx = x
-  // Exercise name
+  // Exercise name — wrap to 2 lines if needed (matches 4446 reference)
   setRect(page, cx, yTop, cols[0], h)
-  drawTextCentered(page, exerciseName, cx + cols[0] / 2, yTop + h / 2 - 4, { size: FONT_VALUE, font: helv })
+  const nameW = helv.widthOfTextAtSize(exerciseName, FONT_VALUE)
+  const cellPad = 4
+  if (nameW > cols[0] - cellPad * 2) {
+    const lines = wrap(helv, exerciseName, FONT_VALUE, cols[0] - cellPad * 2)
+    const lineH = FONT_VALUE + 1
+    const startY = yTop + (h - lines.length * lineH) / 2
+    for (let i = 0; i < lines.length; i++) {
+      const lw = helv.widthOfTextAtSize(lines[i], FONT_VALUE)
+      drawText(page, lines[i], cx + (cols[0] - lw) / 2, startY + i * lineH, { size: FONT_VALUE, font: helv })
+    }
+  } else {
+    drawTextCentered(page, exerciseName, cx + cols[0] / 2, yTop + h / 2 - 4, { size: FONT_VALUE, font: helv })
+  }
   cx += cols[0]
   // Exempt radio
   setRect(page, cx, yTop, cols[1], h)
