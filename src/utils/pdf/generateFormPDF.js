@@ -38,7 +38,7 @@ import {
 
 const PAGE_W = 612            // letter
 const PAGE_H = 792
-const MARGIN = 28             // ~10mm
+const MARGIN = 36             // ~0.5"
 const CONTENT_W = PAGE_W - 2 * MARGIN
 const LINE_THIN = 0.7
 const RADIO_R = 2.4
@@ -443,7 +443,7 @@ function formatCompValue(comp) {
 
 function componentCols(totalW) {
   // Exercise | Exempt | Expiration | Measurement | Min Value Met? | Score
-  return [totalW * 0.22, totalW * 0.11, totalW * 0.14, totalW * 0.30, totalW * 0.13, totalW * 0.10]
+  return [totalW * 0.17, totalW * 0.10, totalW * 0.12, totalW * 0.34, totalW * 0.15, totalW * 0.12]
 }
 
 function wrap(font, text, size, maxWidth) {
@@ -508,7 +508,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y += PART_H
 
   // Row: Rank/Name | Unit | DoD ID | Duty Phone | Sex | Age
-  const partICols = [CONTENT_W * 0.30, CONTENT_W * 0.22, CONTENT_W * 0.16, CONTENT_W * 0.14, CONTENT_W * 0.09, CONTENT_W * 0.09]
+  const partICols = [CONTENT_W * 0.32, CONTENT_W * 0.22, CONTENT_W * 0.16, CONTENT_W * 0.14, CONTENT_W * 0.08, CONTENT_W * 0.08]
   const partILabels = ['Rank / Name:', 'Unit:', 'DoD ID:', 'Duty Phone:', 'Sex:', 'Age:']
   const partIFields = [FIELDS.rank_name, FIELDS.unit, FIELDS.dod_id, FIELDS.duty_phone, FIELDS.sex, FIELDS.age]
   const partIDefaults = ['', '', '', '', gender, String(age)]
@@ -682,8 +682,8 @@ function drawPrivacyAct(page, helv, helvBold, x, yTop, w) {
     wrapped.push({ label, body, lines, labelW })
     totalLines += Math.max(1, lines.length)
   }
-  const lineH = FONT_PRIVACY_BODY + 1.5
-  const titleH = FONT_PRIVACY_TITLE + 3
+  const lineH = FONT_PRIVACY_BODY + 0.5
+  const titleH = FONT_PRIVACY_TITLE + 2
   const blockH = titleH + totalLines * lineH + 4
 
   setRect(page, x, yTop, w, blockH)
@@ -819,8 +819,8 @@ function drawExerciseRow(page, form, helv, helvBold, x, yTop, w, exerciseName, m
 }
 
 function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.18
-  const rightW = w * 0.18
+  const labelW = w * 0.15
+  const rightW = w * 0.15
   const middleW = w - labelW - rightW
   const checklistH = 32
   const sigH = 18
@@ -872,7 +872,7 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
 }
 
 function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.18
+  const labelW = w * 0.15
   const rowH = 18
   const bodyH = 24
 
@@ -882,7 +882,7 @@ function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) 
   drawText(page, 'ADMINISTRATOR:', x + 2, yTop + FONT_LABEL + 4, { size: FONT_LABEL, font: helvBold })
 
   // Top row: Sig | Date
-  const sigW = w * 0.62
+  const sigW = w * 0.68
   const dateW = w - labelW - sigW
   setRect(page, x + labelW, yTop, sigW, rowH)
   drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
@@ -913,14 +913,14 @@ function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) 
 }
 
 function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.18
+  const labelW = w * 0.15
   const rowH = 18
   const bodyH = 14
 
   setRect(page, x, yTop, labelW, rowH + bodyH)
   drawText(page, 'FAC/UFAC:', x + 2, yTop + 2, { size: FONT_LABEL, font: helvBold })
 
-  const sigW = w * 0.62
+  const sigW = w * 0.68
   const dateW = w - labelW - sigW
   setRect(page, x + labelW, yTop, sigW, rowH)
   drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
@@ -957,12 +957,12 @@ function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
 }
 
 function drawUnitCommanderBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.18
+  const labelW = w * 0.15
   const rowH = 18
   setRect(page, x, yTop, labelW, rowH)
   drawText(page, 'UNIT COMMANDER:', x + 2, yTop + rowH / 2 - 3, { size: FONT_LABEL, font: helvBold })
 
-  const sigW = w * 0.62
+  const sigW = w * 0.68
   const dateW = w - labelW - sigW
   setRect(page, x + labelW, yTop, sigW, rowH)
   drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
