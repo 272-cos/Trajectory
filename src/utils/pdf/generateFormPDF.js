@@ -60,7 +60,6 @@ const FONT_ACK = 6.5
 const FONT_CUI = 8
 
 const GREY = [220 / 255, 220 / 255, 220 / 255]
-const FIELD_BG = [0.85, 0.9, 1.0]   // light blue tint matching 4446 fillable cells
 const BLACK = [0, 0, 0]
 const WHITE = [1, 1, 1]
 
@@ -236,8 +235,6 @@ function drawSquareCheckbox(page, x, yTop, checked = false) {
 function placeTextField(form, page, name, x, yTop, w, h, defaultValue = '') {
   const tf = form.createTextField(name)
   if (defaultValue) tf.setText(defaultValue)
-  // Draw field background tint matching 4446 fillable cells
-  fillRect(page, x, yTop, w, h, FIELD_BG)
   tf.addToPage(page, {
     x, y: topY(yTop + h), width: w, height: h,
     borderWidth: 0,
@@ -258,7 +255,6 @@ function placeCheckbox(form, page, name, x, yTop, size, checked = false) {
 
 function placeYesNoRadio(form, page, name, x, yTop, w, h, selected = null) {
   // Selected: 'Y' | 'N' | null
-  fillRect(page, x + 1, yTop + 1, w - 2, h - 2, FIELD_BG)
   const r = form.createRadioGroup(name)
   const yesX = x + 4
   const noX = x + 22
