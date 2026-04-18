@@ -59,7 +59,7 @@ const FONT_PRIVACY_BODY = 6
 const FONT_ACK = 6.5
 const FONT_CUI = 8
 
-const GREY = [220 / 255, 220 / 255, 220 / 255]
+const GREY = [190 / 255, 190 / 255, 190 / 255]
 const BLACK = [0, 0, 0]
 const WHITE = [1, 1, 1]
 
@@ -256,8 +256,8 @@ function placeCheckbox(form, page, name, x, yTop, size, checked = false) {
 function placeYesNoRadio(form, page, name, x, yTop, w, h, selected = null) {
   // Selected: 'Y' | 'N' | null
   const r = form.createRadioGroup(name)
-  const yesX = x + 4
-  const noX = x + 22
+  const yesX = x + w * 0.08
+  const noX = x + w * 0.55
   const cy = yTop + h / 2
   // Draw circles + labels visually (the radio widgets are transparent overlays)
   drawCircle(page, yesX, cy, RADIO_R, selected === 'Y')
@@ -443,7 +443,7 @@ function formatCompValue(comp) {
 
 function componentCols(totalW) {
   // Exercise | Exempt | Expiration | Measurement | Min Value Met? | Score
-  return [totalW * 0.17, totalW * 0.10, totalW * 0.12, totalW * 0.34, totalW * 0.15, totalW * 0.12]
+  return [totalW * 0.17, totalW * 0.10, totalW * 0.11, totalW * 0.34, totalW * 0.14, totalW * 0.14]
 }
 
 function wrap(font, text, size, maxWidth) {
@@ -508,7 +508,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y += PART_H
 
   // Row: Rank/Name | Unit | DoD ID | Duty Phone | Sex | Age
-  const partICols = [CONTENT_W * 0.32, CONTENT_W * 0.22, CONTENT_W * 0.16, CONTENT_W * 0.14, CONTENT_W * 0.08, CONTENT_W * 0.08]
+  const partICols = [CONTENT_W * 0.30, CONTENT_W * 0.20, CONTENT_W * 0.19, CONTENT_W * 0.14, CONTENT_W * 0.08, CONTENT_W * 0.09]
   const partILabels = ['Rank / Name:', 'Unit:', 'DoD ID:', 'Duty Phone:', 'Sex:', 'Age:']
   const partIFields = [FIELDS.rank_name, FIELDS.unit, FIELDS.dod_id, FIELDS.duty_phone, FIELDS.sex, FIELDS.age]
   const partIDefaults = ['', '', '', '', gender, String(age)]
@@ -528,7 +528,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y += PART_H
 
   // Row: FSQ Date | PFRA Date | Eligible (with footnote + radio) | Height | Weight
-  const partIIaCols = [CONTENT_W * 0.14, CONTENT_W * 0.14, CONTENT_W * 0.38, CONTENT_W * 0.17, CONTENT_W * 0.17]
+  const partIIaCols = [CONTENT_W * 0.12, CONTENT_W * 0.12, CONTENT_W * 0.48, CONTENT_W * 0.14, CONTENT_W * 0.14]
   cx = MARGIN
   // FSQ Date
   setRect(page, cx, y, partIIaCols[0], PART_II_H)
@@ -736,15 +736,22 @@ function drawWaistRow(page, form, helv, x, yTop, w, data, decoded, bodyComp) {
   placeTextField(form, page, exFields('waist').expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
   cx += cols[2]
   // Measurement: 1: __ 2: __ 3: __ Average: __  (4 fields)
+  // 1/2/3 are manual-entry; Average is the only measured value — give it most space
   setRect(page, cx, yTop, cols[3], h)
-  const slotW = cols[3] / 4
+  const smallSlotW = cols[3] * 0.18  // 1:, 2:, 3: each get 18%
+  const avgSlotW = cols[3] - 3 * smallSlotW  // Average gets remaining 46%
+  const slotWidths = [smallSlotW, smallSlotW, smallSlotW, avgSlotW]
   const labels = ['1:', '2:', '3:', 'Average:']
+  const labelSizes = [FONT_SMALL, FONT_SMALL, FONT_SMALL, FONT_SMALL]
   const waistAvgVal = decoded.bodyComp?.waistInches ? String(decoded.bodyComp.waistInches) : ''
   const fieldVals = ['', '', '', waistAvgVal]
+  let sx = cx
   for (let i = 0; i < 4; i++) {
-    drawText(page, labels[i], cx + i * slotW + 2, yTop + h / 2 - 3, { size: FONT_VALUE, font: helv })
-    const lw = helv.widthOfTextAtSize(labels[i], FONT_VALUE)
-    placeTextField(form, page, WAIST_FIELDS[i], cx + i * slotW + 2 + lw + 1, yTop + 2, slotW - lw - 4, h - 4, fieldVals[i])
+    const ls = labelSizes[i]
+    drawText(page, labels[i], sx + 1, yTop + h / 2 - 3, { size: ls, font: helv })
+    const lw = helv.widthOfTextAtSize(labels[i], ls)
+    placeTextField(form, page, WAIST_FIELDS[i], sx + lw + 2, yTop + 2, slotWidths[i] - lw - 3, h - 4, fieldVals[i])
+    sx += slotWidths[i]
   }
   cx += cols[3]
   // Min Met
@@ -790,9 +797,21 @@ function drawExerciseRow(page, form, helv, helvBold, x, yTop, w, exerciseName, m
   const h = ROW_H
   const f = exFields(key)
   let cx = x
-  // Exercise name
+  // Exercise name — wrap to 2 lines if needed (matches 4446 reference)
   setRect(page, cx, yTop, cols[0], h)
-  drawTextCentered(page, exerciseName, cx + cols[0] / 2, yTop + h / 2 - 4, { size: FONT_VALUE, font: helv })
+  const nameW = helv.widthOfTextAtSize(exerciseName, FONT_VALUE)
+  const cellPad = 4
+  if (nameW > cols[0] - cellPad * 2) {
+    const lines = wrap(helv, exerciseName, FONT_VALUE, cols[0] - cellPad * 2)
+    const lineH = FONT_VALUE + 1
+    const startY = yTop + (h - lines.length * lineH) / 2
+    for (let i = 0; i < lines.length; i++) {
+      const lw = helv.widthOfTextAtSize(lines[i], FONT_VALUE)
+      drawText(page, lines[i], cx + (cols[0] - lw) / 2, startY + i * lineH, { size: FONT_VALUE, font: helv })
+    }
+  } else {
+    drawTextCentered(page, exerciseName, cx + cols[0] / 2, yTop + h / 2 - 4, { size: FONT_VALUE, font: helv })
+  }
   cx += cols[0]
   // Exempt radio
   setRect(page, cx, yTop, cols[1], h)
@@ -819,11 +838,11 @@ function drawExerciseRow(page, form, helv, helvBold, x, yTop, w, exerciseName, m
 }
 
 function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.15
-  const rightW = w * 0.15
+  const labelW = w * 0.17
+  const rightW = w * 0.14
   const middleW = w - labelW - rightW
-  const checklistH = 32
-  const sigH = 18
+  const checklistH = 37
+  const sigH = 27
 
   // Label cell (covers both rows)
   setRect(page, x, yTop, labelW, checklistH + sigH)
@@ -872,9 +891,9 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
 }
 
 function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.15
-  const rowH = 18
-  const bodyH = 24
+  const labelW = w * 0.17
+  const rowH = 34
+  const bodyH = 20
 
   // Label cell (covers both rows)
   setRect(page, x, yTop, labelW, rowH + bodyH)
@@ -882,7 +901,7 @@ function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) 
   drawText(page, 'ADMINISTRATOR:', x + 2, yTop + FONT_LABEL + 4, { size: FONT_LABEL, font: helvBold })
 
   // Top row: Sig | Date
-  const sigW = w * 0.68
+  const sigW = w * 0.69
   const dateW = w - labelW - sigW
   setRect(page, x + labelW, yTop, sigW, rowH)
   drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
@@ -913,14 +932,14 @@ function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) 
 }
 
 function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.15
-  const rowH = 18
-  const bodyH = 14
+  const labelW = w * 0.17
+  const rowH = 28
+  const bodyH = 15
 
   setRect(page, x, yTop, labelW, rowH + bodyH)
   drawText(page, 'FAC/UFAC:', x + 2, yTop + 2, { size: FONT_LABEL, font: helvBold })
 
-  const sigW = w * 0.68
+  const sigW = w * 0.69
   const dateW = w - labelW - sigW
   setRect(page, x + labelW, yTop, sigW, rowH)
   drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
@@ -957,12 +976,12 @@ function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
 }
 
 function drawUnitCommanderBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.15
-  const rowH = 18
+  const labelW = w * 0.17
+  const rowH = 28
   setRect(page, x, yTop, labelW, rowH)
   drawText(page, 'UNIT COMMANDER:', x + 2, yTop + rowH / 2 - 3, { size: FONT_LABEL, font: helvBold })
 
-  const sigW = w * 0.68
+  const sigW = w * 0.69
   const dateW = w - labelW - sigW
   setRect(page, x + labelW, yTop, sigW, rowH)
   drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
