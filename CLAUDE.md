@@ -141,6 +141,7 @@ Specialized subagents for domain-specific development tasks live in [`.claude/ag
 - **[scoring-agent](.claude/agents/scoring-agent.md)** - Scoring tables, engine logic, age/gender bracket expansion
 - **[codec-agent](.claude/agents/codec-agent.md)** - S-code/D-code encoding, bit-packing, compression
 - **[fitness-coach](.claude/agents/fitness-coach.md)** - PFA scoring, workout programming, fitness code generation
+- **[tongue-and-quill](.claude/agents/tongue-and-quill.md)** - USAF official writing per AFH 33-337: memos, bullets, EPR/OPR, staff packages, correspondence
 
 ## Deployment
 
