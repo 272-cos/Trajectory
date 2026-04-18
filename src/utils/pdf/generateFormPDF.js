@@ -10,12 +10,12 @@
  * Sig fields:
  *   pfra_admin_sig - locks all test data (Part II + every exercise row + DNF/Notes/Total)
  *   member_sig     - locks 3 acknowledgement checkboxes + member sig date + next pfra due
- *   fac_ufac_sig   - locks fac_ufac_name + fac_ufac_date + fac_ufac_validity
- *   commander_sig  - locks commander_name + commander_date
+ *   fac_ufac_sig   - locks fac_ufac_date + fac_ufac_validity
+ *   commander_sig  - locks commander_date
  *
  * Doc-level JS (Adobe Reader): on open, scans signed sigs and auto-fills the
- * adjacent Name + Date fields from the signer cert. CAC CN convention is
- * LAST.FIRST.MIDDLE.EDIPI; we split on '.' to derive the printable name.
+ * adjacent Date fields from the signer cert. CAC CN convention is
+ * LAST.FIRST.MIDDLE.EDIPI; date is auto-populated from the signing timestamp.
  *
  * Public API is async (returns Promise<Uint8Array>):
  *   generateFormPDF(demographics, decoded, scores) -> Uint8Array
@@ -88,13 +88,10 @@ const FIELDS = {
   member_dispute: 'member_dispute',
   member_signature_date: 'member_signature_date',
   next_pfra_due: 'next_pfra_due',
-  pfra_admin_name: 'pfra_admin_name',
   pfra_admin_date: 'pfra_admin_date',
   pfra_admin_injury: 'pfra_admin_injury',
-  fac_ufac_name: 'fac_ufac_name',
   fac_ufac_date: 'fac_ufac_date',
   fac_ufac_validity: 'fac_ufac_validity',
-  commander_name: 'commander_name',
   commander_date: 'commander_date',
   // Signature widgets
   member_sig: 'member_sig',
@@ -138,17 +135,17 @@ function allTestDataFields() {
 const SIG_LOCKS = {
   pfra_admin_sig: () => [
     ...allTestDataFields(),
-    FIELDS.pfra_admin_name, FIELDS.pfra_admin_date, FIELDS.pfra_admin_injury,
+    FIELDS.pfra_admin_date, FIELDS.pfra_admin_injury,
   ],
   member_sig: () => [
     FIELDS.member_accept_official, FIELDS.member_accept_dpfra, FIELDS.member_dispute,
     FIELDS.member_signature_date, FIELDS.next_pfra_due,
   ],
   fac_ufac_sig: () => [
-    FIELDS.fac_ufac_name, FIELDS.fac_ufac_date, FIELDS.fac_ufac_validity,
+    FIELDS.fac_ufac_date, FIELDS.fac_ufac_validity,
   ],
   commander_sig: () => [
-    FIELDS.commander_name, FIELDS.commander_date,
+    FIELDS.commander_date,
   ],
 }
 
@@ -168,12 +165,6 @@ function setRect(page, x, yTop, w, h, opts = {}) {
   page.drawRectangle(args)
 }
 
-function fillRect(page, x, yTop, w, h, color) {
-  page.drawRectangle({
-    x, y: topY(yTop + h), width: w, height: h,
-    color: rgb(...color),
-  })
-}
 
 function drawText(page, text, x, yTop, opts = {}) {
   const size = opts.size ?? FONT_VALUE
@@ -239,6 +230,16 @@ function placeTextField(form, page, name, x, yTop, w, h, defaultValue = '') {
     borderWidth: 0,
     backgroundColor: undefined,
   })
+  return tf
+}
+
+function placeDateField(form, page, name, x, yTop, w, h, defaultValue = '') {
+  const tf = placeTextField(form, page, name, x, yTop, w, h, defaultValue)
+  const ctx = form.doc.context
+  const fmtAction = ctx.obj({ S: PDFName.of('JavaScript'), JS: PDFString.of('AFDate_FormatEx("mm/dd/yyyy");') })
+  const ksAction = ctx.obj({ S: PDFName.of('JavaScript'), JS: PDFString.of('AFDate_KeystrokeEx("mm/dd/yyyy");') })
+  const aa = ctx.obj({ F: fmtAction, K: ksAction })
+  tf.acroField.dict.set(PDFName.of('AA'), aa)
   return tf
 }
 
@@ -352,9 +353,9 @@ function _autoFillFromSig(sigName, nameField, dateField) {
 }
 function _scanAllSigs() {
   _autoFillFromSig("member_sig",      null,                "member_signature_date");
-  _autoFillFromSig("pfra_admin_sig",  "pfra_admin_name",   "pfra_admin_date");
-  _autoFillFromSig("fac_ufac_sig",    "fac_ufac_name",     "fac_ufac_date");
-  _autoFillFromSig("commander_sig",   "commander_name",    "commander_date");
+  _autoFillFromSig("pfra_admin_sig",  null,   "pfra_admin_date");
+  _autoFillFromSig("fac_ufac_sig",    null,   "fac_ufac_date");
+  _autoFillFromSig("commander_sig",   null,   "commander_date");
 }
 _scanAllSigs();
 `
@@ -467,7 +468,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
     throw new Error('Missing required parameters for PDF generation')
   }
 
-  const PDF_VERSION = '1.0.4'
+  const PDF_VERSION = '1.0.5'
   const pdfDoc = await PDFDocument.create()
   pdfDoc.setTitle('AF Form 4446 - PFRA Score Card')
   pdfDoc.setProducer(`Trajectory PFRA Tracker v${PDF_VERSION}`)
@@ -506,7 +507,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y += privacyH
 
   // ---- PART I header ----
-  fillRect(page, MARGIN, y, CONTENT_W, PART_H, GREY)
+  setRect(page, MARGIN, y, CONTENT_W, PART_H, { fill: GREY })
   drawTextCentered(page, 'PART I. MEMBER COMPLETES', PAGE_W / 2, y + 2, { size: FONT_PART, font: helvBold })
   y += PART_H
 
@@ -527,7 +528,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y += ROW_H
 
   // ---- PART II header ----
-  fillRect(page, MARGIN, y, CONTENT_W, PART_H, GREY)
+  setRect(page, MARGIN, y, CONTENT_W, PART_H, { fill: GREY })
   drawTextCentered(page, 'PART II. TEST ADMINISTRATOR COMPLETES', PAGE_W / 2, y + 2, { size: FONT_PART, font: helvBold })
   y += PART_H
 
@@ -538,12 +539,12 @@ export async function generateFormPDF(demographics, decoded, scores) {
   // FSQ Date
   setRect(page, cx, y, partIIaCols[0], PART_II_H)
   drawText(page, 'FSQ Date:', cx + 2, y + 2, { size: FONT_LABEL, font: helv })
-  placeTextField(form, page, FIELDS.fsq_date, cx + 1, y + FONT_LABEL + 4, partIIaCols[0] - 2, PART_II_H - FONT_LABEL - 5)
+  placeDateField(form, page, FIELDS.fsq_date, cx + 1, y + FONT_LABEL + 4, partIIaCols[0] - 2, PART_II_H - FONT_LABEL - 5)
   cx += partIIaCols[0]
   // PFRA Date
   setRect(page, cx, y, partIIaCols[1], PART_II_H)
   drawText(page, 'PFRA Date:', cx + 2, y + 2, { size: FONT_LABEL, font: helv })
-  placeTextField(form, page, FIELDS.pfra_date, cx + 1, y + FONT_LABEL + 4, partIIaCols[1] - 2, PART_II_H - FONT_LABEL - 5, pfraDateStr)
+  placeDateField(form, page, FIELDS.pfra_date, cx + 1, y + FONT_LABEL + 4, partIIaCols[1] - 2, PART_II_H - FONT_LABEL - 5, pfraDateStr)
   cx += partIIaCols[1]
   // Eligible Diagnostic
   setRect(page, cx, y, partIIaCols[2], PART_II_H)
@@ -629,7 +630,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y += ROW_H
 
   // ---- PART III. ACKNOWLEDGEMENT ----
-  fillRect(page, MARGIN, y, CONTENT_W, PART_H, GREY)
+  setRect(page, MARGIN, y, CONTENT_W, PART_H, { fill: GREY })
   drawTextCentered(page, 'PART III. ACKNOWLEDGEMENT', PAGE_W / 2, y + 2, { size: FONT_PART, font: helvBold })
   y += PART_H
 
@@ -746,7 +747,7 @@ function drawWaistRow(page, form, helv, x, yTop, w, data, decoded, bodyComp) {
   cx += cols[1]
   // Expiration
   setRect(page, cx, yTop, cols[2], h)
-  placeTextField(form, page, exFields('waist').expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
+  placeDateField(form, page, exFields('waist').expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
   cx += cols[2]
   // Measurement: 1: __ 2: __ 3: __ Average: __  (4 fields)
   // 1/2/3 are manual-entry; Average is the only measured value — give it most space
@@ -790,7 +791,7 @@ function drawBodyFatRow(page, form, helv, x, yTop, w) {
   placeYesNoRadio(form, page, exFields('bodyfat').exempt, cx, yTop, cols[1], h, null)
   cx += cols[1]
   setRect(page, cx, yTop, cols[2], h)
-  placeTextField(form, page, exFields('bodyfat').expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
+  placeDateField(form, page, exFields('bodyfat').expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
   cx += cols[2]
   setRect(page, cx, yTop, cols[3], h)
   drawText(page, 'Results (%):', cx + 2, yTop + h / 2 - 3, { size: FONT_VALUE, font: helv })
@@ -832,13 +833,13 @@ function drawExerciseRow(page, form, helv, helvBold, x, yTop, w, exerciseName, m
   cx += cols[1]
   // Expiration
   setRect(page, cx, yTop, cols[2], h)
-  placeTextField(form, page, f.expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
+  placeDateField(form, page, f.expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
   cx += cols[2]
-  // Measurement (label + input)
+  // Measurement (label + input) - fixed label offset so all fields align
   setRect(page, cx, yTop, cols[3], h)
   drawText(page, `${measureLabel}:`, cx + 2, yTop + h / 2 - 3, { size: FONT_VALUE, font: helv })
-  const lw = helv.widthOfTextAtSize(`${measureLabel}:`, FONT_VALUE)
-  placeTextField(form, page, f.measurement, cx + 2 + lw + 1, yTop + 2, cols[3] - lw - 6, h - 4, data.measurement ?? '')
+  const measLabelW = helv.widthOfTextAtSize('Shuttles:', FONT_VALUE)
+  placeTextField(form, page, f.measurement, cx + 2 + measLabelW + 1, yTop + 2, cols[3] - measLabelW - 6, h - 4, data.measurement ?? '')
   cx += cols[3]
   // Min Met radio
   setRect(page, cx, yTop, cols[4], h)
@@ -857,7 +858,7 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
   const dateColW = w * 0.139
   const rightW = w * 0.145
   // 4446_RED.JPG ratio: MemberTesting : PfraAdmin : FacUfac : Commander = 1 : 2 : 0.53 : 1
-  const checklistH = 30
+  const checklistH = 33
   const sigH = 16
 
   // Label cell (covers both rows)
@@ -874,7 +875,7 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
   ]
   const listX = x + labelW + 3
   for (let i = 0; i < items.length; i++) {
-    const ly = yTop + 5 + i * 9
+    const ly = yTop + 2 + i * 9
     drawSquareCheckbox(page, listX, ly, false)
     placeCheckbox(form, page, items[i][1], listX, ly, CHECKBOX, false)
     drawText(page, items[i][0], listX + CHECKBOX + 3, ly + 1, { size: FONT_ACK, font: helvItalic })
@@ -885,14 +886,14 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
   setRect(page, pfraLabelX, yTop, dateColW, checklistH)
   drawText(page, 'Next PFRA Due:', pfraLabelX + 2, yTop + checklistH / 2 - FONT_LABEL / 2, { size: FONT_LABEL, font: helv })
   setRect(page, pfraLabelX + dateColW, yTop, rightW, checklistH)
-  placeTextField(form, page, FIELDS.next_pfra_due,
+  placeDateField(form, page, FIELDS.next_pfra_due,
     pfraLabelX + dateColW + 1, yTop + 2, rightW - 2, checklistH - 4)
 
   // Signature row: label cell | signature field cell
   const sigY = yTop + checklistH
   // "Signature:" label cell
   setRect(page, x + labelW, sigY, midW, sigH)
-  drawText(page, 'Signature:', x + labelW + 2, sigY + 2, { size: FONT_LABEL, font: helvItalic })
+  drawText(page, 'Signature:', x + labelW + 2, sigY + sigH / 2 - FONT_LABEL / 2, { size: FONT_LABEL, font: helvItalic })
   // Signature field cell
   setRect(page, x + labelW + midW, sigY, sigAreaW, sigH)
   page._sigLocators = page._sigLocators || {}
@@ -905,7 +906,7 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
   setRect(page, dateX, sigY, dateColW, sigH)
   drawText(page, 'Date:', dateX + 2, sigY + sigH / 2 - FONT_LABEL / 2, { size: FONT_LABEL, font: helvItalic })
   setRect(page, dateX + dateColW, sigY, rightW, sigH)
-  placeTextField(form, page, FIELDS.member_signature_date, dateX + dateColW + 1, sigY + 2, rightW - 2, sigH - 4)
+  placeDateField(form, page, FIELDS.member_signature_date, dateX + dateColW + 1, sigY + 2, rightW - 2, sigH - 4)
 
   return sigY + sigH
 }
@@ -925,22 +926,21 @@ function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) 
 
   // Name/Signature label cell
   setRect(page, x + labelW, yTop, sigLabelW, rowH)
-  drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  drawText(page, 'Name/Signature:', x + labelW + 2, yTop + rowH / 2 - FONT_LABEL / 2, { size: FONT_LABEL, font: helvItalic })
   // Signature field cell
   setRect(page, x + labelW + sigLabelW, yTop, sigFieldW, rowH)
   page._sigLocators = page._sigLocators || {}
   page._sigLocators[FIELDS.pfra_admin_sig] = {
-    x: x + labelW + sigLabelW + 1, y: yTop + 1,
-    w: sigFieldW - 2, h: rowH - 2,
+    x: x + labelW + sigLabelW + 1, y: yTop + 2,
+    w: sigFieldW - 2, h: rowH - 4,
   }
-  placeTextField(form, page, FIELDS.pfra_admin_name, x + labelW + sigLabelW + 1, yTop + FONT_LABEL + 4, sigFieldW - 2, rowH - FONT_LABEL - 5)
 
   // Date label | field (aligned to Min Value Met? | Score)
   const dateX = x + labelW + sigLabelW + sigFieldW
   setRect(page, dateX, yTop, dateW, rowH)
   drawText(page, 'Date:', dateX + 2, yTop + rowH / 2 - FONT_LABEL / 2, { size: FONT_LABEL, font: helvItalic })
   setRect(page, dateX + dateW, yTop, rightW, rowH)
-  placeTextField(form, page, FIELDS.pfra_admin_date, dateX + dateW + 1, yTop + 2, rightW - 2, rowH - 4)
+  placeDateField(form, page, FIELDS.pfra_admin_date, dateX + dateW + 1, yTop + 2, rightW - 2, rowH - 4)
 
   return yTop + rowH
 }
@@ -975,22 +975,21 @@ function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
 
   // Name/Signature label cell
   setRect(page, x + labelW, yTop, sigLabelW, rowH)
-  drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  drawText(page, 'Name/Signature:', x + labelW + 2, yTop + rowH / 2 - FONT_LABEL / 2, { size: FONT_LABEL, font: helvItalic })
   // Signature field cell
   setRect(page, x + labelW + sigLabelW, yTop, sigFieldW, rowH)
   page._sigLocators = page._sigLocators || {}
   page._sigLocators[FIELDS.fac_ufac_sig] = {
-    x: x + labelW + sigLabelW + 1, y: yTop + FONT_LABEL + 4,
-    w: sigFieldW - 2, h: rowH - FONT_LABEL - 5,
+    x: x + labelW + sigLabelW + 1, y: yTop + 2,
+    w: sigFieldW - 2, h: rowH - 4,
   }
-  placeTextField(form, page, FIELDS.fac_ufac_name, x + labelW + sigLabelW + 1, yTop + FONT_LABEL + 4, sigFieldW - 2, rowH - FONT_LABEL - 5)
 
   // Date label | field (aligned to Min Value Met? | Score)
   const dateX = x + labelW + sigLabelW + sigFieldW
   setRect(page, dateX, yTop, dateW, rowH)
   drawText(page, 'Date:', dateX + 2, yTop + rowH / 2 - FONT_LABEL / 2, { size: FONT_LABEL, font: helvItalic })
   setRect(page, dateX + dateW, yTop, rightW, rowH)
-  placeTextField(form, page, FIELDS.fac_ufac_date, dateX + dateW + 1, yTop + 2, rightW - 2, rowH - 4)
+  placeDateField(form, page, FIELDS.fac_ufac_date, dateX + dateW + 1, yTop + 2, rightW - 2, rowH - 4)
 
   return yTop + rowH
 }
@@ -1030,22 +1029,21 @@ function drawUnitCommanderBlock(page, form, helv, helvBold, helvItalic, x, yTop,
 
   // Name/Signature label cell
   setRect(page, x + labelW, yTop, sigLabelW, rowH)
-  drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  drawText(page, 'Name/Signature:', x + labelW + 2, yTop + rowH / 2 - FONT_LABEL / 2, { size: FONT_LABEL, font: helvItalic })
   // Signature field cell
   setRect(page, x + labelW + sigLabelW, yTop, sigFieldW, rowH)
   page._sigLocators = page._sigLocators || {}
   page._sigLocators[FIELDS.commander_sig] = {
-    x: x + labelW + sigLabelW + 1, y: yTop + FONT_LABEL + 4,
-    w: sigFieldW - 2, h: rowH - FONT_LABEL - 5,
+    x: x + labelW + sigLabelW + 1, y: yTop + 2,
+    w: sigFieldW - 2, h: rowH - 4,
   }
-  placeTextField(form, page, FIELDS.commander_name, x + labelW + sigLabelW + 1, yTop + FONT_LABEL + 4, sigFieldW - 2, rowH - FONT_LABEL - 5)
 
   // Date label | field (aligned to Min Value Met? | Score)
   const dateX = x + labelW + sigLabelW + sigFieldW
   setRect(page, dateX, yTop, dateW, rowH)
   drawText(page, 'Date:', dateX + 2, yTop + rowH / 2 - FONT_LABEL / 2, { size: FONT_LABEL, font: helvItalic })
   setRect(page, dateX + dateW, yTop, rightW, rowH)
-  placeTextField(form, page, FIELDS.commander_date, dateX + dateW + 1, yTop + 2, rightW - 2, rowH - 4)
+  placeDateField(form, page, FIELDS.commander_date, dateX + dateW + 1, yTop + 2, rightW - 2, rowH - 4)
   return yTop + rowH
 }
 
