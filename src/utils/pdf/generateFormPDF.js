@@ -841,8 +841,8 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
   const labelW = w * 0.17
   const rightW = w * 0.14
   const middleW = w - labelW - rightW
-  const checklistH = 32
-  const sigH = 18
+  const checklistH = 37
+  const sigH = 27
 
   // Label cell (covers both rows)
   setRect(page, x, yTop, labelW, checklistH + sigH)
@@ -892,8 +892,8 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
 
 function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
   const labelW = w * 0.17
-  const rowH = 18
-  const bodyH = 24
+  const rowH = 34
+  const bodyH = 20
 
   // Label cell (covers both rows)
   setRect(page, x, yTop, labelW, rowH + bodyH)
@@ -933,8 +933,8 @@ function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) 
 
 function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
   const labelW = w * 0.17
-  const rowH = 18
-  const bodyH = 14
+  const rowH = 28
+  const bodyH = 15
 
   setRect(page, x, yTop, labelW, rowH + bodyH)
   drawText(page, 'FAC/UFAC:', x + 2, yTop + 2, { size: FONT_LABEL, font: helvBold })
@@ -977,7 +977,7 @@ function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
 
 function drawUnitCommanderBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
   const labelW = w * 0.17
-  const rowH = 18
+  const rowH = 28
   setRect(page, x, yTop, labelW, rowH)
   drawText(page, 'UNIT COMMANDER:', x + 2, yTop + rowH / 2 - 3, { size: FONT_LABEL, font: helvBold })
 
