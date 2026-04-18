@@ -467,9 +467,10 @@ export async function generateFormPDF(demographics, decoded, scores) {
     throw new Error('Missing required parameters for PDF generation')
   }
 
+  const PDF_VERSION = '1.0.3'
   const pdfDoc = await PDFDocument.create()
   pdfDoc.setTitle('AF Form 4446 - PFRA Score Card')
-  pdfDoc.setProducer('Trajectory PFRA Tracker')
+  pdfDoc.setProducer(`Trajectory PFRA Tracker v${PDF_VERSION}`)
 
   const helv = await pdfDoc.embedFont(StandardFonts.Helvetica)
   const helvBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
@@ -945,18 +946,20 @@ function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) 
 }
 
 function drawInjuryCheckboxRow(page, form, helv, helvBold, helvItalic, x, yTop, w) {
+  const labelW = w * 0.166
+  const rowX = x + labelW
+  const rowW = w - labelW
   const bodyText = 'Member experienced an injury or illness during this PFRA & was advised to pursue evaluation at a Medical Treatment Facility. This PFRA will become official unless rendered invalid by the Unit/CC. If no request to invalidate this PFRA or request to await medical review is not received by the FAC from the Unit/CC, the PFRA will become official on the 6th duty day(conclusion of next UTA for non-AGR ARC) IAW AFMAN 36-2905, 3.12.'
   const bodyFontSize = FONT_SMALL
   const bodyLineH = bodyFontSize + 1
-  const bodyLines = wrap(helvItalic, bodyText, bodyFontSize, w - CHECKBOX - 12)
+  const bodyLines = wrap(helvItalic, bodyText, bodyFontSize, rowW - CHECKBOX - 12)
   const bodyH = Math.max(30, bodyLines.length * bodyLineH + 8)
 
-  // Full-width checkbox row
-  setRect(page, x, yTop, w, bodyH)
-  drawSquareCheckbox(page, x + 3, yTop + 3, false)
-  placeCheckbox(form, page, FIELDS.pfra_admin_injury, x + 3, yTop + 3, CHECKBOX, false)
+  setRect(page, rowX, yTop, rowW, bodyH)
+  drawSquareCheckbox(page, rowX + 3, yTop + 3, false)
+  placeCheckbox(form, page, FIELDS.pfra_admin_injury, rowX + 3, yTop + 3, CHECKBOX, false)
   for (let i = 0; i < bodyLines.length; i++) {
-    drawText(page, bodyLines[i], x + CHECKBOX + 8, yTop + 3 + i * bodyLineH, { size: bodyFontSize, font: helvItalic })
+    drawText(page, bodyLines[i], rowX + CHECKBOX + 8, yTop + 3 + i * bodyLineH, { size: bodyFontSize, font: helvItalic })
   }
   return yTop + bodyH
 }
@@ -996,13 +999,15 @@ function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
 }
 
 function drawValidityCheckboxRow(page, form, helv, helvBold, helvItalic, x, yTop, w) {
+  const labelW = w * 0.166
+  const rowX = x + labelW
+  const rowW = w - labelW
   const bodyH = 13
 
-  // Full-width checkbox row
-  setRect(page, x, yTop, w, bodyH)
-  drawSquareCheckbox(page, x + 3, yTop + 2, false)
-  placeCheckbox(form, page, FIELDS.fac_ufac_validity, x + 3, yTop + 2, CHECKBOX, false)
-  const tx = x + CHECKBOX + 8
+  setRect(page, rowX, yTop, rowW, bodyH)
+  drawSquareCheckbox(page, rowX + 3, yTop + 2, false)
+  placeCheckbox(form, page, FIELDS.fac_ufac_validity, rowX + 3, yTop + 2, CHECKBOX, false)
+  const tx = rowX + CHECKBOX + 8
   const ty = yTop + 4
   const prefix = 'I have received and considered the provided medical documentation and render this test ['
   drawText(page, prefix, tx, ty, { size: FONT_ACK, font: helv })
