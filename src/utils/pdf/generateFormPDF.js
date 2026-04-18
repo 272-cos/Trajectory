@@ -443,7 +443,8 @@ function formatCompValue(comp) {
 
 function componentCols(totalW) {
   // Exercise | Exempt | Expiration | Measurement | Min Value Met? | Score
-  return [totalW * 0.17, totalW * 0.10, totalW * 0.11, totalW * 0.34, totalW * 0.14, totalW * 0.14]
+  // Proportions from 4446_RED.JPG pixel analysis (structural red lines)
+  return [totalW * 0.166, totalW * 0.111, totalW * 0.102, totalW * 0.337, totalW * 0.139, totalW * 0.145]
 }
 
 function wrap(font, text, size, maxWidth) {
@@ -508,7 +509,8 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y += PART_H
 
   // Row: Rank/Name | Unit | DoD ID | Duty Phone | Sex | Age
-  const partICols = [CONTENT_W * 0.30, CONTENT_W * 0.20, CONTENT_W * 0.19, CONTENT_W * 0.14, CONTENT_W * 0.08, CONTENT_W * 0.09]
+  // Proportions from 4446_1.JPG pixel analysis
+  const partICols = [CONTENT_W * 0.295, CONTENT_W * 0.204, CONTENT_W * 0.192, CONTENT_W * 0.135, CONTENT_W * 0.076, CONTENT_W * 0.098]
   const partILabels = ['Rank / Name:', 'Unit:', 'DoD ID:', 'Duty Phone:', 'Sex:', 'Age:']
   const partIFields = [FIELDS.rank_name, FIELDS.unit, FIELDS.dod_id, FIELDS.duty_phone, FIELDS.sex, FIELDS.age]
   const partIDefaults = ['', '', '', '', gender, String(age)]
@@ -528,7 +530,8 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y += PART_H
 
   // Row: FSQ Date | PFRA Date | Eligible (with footnote + radio) | Height | Weight
-  const partIIaCols = [CONTENT_W * 0.12, CONTENT_W * 0.12, CONTENT_W * 0.48, CONTENT_W * 0.14, CONTENT_W * 0.14]
+  // Proportions from 4446_2.JPG pixel analysis
+  const partIIaCols = [CONTENT_W * 0.108, CONTENT_W * 0.134, CONTENT_W * 0.472, CONTENT_W * 0.140, CONTENT_W * 0.146]
   cx = MARGIN
   // FSQ Date
   setRect(page, cx, y, partIIaCols[0], PART_II_H)
@@ -596,9 +599,11 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y = drawExerciseRow(page, form, helv, helvBold, MARGIN, y, CONTENT_W, '2 KM Walk', 'Time', 'walk', walkData)
 
   // ---- DNF / Notes / Total ----
-  const dnfW = CONTENT_W * 0.20
-  const notesW = CONTENT_W * 0.55
-  const totalW = CONTENT_W * 0.25
+  // Proportions from 4446_RED.JPG: DNF=0.165, Notes=0.552, TotalLabel=0.138, TotalValue=0.145
+  const dnfW = CONTENT_W * 0.165
+  const notesW = CONTENT_W * 0.552
+  const totalLabelW = CONTENT_W * 0.138
+  const totalValueW = CONTENT_W * 0.145
   setRect(page, MARGIN, y, dnfW, ROW_H)
   // Square checkbox: visual + form widget
   const cbY = y + (ROW_H - CHECKBOX) / 2
@@ -611,10 +616,13 @@ export async function generateFormPDF(demographics, decoded, scores) {
   drawText(page, 'Notes:', MARGIN + dnfW + 2, y + 2, { size: FONT_LABEL, font: helv })
   placeTextField(form, page, FIELDS.notes, MARGIN + dnfW + 1, y + FONT_LABEL + 4, notesW - 2, ROW_H - FONT_LABEL - 5)
 
-  setRect(page, MARGIN + dnfW + notesW, y, totalW, ROW_H)
-  drawText(page, 'Total Score:', MARGIN + dnfW + notesW + 2, y + 2, { size: FONT_LABEL, font: helvBold })
+  const totalX = MARGIN + dnfW + notesW
+  setRect(page, totalX, y, totalLabelW, ROW_H)
+  drawText(page, 'Total Score:', totalX + 2, y + 2, { size: FONT_LABEL, font: helvBold })
+
+  setRect(page, totalX + totalLabelW, y, totalValueW, ROW_H)
   const compositeVal = scores.composite?.composite != null ? scores.composite.composite.toFixed(1) : ''
-  placeTextField(form, page, FIELDS.total_score, MARGIN + dnfW + notesW + 1, y + FONT_LABEL + 4, totalW - 2, ROW_H - FONT_LABEL - 5, compositeVal)
+  placeTextField(form, page, FIELDS.total_score, totalX + totalLabelW + 1, y + FONT_LABEL + 4, totalValueW - 2, ROW_H - FONT_LABEL - 5, compositeVal)
   y += ROW_H
 
   // ---- PART III. ACKNOWLEDGEMENT ----
@@ -838,18 +846,23 @@ function drawExerciseRow(page, form, helv, helvBold, x, yTop, w, exerciseName, m
 }
 
 function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.17
-  const rightW = w * 0.14
-  const middleW = w - labelW - rightW
-  const checklistH = 37
-  const sigH = 27
+  // 4446_RED.JPG Band 4-5: Label=0.166, Mid=0.150, Sig=0.400, Date=0.138, Right=0.145
+  const labelW = w * 0.166
+  const midW = w * 0.150
+  const sigAreaW = w * 0.400
+  const dateColW = w * 0.138
+  const rightW = w * 0.145
+  // 4446_RED.JPG ratio: MemberTesting : PfraAdmin : FacUfac : Commander = 1 : 2 : 0.53 : 1
+  const checklistH = 30
+  const sigH = 16
 
   // Label cell (covers both rows)
   setRect(page, x, yTop, labelW, checklistH + sigH)
   drawText(page, 'MEMBER TESTING:', x + 2, yTop + 2, { size: FONT_LABEL, font: helvBold })
 
-  // Middle checkbox list
-  setRect(page, x + labelW, yTop, middleW, checklistH)
+  // Middle checkbox list (spans mid + sig area columns)
+  const checklistW = midW + sigAreaW
+  setRect(page, x + labelW, yTop, checklistW, checklistH)
   const items = [
     ['Accept results as Official PFRA and acknowledge results reflects my performance', FIELDS.member_accept_official],
     ['(If Applicable) Accept as DPFRA attempt IAW AFMAN 36-2905, 3.5.2.5', FIELDS.member_accept_dpfra],
@@ -863,103 +876,107 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
     drawText(page, items[i][0], listX + CHECKBOX + 3, ly + 1, { size: FONT_ACK, font: helvItalic })
   }
 
-  // Right cell: Next PFRA Due
-  setRect(page, x + labelW + middleW, yTop, rightW, checklistH)
-  drawText(page, 'Next PFRA Due:', x + labelW + middleW + 2, yTop + 2, { size: FONT_LABEL, font: helv })
+  // Right cells: Next PFRA Due (date + right columns)
+  setRect(page, x + labelW + checklistW, yTop, dateColW + rightW, checklistH)
+  drawText(page, 'Next PFRA Due:', x + labelW + checklistW + 2, yTop + 2, { size: FONT_LABEL, font: helv })
   placeTextField(form, page, FIELDS.next_pfra_due,
-    x + labelW + middleW + 1, yTop + FONT_LABEL + 4, rightW - 2, checklistH - FONT_LABEL - 5)
+    x + labelW + checklistW + 1, yTop + FONT_LABEL + 4, dateColW + rightW - 2, checklistH - FONT_LABEL - 5)
 
   // Signature row
   const sigY = yTop + checklistH
-  // Signature widget cell
-  setRect(page, x + labelW, sigY, middleW + rightW * 0.7, sigH)
+  // Signature widget cell (mid + sig area columns)
+  setRect(page, x + labelW, sigY, checklistW, sigH)
   drawText(page, 'Signature:', x + labelW + 2, sigY + 2, { size: FONT_LABEL, font: helvItalic })
-  // Signature widget will be added later via addSignatureField; stash locator
   page._sigLocators = page._sigLocators || {}
   page._sigLocators[FIELDS.member_sig] = {
     x: x + labelW + 1, y: sigY + FONT_LABEL + 4,
-    w: middleW + rightW * 0.7 - 2, h: sigH - FONT_LABEL - 5,
+    w: checklistW - 2, h: sigH - FONT_LABEL - 5,
   }
   // Date cell
-  const dateX = x + labelW + middleW + rightW * 0.7
-  const dateW = w - (dateX - x)
-  setRect(page, dateX, sigY, dateW, sigH)
+  const dateX = x + labelW + checklistW
+  setRect(page, dateX, sigY, dateColW + rightW, sigH)
   drawText(page, 'Date:', dateX + 2, sigY + 2, { size: FONT_LABEL, font: helvItalic })
-  placeTextField(form, page, FIELDS.member_signature_date, dateX + 1, sigY + FONT_LABEL + 4, dateW - 2, sigH - FONT_LABEL - 5)
+  placeTextField(form, page, FIELDS.member_signature_date, dateX + 1, sigY + FONT_LABEL + 4, dateColW + rightW - 2, sigH - FONT_LABEL - 5)
 
   return sigY + sigH
 }
 
 function drawPfraAdminBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.17
+  // 4446_RED.JPG Band 6: Label=0.166, sigArea spans to 0.855, right=0.145
+  // Internal: Name/Sig divider at 0.314, Date at 0.717
+  const labelW = w * 0.166
+  const rightW = w * 0.145
+  const dateW = w * 0.138
+  // 4446_RED.JPG ratio: PFRA Admin = 2x Member Testing (44pt base -> 88pt)
+  const bodyText = 'Member experienced an injury or illness during this PFRA & was advised to pursue evaluation at a Medical Treatment Facility. This PFRA will become official unless rendered invalid by the Unit/CC. If no request to invalidate this PFRA or request to await medical review is not received by the FAC from the Unit/CC, the PFRA will become official on the 6th duty day(conclusion of next UTA for non-AGR ARC) IAW AFMAN 36-2905, 3.12.'
+  const bodyLines = wrap(helvItalic, bodyText, FONT_ACK, w - labelW - CHECKBOX - 12)
   const rowH = 34
-  const bodyH = 20
+  const bodyH = Math.max(54, bodyLines.length * (FONT_ACK + 1.5) + 8)
 
   // Label cell (covers both rows)
   setRect(page, x, yTop, labelW, rowH + bodyH)
   drawText(page, 'PFRA', x + 2, yTop + 2, { size: FONT_LABEL, font: helvBold })
   drawText(page, 'ADMINISTRATOR:', x + 2, yTop + FONT_LABEL + 4, { size: FONT_LABEL, font: helvBold })
 
-  // Top row: Sig | Date
-  const sigW = w * 0.69
-  const dateW = w - labelW - sigW
-  setRect(page, x + labelW, yTop, sigW, rowH)
+  // Top row: Name/Sig | Date | (right col empty)
+  const nameSigW = w - labelW - dateW - rightW
+  setRect(page, x + labelW, yTop, nameSigW, rowH)
   drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
-  // Sig widget locator (for admin sig)
   page._sigLocators = page._sigLocators || {}
   page._sigLocators[FIELDS.pfra_admin_sig] = {
     x: x + labelW + 1, y: yTop + FONT_LABEL + 4,
-    w: sigW - 2, h: rowH - FONT_LABEL - 5,
+    w: nameSigW - 2, h: rowH - FONT_LABEL - 5,
   }
-  // Visible name field for auto-fill
-  placeTextField(form, page, FIELDS.pfra_admin_name, x + labelW + 1, yTop + FONT_LABEL + 4, sigW - 2, rowH - FONT_LABEL - 5)
+  placeTextField(form, page, FIELDS.pfra_admin_name, x + labelW + 1, yTop + FONT_LABEL + 4, nameSigW - 2, rowH - FONT_LABEL - 5)
 
-  setRect(page, x + labelW + sigW, yTop, dateW, rowH)
-  drawText(page, 'Date:', x + labelW + sigW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
-  placeTextField(form, page, FIELDS.pfra_admin_date, x + labelW + sigW + 1, yTop + FONT_LABEL + 4, dateW - 2, rowH - FONT_LABEL - 5)
+  const dateX = x + labelW + nameSigW
+  setRect(page, dateX, yTop, dateW + rightW, rowH)
+  drawText(page, 'Date:', dateX + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  placeTextField(form, page, FIELDS.pfra_admin_date, dateX + 1, yTop + FONT_LABEL + 4, dateW + rightW - 2, rowH - FONT_LABEL - 5)
 
   // Body row: checkbox + paragraph
   const bodyY = yTop + rowH
   setRect(page, x + labelW, bodyY, w - labelW, bodyH)
   drawSquareCheckbox(page, x + labelW + 3, bodyY + 3, false)
   placeCheckbox(form, page, FIELDS.pfra_admin_injury, x + labelW + 3, bodyY + 3, CHECKBOX, false)
-  const bodyText = 'Member experienced an injury or illness during this PFRA & was advised to pursue evaluation at a Medical Treatment Facility. This PFRA will become official unless rendered invalid by the Unit/CC. If no request to invalidate this PFRA or request to await medical review is not received by the FAC from the Unit/CC, the PFRA will become official on the 6th duty day(conclusion of next UTA for non-AGR ARC) IAW AFMAN 36-2905, 3.12.'
-  const lines = wrap(helvItalic, bodyText, FONT_ACK, w - labelW - CHECKBOX - 12)
-  for (let i = 0; i < lines.length; i++) {
-    drawText(page, lines[i], x + labelW + CHECKBOX + 8, bodyY + 3 + i * (FONT_ACK + 1.5), { size: FONT_ACK, font: helvItalic })
+  for (let i = 0; i < bodyLines.length; i++) {
+    drawText(page, bodyLines[i], x + labelW + CHECKBOX + 8, bodyY + 3 + i * (FONT_ACK + 1.5), { size: FONT_ACK, font: helvItalic })
   }
   return bodyY + bodyH
 }
 
 function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.17
-  const rowH = 28
-  const bodyH = 15
+  // 4446_RED.JPG: Same column pattern as PFRA Admin
+  const labelW = w * 0.166
+  const dateW = w * 0.138
+  const rightW = w * 0.145
+  // 4446_RED.JPG ratio: FAC/UFAC = 0.53x Member Testing
+  const rowH = 22
+  const bodyH = 13
 
   setRect(page, x, yTop, labelW, rowH + bodyH)
   drawText(page, 'FAC/UFAC:', x + 2, yTop + 2, { size: FONT_LABEL, font: helvBold })
 
-  const sigW = w * 0.69
-  const dateW = w - labelW - sigW
-  setRect(page, x + labelW, yTop, sigW, rowH)
+  const nameSigW = w - labelW - dateW - rightW
+  setRect(page, x + labelW, yTop, nameSigW, rowH)
   drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
   page._sigLocators = page._sigLocators || {}
   page._sigLocators[FIELDS.fac_ufac_sig] = {
     x: x + labelW + 1, y: yTop + FONT_LABEL + 4,
-    w: sigW - 2, h: rowH - FONT_LABEL - 5,
+    w: nameSigW - 2, h: rowH - FONT_LABEL - 5,
   }
-  placeTextField(form, page, FIELDS.fac_ufac_name, x + labelW + 1, yTop + FONT_LABEL + 4, sigW - 2, rowH - FONT_LABEL - 5)
+  placeTextField(form, page, FIELDS.fac_ufac_name, x + labelW + 1, yTop + FONT_LABEL + 4, nameSigW - 2, rowH - FONT_LABEL - 5)
 
-  setRect(page, x + labelW + sigW, yTop, dateW, rowH)
-  drawText(page, 'Date:', x + labelW + sigW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
-  placeTextField(form, page, FIELDS.fac_ufac_date, x + labelW + sigW + 1, yTop + FONT_LABEL + 4, dateW - 2, rowH - FONT_LABEL - 5)
+  const dateX = x + labelW + nameSigW
+  setRect(page, dateX, yTop, dateW + rightW, rowH)
+  drawText(page, 'Date:', dateX + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  placeTextField(form, page, FIELDS.fac_ufac_date, dateX + 1, yTop + FONT_LABEL + 4, dateW + rightW - 2, rowH - FONT_LABEL - 5)
 
   // Validity row
   const bodyY = yTop + rowH
   setRect(page, x + labelW, bodyY, w - labelW, bodyH)
   drawSquareCheckbox(page, x + labelW + 3, bodyY + 2, false)
   placeCheckbox(form, page, FIELDS.fac_ufac_validity, x + labelW + 3, bodyY + 2, CHECKBOX, false)
-  // "I have received and considered ... [valid / invalid] due to injury/illness"
   const tx = x + labelW + CHECKBOX + 8
   const ty = bodyY + 4
   const prefix = 'I have received and considered the provided medical documentation and render this test ['
@@ -976,13 +993,17 @@ function drawFacUfacBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
 }
 
 function drawUnitCommanderBlock(page, form, helv, helvBold, helvItalic, x, yTop, w) {
-  const labelW = w * 0.17
-  const rowH = 28
+  // 4446_RED.JPG Band 8: Label=0.316, Sig=0.400, Date=0.139, Right=0.145
+  const labelW = w * 0.316
+  const sigW = w * 0.400
+  const dateW = w * 0.139
+  const rightW = w * 0.145
+  // 4446_RED.JPG ratio: Commander = 1x Member Testing
+  const rowH = 44
+
   setRect(page, x, yTop, labelW, rowH)
   drawText(page, 'UNIT COMMANDER:', x + 2, yTop + rowH / 2 - 3, { size: FONT_LABEL, font: helvBold })
 
-  const sigW = w * 0.69
-  const dateW = w - labelW - sigW
   setRect(page, x + labelW, yTop, sigW, rowH)
   drawText(page, 'Name/Signature:', x + labelW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
   page._sigLocators = page._sigLocators || {}
@@ -992,9 +1013,10 @@ function drawUnitCommanderBlock(page, form, helv, helvBold, helvItalic, x, yTop,
   }
   placeTextField(form, page, FIELDS.commander_name, x + labelW + 1, yTop + FONT_LABEL + 4, sigW - 2, rowH - FONT_LABEL - 5)
 
-  setRect(page, x + labelW + sigW, yTop, dateW, rowH)
-  drawText(page, 'Date:', x + labelW + sigW + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
-  placeTextField(form, page, FIELDS.commander_date, x + labelW + sigW + 1, yTop + FONT_LABEL + 4, dateW - 2, rowH - FONT_LABEL - 5)
+  const dateX = x + labelW + sigW
+  setRect(page, dateX, yTop, dateW + rightW, rowH)
+  drawText(page, 'Date:', dateX + 2, yTop + 2, { size: FONT_LABEL, font: helvItalic })
+  placeTextField(form, page, FIELDS.commander_date, dateX + 1, yTop + FONT_LABEL + 4, dateW + rightW - 2, rowH - FONT_LABEL - 5)
   return yTop + rowH
 }
 
