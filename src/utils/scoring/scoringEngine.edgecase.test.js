@@ -19,15 +19,13 @@ import { EXERCISES, AGE_BRACKETS, GENDER, COMPONENTS } from './constants.js'
 const M = GENDER.MALE
 const U25 = AGE_BRACKETS.UNDER_25
 
-// ─── GAP 1: WHtR 0.60 returns 0.0 points - violates "never 0" invariant ─────
-// EC-01 says below-chart-min clamps to minimum chart points, NEVER 0.
-// But WHTR_TABLE's last entry is { threshold: 0.60, points: 0.0 }.
-// This means lookupScore returns points=0 for WHtR >= 0.60, and
-// percentage = (0/20)*100 = 0. This is NOT an error in the table (the
-// regulation assigns 0 points), but it means EC-01's "never 0" invariant
-// does not hold for WHtR body comp. Tests should document this behavior.
+// ─── WHtR 0.60 edge case - DAFMAN §3.7.4 (below-chart = 0 external) ─────────
+// DAFMAN 36-2905 §3.7.4: values below chart minimum earn 0 external points.
+// Internal tracking number still calculated (chart-minimum clamp) for projection.
+// WHtR uses truncation (Math.floor), not rounding: 0.595 -> 0.59, 0.599 -> 0.59.
+// §3.7.1: Body Composition has no per-component minimum; BFA gate is separate.
 
-describe('WHtR 0.60 edge case - 0 points from table (not EC-01 violation)', () => {
+describe('WHtR 0.60 edge case - DAFMAN §3.7.4 external/internal split', () => {
   it('WHtR exactly 0.60 returns 0.0 points (table minimum, not clamped higher)', () => {
     const result = lookupScore(EXERCISES.WHTR, 0.60, M, U25)
     expect(result).not.toBeNull()
@@ -35,20 +33,20 @@ describe('WHtR 0.60 edge case - 0 points from table (not EC-01 violation)', () =
     expect(result.percentage).toBe(0)
   })
 
-  it('WHtR worse than chart (0.65) also clamps to 0.0 points', () => {
+  it('WHtR worse than chart (0.65) also yields 0.0 external points', () => {
     const result = lookupScore(EXERCISES.WHTR, 0.65, M, U25)
     expect(result).not.toBeNull()
     expect(result.points).toBe(0.0)
   })
 
-  it('WHtR 0.60 component score: pass=false (0% < 50% minimum)', () => {
+  it('WHtR 0.60 component score: belowMinimum=false (BC has no minimum per §3.7.1)', () => {
     const result = calculateComponentScore(
       { type: 'bodyComp', exercise: EXERCISES.WHTR, value: 0.60 },
       M, U25,
     )
     expect(result.tested).toBe(true)
     expect(result.points).toBe(0.0)
-    expect(result.pass).toBe(false)
+    expect(result.belowMinimum).toBe(false)
   })
 
   it('WHtR 0.59 gives 2.5 pts (just above 0.0 threshold)', () => {
@@ -56,13 +54,12 @@ describe('WHtR 0.60 edge case - 0 points from table (not EC-01 violation)', () =
     expect(result.points).toBe(2.5)
   })
 
-  it('WHtR 0.595 rounds to 0.60 and gets 0.0 pts (rounding pushes into 0-pt bracket)', () => {
-    // This is a critical rounding edge: 0.595 rounds to 0.60
+  it('WHtR 0.595 truncates to 0.59 and gets 2.5 pts (floor, not round, per DAFMAN)', () => {
     const result = lookupScore(EXERCISES.WHTR, 0.595, M, U25)
-    expect(result.points).toBe(0.0)
+    expect(result.points).toBe(2.5)
   })
 
-  it('WHtR 0.594 rounds to 0.59 and gets 2.5 pts (rounding saves from 0-pt bracket)', () => {
+  it('WHtR 0.594 truncates to 0.59 and gets 2.5 pts', () => {
     const result = lookupScore(EXERCISES.WHTR, 0.594, M, U25)
     expect(result.points).toBe(2.5)
   })
@@ -338,7 +335,7 @@ describe('Alternative exercises through calculateComponentScore', () => {
 
   it('CLRC (cross-leg reverse crunch) scores correctly', () => {
     const result = calculateComponentScore(
-      { type: 'core', exercise: EXERCISES.CLRC, value: 30 },
+      { type: 'core', exercise: EXERCISES.CLRC, value: 50 },
       M, U25,
     )
     expect(result.tested).toBe(true)

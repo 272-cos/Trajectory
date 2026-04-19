@@ -75,9 +75,9 @@ describe('getMinimumToPass - minimumPct values match component rules', () => {
     expect(result.minimumPct).toBe(60)
   })
 
-  it('WHtR minimumPct = 50 (body comp)', () => {
+  it('WHtR getMinimumToPass returns null (BC has no minimum per DAFMAN §3.7.1)', () => {
     const result = getMinimumToPass(EXERCISES.WHTR, U25, M)
-    expect(result.minimumPct).toBe(50)
+    expect(result).toBeNull()
   })
 })
 
@@ -115,9 +115,9 @@ describe('getMinimumToPass - returned points >= component minimum', () => {
     expect(result.points).toBeGreaterThanOrEqual(9.0)
   })
 
-  it('WHtR: returned points >= 10.0 (50% of 20)', () => {
+  it('WHtR: returns null - no per-component minimum (DAFMAN §3.7.1)', () => {
     const result = getMinimumToPass(EXERCISES.WHTR, U25, M)
-    expect(result.points).toBeGreaterThanOrEqual(10.0)
+    expect(result).toBeNull()
   })
 })
 
@@ -155,14 +155,10 @@ describe('getMinimumToPass - integration: threshold earns passing score', () => 
     expect(compResult.belowMinimum).toBe(false)
   })
 
-  it('M <25 WHtR at minimum threshold → component pass: true', () => {
+  it('M <25 WHtR getMinimumToPass returns null (BC has no per-component minimum)', () => {
+    // DAFMAN 36-2905 §3.7.1: Body Composition has no minimum requirement.
     const minInfo = getMinimumToPass(EXERCISES.WHTR, U25, M)
-    const compResult = calculateComponentScore(
-      { type: 'bodyComp', exercise: EXERCISES.WHTR, value: minInfo.threshold },
-      M, U25
-    )
-    expect(compResult.pass).toBe(true)
-    expect(compResult.belowMinimum).toBe(false)
+    expect(minInfo).toBeNull()
   })
 
   it('F 40-44 push-ups at minimum threshold → component pass: true', () => {
@@ -203,10 +199,9 @@ describe('getMinimumToPass - threshold direction by exercise type', () => {
     expect(result.threshold).toBeLessThan(200)
   })
 
-  it('WHtR threshold is a ratio (> 0, < 1)', () => {
+  it('WHtR returns null - no threshold concept (BC has no per-component minimum)', () => {
     const result = getMinimumToPass(EXERCISES.WHTR, U25, M)
-    expect(result.threshold).toBeGreaterThan(0)
-    expect(result.threshold).toBeLessThan(1)
+    expect(result).toBeNull()
   })
 
   it('plank threshold is in seconds (> 0, < 600)', () => {
@@ -234,9 +229,9 @@ describe('getMinimumToPass - displayValue is a non-empty formatted string', () =
     expect(result.displayValue).toMatch(/reps$/)
   })
 
-  it('WHtR displayValue is a decimal ratio string', () => {
+  it('WHtR returns null - no displayValue (BC has no per-component minimum)', () => {
     const result = getMinimumToPass(EXERCISES.WHTR, U25, M)
-    expect(result.displayValue).toMatch(/^\d+\.\d{2}$/)
+    expect(result).toBeNull()
   })
 
   it('plank displayValue is mm:ss format', () => {
@@ -274,9 +269,8 @@ describe('getMinimumToPass - varies by gender and age bracket', () => {
     expect(result.threshold).toBeGreaterThan(0)
   })
 
-  it('M 55-59 WHtR minimum threshold is non-null', () => {
+  it('M 55-59 WHtR returns null (BC has no per-component minimum)', () => {
     const result = getMinimumToPass(EXERCISES.WHTR, A5559, M)
-    expect(result).not.toBeNull()
-    expect(result.minimumPct).toBe(50)
+    expect(result).toBeNull()
   })
 })

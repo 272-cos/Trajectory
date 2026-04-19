@@ -89,8 +89,9 @@ describe('Body comp at 0 points (WHtR 0.60)', () => {
       [COMPONENTS.BODY_COMP]: { exercise: EXERCISES.WHTR, value: 0.60, pts: 0.0 },
     }
     const result = computeOptimalAllocation(scores, 80, M_U25)
-    // Body comp is below minimum (50% of 20 = 10 pts), must be raised
-    expect(result.components[COMPONENTS.BODY_COMP].belowMinimum).toBe(true)
+    // DAFMAN §3.7.1: Body Composition has no per-component minimum, so belowMinimum=false.
+    // But allocation still needs to raise BC to reach composite target of 80.
+    expect(result.components[COMPONENTS.BODY_COMP].belowMinimum).toBe(false)
     expect(result.components[COMPONENTS.BODY_COMP].targetPts).toBeGreaterThan(0)
   })
 })

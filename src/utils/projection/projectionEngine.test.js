@@ -495,10 +495,9 @@ describe('getMinPassingValue', () => {
     expect(minVal).toBeGreaterThan(0)
   })
 
-  it('returns a threshold for WHtR (bodyComp, 50% minimum)', () => {
+  it('returns null for WHtR (DAFMAN §3.7.1: BC has no per-component minimum)', () => {
     const minVal = getMinPassingValue(EXERCISES.WHTR, 'bodyComp', M, U25)
-    expect(minVal).not.toBeNull()
-    expect(minVal).toBeGreaterThan(0)
+    expect(minVal).toBeNull()
   })
 })
 

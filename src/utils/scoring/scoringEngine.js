@@ -46,10 +46,12 @@ export function lookupScore(exercise, value, gender, ageBracket) {
     return null
   }
 
-  // SL-05 / EC-06: WHtR is rounded to 2 decimals before lookup
-  // e.g. raw ratio 0.494 → 0.49 (20.0 pts), 0.495 → 0.50 (19.0 pts)
+  // SL-05 / EC-06: WHtR is TRUNCATED (not rounded) to 2 decimals before lookup.
+  // DAFMAN 36-2905 §3.15.4.2: "WHtR results are truncated (not rounded) to the
+  // first two [decimals]". e.g. 0.494 → 0.49 (20.0 pts), 0.499 → 0.49 (20.0 pts),
+  // 0.559 → 0.55 (passing), 0.560 → 0.56.
   const lookupValue =
-    exercise === EXERCISES.WHTR ? Math.round(value * 100) / 100 : value
+    exercise === EXERCISES.WHTR ? Math.floor(value * 100) / 100 : value
 
   // For times (run, plank): lower is better, threshold is MAX time
   // For reps (pushups, situps): higher is better, threshold is MIN reps
@@ -69,11 +71,20 @@ export function lookupScore(exercise, value, gender, ageBracket) {
 
   const isPlank = exercise === EXERCISES.PLANK
 
-  // SL-10/EC-10: 0 reps/seconds on a non-exempt component → chart minimum
-  // points (same clamp as EC-01 below-chart-min), never 0.
-  // (distinct from null = untested; pass:false is enforced at component level)
+  // Two-number model (boss directive 2026-04-16, `docs/SCORING-STRATEGY-DISCUSSION.md`):
+  //   `points`         — DAFMAN-literal external value. Display/composite/PDF/S-code.
+  //                      0 when performance is below the chart's required minimum
+  //                      threshold, per DAFMAN 36-2905 §3.7.4: "Repetition/durations
+  //                      below the required minimum receive a component score of zero."
+  //   `internalPoints` — continuous tracking value for projection/ROI/training math.
+  //                      Chart-minimum clamp on off-chart-low (the old clamp behavior).
+  //                      NEVER rendered to users; full D1 spec (linear extrapolation
+  //                      below floor) lands in the D1 PR.
+  // WHtR is exempt from the §3.7.4 sub-min rule (BC has no component minimum per
+  // §3.7.1); its chart already encodes 0 points for ≥0.60, so the two values coincide.
 
   let points = 0
+  let internalPoints = 0
   let matched = false
 
   if (isTimeBasedExercise || exercise === EXERCISES.WHTR) {
@@ -81,33 +92,38 @@ export function lookupScore(exercise, value, gender, ageBracket) {
     for (let i = 0; i < table.length; i++) {
       if (lookupValue <= table[i].threshold) {
         points = table[i].points
+        internalPoints = table[i].points
         matched = true
         break
       }
     }
-    // Worse than every chart entry → clamp to minimum chart points (never 0)
     if (!matched) {
-      points = table[table.length - 1].points
+      const chartMin = table[table.length - 1].points
+      internalPoints = chartMin // continuous tracking number
+      // External: WHtR uses chart-last (which is 0 for ≥0.60); run/walk → 0 per §3.7.4.
+      points = exercise === EXERCISES.WHTR ? chartMin : 0
     }
   } else if (isRepsBasedExercise || isPlank) {
     // Higher is better - table sorted descending (highest reps/time first = max points)
     for (let i = 0; i < table.length; i++) {
       if (lookupValue >= table[i].threshold) {
         points = table[i].points
+        internalPoints = table[i].points
         matched = true
         break
       }
     }
-    // Worse than every chart entry → clamp to minimum chart points (never 0)
     if (!matched) {
-      points = table[table.length - 1].points
+      // External 0 per DAFMAN §3.7.4; internal preserves chart-minimum for trajectory math.
+      internalPoints = table[table.length - 1].points
+      points = 0
     }
   }
 
   const maxPoints = table[0].points
   const percentage = (points / maxPoints) * 100
 
-  return { points, maxPoints, percentage }
+  return { points, maxPoints, percentage, internalPoints }
 }
 
 /**
@@ -187,6 +203,7 @@ export function calculateComponentScore(component, gender, ageBracket) {
       exempt: false,
       walkOnly,
       points: 0,
+      internalPoints: 0,
       maxPoints: getMaxPointsForComponent(type),
       percentage: 0,
       pass: false,
@@ -194,20 +211,25 @@ export function calculateComponentScore(component, gender, ageBracket) {
     }
   }
 
-  const { points, percentage } = scoreResult
+  const { points, percentage, internalPoints } = scoreResult
   const maxPoints = getMaxPointsForComponent(type)
-  const minimum = COMPONENT_MINIMUMS[type] || 0
-  // SL-10: 0 reps/seconds always fails the component regardless of points
-  const pass = value === 0 ? false : percentage >= minimum
-  // belowMinimum: component was tested and scored but failed its per-component minimum.
-  // These components contribute 0 earned / 0 possible to composite (mirror walk-fail pattern).
+  // DAFMAN 36-2905 §3.7.1: Body Composition has no per-component minimum. Undefined
+  // entry in COMPONENT_MINIMUMS means "no minimum" → treat as 0% floor so pass is
+  // always true on scored BC (BFA gate is handled outside this function).
+  const minimum = COMPONENT_MINIMUMS[type] ?? 0
+  // SL-10/§3.7.4: points already zeroed at lookup for sub-min; percentage >= minimum
+  // alone is sufficient for the pass gate here (0 >= 60 is false, correctly failing).
+  const pass = percentage >= minimum
+  // belowMinimum: component was tested but failed its per-component minimum.
+  // Preserves upstream display/cascade semantics (shows "FAIL - 0 toward composite").
   const belowMinimum = !pass
 
   return {
     tested: true,
     exempt: false,
     walkOnly, // SL-07: true when exercise is 2km walk
-    points,
+    points, // DAFMAN-literal external, 0 when sub-min per §3.7.4
+    internalPoints, // continuous tracking number; NEVER rendered (boss directive)
     maxPoints,
     percentage,
     pass,
@@ -339,14 +361,14 @@ export function calculateCompositeScore(componentResults) {
  * Calculate WHtR from height and waist measurements
  * @param {number} waistInches - Waist measurement in inches
  * @param {number} heightInches - Height in inches
- * @returns {number} WHtR rounded to 2 decimals
+ * @returns {number} WHtR truncated to 2 decimals (DAFMAN 36-2905 §3.15.4.2)
  */
 export function calculateWHtR(waistInches, heightInches) {
   if (!waistInches || !heightInches || heightInches === 0) {
     return null
   }
   const ratio = waistInches / heightInches
-  return Math.round(ratio * 100) / 100
+  return Math.floor(ratio * 100) / 100
 }
 
 /**
