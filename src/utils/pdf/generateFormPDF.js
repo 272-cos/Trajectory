@@ -582,7 +582,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y = drawComponentHeader(page, helvBold, helvBoldItalic, MARGIN, y, CONTENT_W, 'Body Composition')
   const bodyComp = findComponent(scores, 'bodyComp')
   const bodyData = buildRowData(bodyComp)
-  y = drawWaistRow(page, form, helv, MARGIN, y, CONTENT_W, bodyData, decoded, bodyComp)
+  y = drawWaistRow(page, form, helv, MARGIN, y, CONTENT_W, bodyData, decoded)
   y = drawBodyFatRow(page, form, helv, MARGIN, y, CONTENT_W)
 
   // ---- Strength ----
@@ -745,7 +745,7 @@ function drawComponentHeader(page, helvBold, helvBoldItalic, x, yTop, w, categor
   return yTop + HEADER_ROW_H
 }
 
-function drawWaistRow(page, form, helv, x, yTop, w, data, decoded, bodyComp) {
+function drawWaistRow(page, form, helv, x, yTop, w, data, decoded) {
   const cols = componentCols(w)
   const h = ROW_H
   let cx = x
@@ -786,9 +786,7 @@ function drawWaistRow(page, form, helv, x, yTop, w, data, decoded, bodyComp) {
   cx += cols[4]
   // Score (display + field)
   setRect(page, cx, yTop, cols[5], h)
-  const scoredWHtR = bodyComp?.value
-  const scoreVal = scoredWHtR != null ? scoredWHtR.toFixed(2) : (data.score || '')
-  placeTextField(form, page, exFields('waist').score, cx + 1, yTop + 2, cols[5] - 2, h - 4, scoreVal)
+  placeTextField(form, page, exFields('waist').score, cx + 1, yTop + 2, cols[5] - 2, h - 4, data.score || '')
   return yTop + h
 }
 
