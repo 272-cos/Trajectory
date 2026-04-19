@@ -497,9 +497,10 @@ export async function generateFormPDF(demographics, decoded, scores) {
 
   // ---- Title ----
   const titleH = FONT_TITLE + 6
+  y += 1
   setRect(page, MARGIN, y - 2, CONTENT_W, titleH, { fill: GREY })
   drawTextCentered(page, 'AIR FORCE PHYSICAL FITNESS READINESS ASSESSMENT SCORE CARD',
-    PAGE_W / 2, y + 1, { size: FONT_TITLE, font: helvBold })
+    PAGE_W / 2, y - 2 + titleH / 2 - FONT_TITLE / 2, { size: FONT_TITLE, font: helvBold })
   y += titleH
 
   // ---- Privacy Act block ----
@@ -515,14 +516,25 @@ export async function generateFormPDF(demographics, decoded, scores) {
   // Proportions from 4446_1.JPG pixel analysis
   const partICols = [CONTENT_W * 0.295, CONTENT_W * 0.204, CONTENT_W * 0.192, CONTENT_W * 0.135, CONTENT_W * 0.076, CONTENT_W * 0.098]
   const partILabels = ['Rank / Name:', 'Unit:', 'DoD ID:', 'Duty Phone:', 'Sex:', 'Age:']
-  const partIFields = [FIELDS.rank_name, FIELDS.unit, FIELDS.dod_id, FIELDS.duty_phone, FIELDS.sex, FIELDS.age]
-  const partIDefaults = ['', '', '', '', gender, String(age)]
+  const partIFields = [FIELDS.rank_name, FIELDS.unit, FIELDS.dod_id, FIELDS.duty_phone, null, FIELDS.age]
+  const partIDefaults = ['', '', '', '', null, String(age)]
   let cx = MARGIN
   for (let i = 0; i < partICols.length; i++) {
     setRect(page, cx, y, partICols[i], ROW_H)
     drawText(page, partILabels[i], cx + 2, y + 2, { size: FONT_LABEL, font: helv })
-    placeTextField(form, page, partIFields[i],
-      cx + 1, y + FONT_LABEL + 4, partICols[i] - 2, ROW_H - FONT_LABEL - 5, partIDefaults[i])
+    if (partIFields[i]) {
+      placeTextField(form, page, partIFields[i],
+        cx + 1, y + FONT_LABEL + 4, partICols[i] - 2, ROW_H - FONT_LABEL - 5, partIDefaults[i])
+    }
+    if (i === 4) {
+      const dd = form.createDropdown(FIELDS.sex)
+      dd.addOptions(['Male', 'Female'])
+      dd.select(gender)
+      dd.addToPage(page, {
+        x: cx + 1, y: topY(y + ROW_H) + FONT_LABEL - 1, width: partICols[i] - 2, height: ROW_H - FONT_LABEL - 5,
+        borderWidth: 0, backgroundColor: undefined,
+      })
+    }
     cx += partICols[i]
   }
   y += ROW_H
