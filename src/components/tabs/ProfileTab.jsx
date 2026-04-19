@@ -7,7 +7,6 @@ import { useApp } from '../../context/AppContext.jsx'
 import { encodeDCode, decodeDCode } from '../../utils/codec/dcode.js'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { GENDER, VALIDATION, calculateAge } from '../../utils/scoring/constants.js'
-import AchievementBadges from '../shared/AchievementBadges.jsx'
 
 export default function ProfileTab() {
   const { dcode, demographics, updateDCode, targetPfaDate, updateTargetPfaDate, scodes } = useApp()
@@ -363,8 +362,6 @@ export default function ProfileTab() {
         </p>
       </div>
 
-      {/* Achievement Badges */}
-      <AchievementBadges />
     </div>
   )
 }
