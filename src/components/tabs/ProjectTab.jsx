@@ -24,7 +24,8 @@ import { isDiagnosticPeriod, calculateAge, getAgeBracket } from '../../utils/sco
 import { calculateWHtR, calculateComponentScore, calculateCompositeScore } from '../../utils/scoring/scoringEngine.js'
 import { getMinimumToPass } from '../../utils/scoring/reverseScoring.js'
 import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS, COMPONENT_EXERCISES } from '../../utils/scoring/strategyEngine.js'
-import { getRecommendations, generateWeeklyPlan } from '../../utils/recommendations/recommendationEngine.js'
+import { getRecommendations } from '../../utils/recommendations/recommendationEngine.js'
+import ROIBreakdownPanel from '../shared/ROIBreakdownPanel.jsx'
 import { getExercisePrefs, saveExercisePrefs, getPracticeSessions, getShowMilestones, setShowMilestones } from '../../utils/storage/localStorage.js'
 import { generateCalendar, EVENT_TYPES } from '../../utils/training/trainingCalendar.js'
 import HintBanner from '../shared/HintBanner.jsx'
@@ -620,143 +621,6 @@ function TrainingFocus({ item, isTopPriority, compType, proj, allocationTarget }
   )
 }
 
-// ─── Weekly Training Plan ──────────────────────────────────────────────────────
-
-const URGENCY_STYLES = {
-  urgent:    { card: 'border-red-300 bg-red-50',   badge: 'bg-red-100 text-red-800' },
-  standard:  { card: 'border-blue-300 bg-blue-50', badge: 'bg-blue-100 text-blue-800' },
-  long_term: { card: 'border-green-300 bg-green-50', badge: 'bg-green-100 text-green-800' },
-}
-
-// Tier badge color for a session exercise label
-function TierBadge({ tier, isFailing }) {
-  if (isFailing || tier === 'failing') {
-    return <span className="text-xs px-1 py-0.5 rounded bg-red-100 text-red-700 font-medium ml-1">FOCUS</span>
-  }
-  if (tier === 'marginal') {
-    return <span className="text-xs px-1 py-0.5 rounded bg-amber-100 text-amber-700 font-medium ml-1">BUILD</span>
-  }
-  return <span className="text-xs px-1 py-0.5 rounded bg-green-100 text-green-700 font-medium ml-1">MAINTAIN</span>
-}
-
-// Day type styles
-const DAY_TYPE_STYLES = {
-  cardio:   { border: 'border-blue-400',  header: 'text-blue-700',  bg: 'bg-blue-50' },
-  sc:       { border: 'border-violet-400', header: 'text-violet-700', bg: 'bg-violet-50' },
-  recovery: { border: 'border-green-400', header: 'text-green-700', bg: 'bg-green-50' },
-  rest:     { border: 'border-gray-200',  header: 'text-gray-400',  bg: 'bg-gray-50' },
-}
-
-function WeeklyTrainingPlan({ plan }) {
-  const [expanded, setExpanded] = useState(true)
-  if (!plan) return null
-
-  const { card: cardStyle, badge: badgeStyle } = URGENCY_STYLES[plan.urgency] ?? URGENCY_STYLES.standard
-  const hasFailingItems = plan.planItems.some(p => p.isFailing)
-  const schedule = plan.schedule ?? []
-  const bodyCompHabits = plan.bodyCompHabits ?? []
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between w-full text-left"
-        aria-expanded={expanded}
-      >
-        <h3 className="text-sm font-semibold text-gray-700">Personalized Weekly Training Plan</h3>
-        <span className="text-gray-400 text-xs">{expanded ? '▲' : '▼'}</span>
-      </button>
-
-      {expanded && (
-        <div className="mt-3 space-y-3">
-          {/* Urgency header */}
-          <div className={`rounded-lg border p-3 flex items-center gap-3 ${cardStyle}`}>
-            <div>
-              <span className={`text-xs px-2 py-0.5 rounded font-semibold ${badgeStyle}`}>
-                {plan.urgencyLabel.toUpperCase()}
-              </span>
-              <p className="text-sm text-gray-700 mt-1">
-                {plan.weeksToTarget} week{plan.weeksToTarget !== 1 ? 's' : ''} to target PFA date
-              </p>
-            </div>
-            {hasFailingItems && (
-              <p className="text-xs text-gray-600 ml-auto text-right max-w-[160px]">
-                FOCUS sessions target your weakest areas - prioritize these above all else.
-              </p>
-            )}
-          </div>
-
-          {/* 7-day calendar */}
-          {schedule.length > 0 && (
-            <div className="space-y-2">
-              {schedule.map((dayEntry) => {
-                const styles = DAY_TYPE_STYLES[dayEntry.type] ?? DAY_TYPE_STYLES.rest
-                const isRest = dayEntry.type === 'rest'
-
-                return (
-                  <div key={dayEntry.day} className={`rounded-md border-l-4 ${styles.border} pl-3 pr-2 py-2 ${isRest ? 'opacity-50' : ''}`}>
-                    {/* Day header row */}
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className={`text-xs font-bold w-20 shrink-0 ${styles.header}`}>
-                        {dayEntry.day}
-                      </span>
-                      <span className="text-xs font-semibold text-gray-700">
-                        {dayEntry.label}
-                      </span>
-                      {dayEntry.duration && (
-                        <span className="text-xs text-gray-400 ml-auto shrink-0">{dayEntry.duration}</span>
-                      )}
-                    </div>
-
-                    {/* Session exercises */}
-                    {dayEntry.sessions.length > 0 && (
-                      <ul className="mt-1.5 space-y-1.5 ml-0">
-                        {dayEntry.sessions.map((s, si) => (
-                          <li key={si} className="text-xs text-gray-600">
-                            {s.exerciseLabel && (
-                              <span className="font-semibold text-gray-700">
-                                {s.exerciseLabel}
-                                <TierBadge tier={s.tier} />
-                                {': '}
-                              </span>
-                            )}
-                            {s.workout}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Daily habits (body comp) - shown separately since it is not a session */}
-          {bodyCompHabits.length > 0 && (
-            <div className="border-l-4 border-orange-300 pl-3 pr-2 py-2 rounded-md">
-              <p className="text-xs font-semibold text-orange-700 mb-1.5">Daily Habits - Body Composition</p>
-              <ul className="space-y-1">
-                {bodyCompHabits.map((habit, i) => (
-                  <li key={i} className="text-xs text-gray-600 flex gap-1.5">
-                    <span className="text-orange-400 shrink-0">-</span>
-                    <span>{habit}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Footer note */}
-          <p className="text-xs text-gray-400 italic border-t border-gray-100 pt-2">
-            Sessions are 30-45 min and fit a standard work week. Strength and core are always paired on the same day to keep total weekly sessions manageable.
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ─── Main Tab ──────────────────────────────────────────────────────────────────
 
 export default function ProjectTab() {
@@ -1041,53 +905,6 @@ export default function ProjectTab() {
     }
   }, [demographics, decodedScodes, targetPfaDate, exercisePrefs, personalGoal])
 
-  // Weekly training plan input: current component data from most recent S-code
-  const weeklyPlan = useMemo(() => {
-    if (!decodedScodes.length || !targetPfaDate) return null
-    const latest = decodedScodes[decodedScodes.length - 1]
-    const data = {}
-
-    if (latest.cardio) {
-      if (!latest.cardio.exempt && latest.cardio.exercise !== EXERCISES.WALK_2KM) {
-        data.cardio = {
-          percentage: currentPcts.cardio ?? null,
-          exercise: latest.cardio.exercise,
-          exempt: false,
-        }
-      } else if (latest.cardio.exercise === EXERCISES.WALK_2KM && !latest.cardio.exempt) {
-        data.cardio = { percentage: 0, exercise: EXERCISES.WALK_2KM, exempt: false }
-      }
-      // skip exempt
-    }
-    if (latest.strength && !latest.strength.exempt) {
-      data.strength = {
-        percentage: currentPcts.strength ?? null,
-        exercise: latest.strength.exercise,
-        exempt: false,
-      }
-    }
-    if (latest.core && !latest.core.exempt) {
-      data.core = {
-        percentage: currentPcts.core ?? null,
-        exercise: latest.core.exercise,
-        exempt: false,
-      }
-    }
-    if (latest.bodyComp && !latest.bodyComp.exempt && currentPcts.bodyComp != null) {
-      data.bodyComp = {
-        percentage: currentPcts.bodyComp,
-        exercise: EXERCISES.WHTR,
-        exempt: false,
-      }
-    }
-
-    if (Object.keys(data).length === 0) return null
-    try {
-      return generateWeeklyPlan(data, targetPfaDate)
-    } catch {
-      return null
-    }
-  }, [decodedScodes, currentPcts, targetPfaDate])
 
   // Milestone data for chart overlay (Task 10.3)
   const milestones = useMemo(() => {
@@ -1531,9 +1348,14 @@ export default function ProjectTab() {
             </div>
           )}
 
-          {/* ── Weekly Training Plan ──────────────────────────────────────── */}
-          {weeklyPlan && (
-            <WeeklyTrainingPlan plan={weeklyPlan} />
+          {/* ── ROI Breakdown (Task 7) ─────────────────────────────────────── */}
+          {strategyData?.ranked && strategyData.ranked.length > 0 && (
+            <ROIBreakdownPanel
+              rankedItems={strategyData.ranked}
+              projection={projection}
+              projectedComposite={composite?.projected ?? null}
+              targetComposite={personalGoal ?? null}
+            />
           )}
 
           {/* ── Legend ────────────────────────────────────────────────────── */}

@@ -14,7 +14,7 @@ A mobile-first web app for USAF Airmen to self-assess fitness performance agains
 4. **Unofficial only** - always display "UNOFFICIAL ESTIMATE" disclaimer
 5. **Privacy-first** - all storage via localStorage; no cloud sync
 6. **Zero-dependency scoring** - pure JS functions, no external scoring APIs
-7. **Regulatory basis** - DAFMAN 36-2905 (Change 1, 22 Jan 2026) + AFPC 50-20-15-15 model
+7. **Regulatory basis** - DAFMAN 36-2905, 24 March 2026 (supersedes 22 April 2022) + AFPC 50-20-15-15 model. Full text at `docs/DAFMAN-36-2905.md`; scoring charts at `docs/PFRA-Scoring-Charts.md`.
 8. **No em dashes or en dashes** - use only hyphens (-) throughout the codebase and docs
 9. **No internal tracking codes in UI** - Internal references (TR-XX, PG-XX, CS-XX, IV-XX, RP-XX, etc.) must NEVER appear in user-facing text, labels, disclaimers, or rendered output. They belong only in code comments and documentation.
 10. **Exercise-type-appropriate language** - Never use rep-based language ("reps before failure", "sets of X reps") for cardio/running sessions. Cardio descriptions must use time, distance, or effort-based cues only (e.g., "20 min at conversational pace", "hard but sustainable effort"). Similarly, never use cardio language (pace, distance, heart rate zones) for strength exercises. The `getRepInstruction()` function in `phaseEngine.js` accepts a `sessionType` parameter to enforce this.
@@ -78,8 +78,9 @@ The scoring pipeline flows: `constants.js` (rules/brackets) -> `scoringTables.js
 
 Key scoring rules:
 - 2km walk contributes 0/0 to composite (pass/fail only); walk failure = overall failure (EC-05)
-- WHtR rounded to 2 decimals before lookup (SL-05)
-- 0 reps clamps to chart minimum points but component still fails (SL-10)
+- WHtR truncated (not rounded) to 2 decimals before lookup per DAFMAN §3.15.4.2 (SL-05)
+- Reps/duration below chart minimum score 0 points for the component per DAFMAN §3.7.4 (SL-10)
+- Body Composition has no per-component minimum per DAFMAN §3.7.1 (BC is points-only via WHtR; BFA gate is separate)
 - Exempt components contribute 0 earned and 0 possible to composite
 
 ## Codec System
@@ -109,7 +110,7 @@ When scoring data in the codebase conflicts with the official charts, the AFPC p
 ## Scoring Model (2026 per DAFMAN 36-2905)
 
 - **Component weights:** Cardio 50%, Body Comp 20%, Strength 15%, Core 15%
-- **Passing thresholds:** 75.0 composite + component minimums (60% per component; body comp 50%)
+- **Passing thresholds:** 75.0 composite + 60% component minimum on cardio/strength/core. Body Composition has no per-component minimum (DAFMAN §3.7.1).
 - **Age brackets:** 9 AFPC brackets (<25, 25-29, 30-34, 35-39, 40-44, 45-49, 50-54, 55-59, 60+) x 2 genders = 18 tables
 - **Supported exercises:**
   - Cardio: 2-mile run, HAMR shuttle, 2km walk (profile-only)

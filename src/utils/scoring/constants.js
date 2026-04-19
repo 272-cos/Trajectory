@@ -1,6 +1,7 @@
 /**
  * Scoring constants for 2026 PFA (50-20-15-15 model)
- * Per DAFMAN 36-2905 (Change 1, 22 Jan 2026) and AFPC scoring charts
+ * Per DAFMAN 36-2905, 24 March 2026 (supersedes 22 April 2022 edition) and
+ * AFPC PFRA scoring charts.
  */
 
 // Component weights (total = 100) - keys match COMPONENTS values
@@ -61,12 +62,16 @@ export const GENDER = {
 // Passing composite score
 export const PASSING_COMPOSITE = 75.0
 
-// Component minimum percentages (must pass component AND composite)
+// Component minimum percentages (must pass component AND composite).
+// DAFMAN 36-2905 §3.7.1: Body Composition "does not have a minimum requirement";
+// BC is points-only (WHtR) plus a pass/fail BFA gate triggered only when
+// WHtR > .55 AND composite < 75 (§3.1.2.1.1). The BFA gate lives outside the
+// per-component minimum model and is not enforced in this table.
 export const COMPONENT_MINIMUMS = {
   [COMPONENTS.CARDIO]: 60.0, // 30/50 points
   [COMPONENTS.STRENGTH]: 60.0, // 9/15 points
   [COMPONENTS.CORE]: 60.0, // 9/15 points
-  [COMPONENTS.BODY_COMP]: 50.0, // 10/20 points
+  // BODY_COMP: no minimum per DAFMAN §3.7.1
 }
 
 // 2km Walk time limits (seconds) per Table 3.1, DAFMAN 36-2905

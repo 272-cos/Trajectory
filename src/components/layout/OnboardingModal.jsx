@@ -220,15 +220,29 @@ export default function OnboardingModal() {
   }, [step])
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="presentation">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      role="presentation"
+      onClick={handleSkip}
+    >
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="onboarding-title"
         tabIndex={-1}
-        className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full p-6 focus:outline-none max-h-[90vh] overflow-y-auto"
+        className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full p-6 focus:outline-none max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* Close button - always available so users can back out of the walkthrough */}
+        <button
+          onClick={handleSkip}
+          aria-label="Close walkthrough"
+          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-2xl leading-none min-h-[44px] min-w-[44px] flex items-center justify-center rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
+        >
+          &times;
+        </button>
+
         {/* Progress dots */}
         <div className="flex justify-center mb-6">
           {SLIDES.map((s, i) => (

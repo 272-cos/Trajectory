@@ -156,7 +156,7 @@ function formatProjectedValue(value, exercise) {
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function ReportTab() {
-  const { scodes, demographics, dcode, targetPfaDate } = useApp()
+  const { scodes, demographics, dcode, targetPfaDate, addToast } = useApp()
 
   // RP-01: PII fields - never stored, cleared when component unmounts
   const [rank, setRank] = useState('')
@@ -372,7 +372,7 @@ export default function ReportTab() {
           demographics={demographics}
           onCopy={() => handleCopy({ rank, name, unit, dcode, reportEntries, allExempt, includeProjection, projectionData, targetPfaDate, setCopySuccess })}
           onPrint={() => handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includeProjection, projectionData, targetPfaDate })}
-          onDownloadPDF={() => handleDownloadPDF({ demographics, reportEntries })}
+          onDownloadPDF={() => handleDownloadPDF({ demographics, reportEntries, addToast })}
         />
       )}
 
@@ -975,7 +975,7 @@ function handlePrint({ rank, name, unit, dcode, reportEntries, allExempt, includ
   }
 }
 
-async function handleDownloadPDF({ demographics, reportEntries }) {
+async function handleDownloadPDF({ demographics, reportEntries, addToast }) {
   if (!demographics || reportEntries.length === 0) return
 
   // Use the most recent (first) assessment for PDF
@@ -986,6 +986,6 @@ async function handleDownloadPDF({ demographics, reportEntries }) {
     await generatePDFAndDownload(demographics, latestEntry.decoded, latestEntry.scores, latestEntry.decoded.date)
   } catch (error) {
     console.error('PDF generation failed:', error)
-    alert('Failed to generate PDF. Please try again.')
+    addToast?.('Failed to generate PDF. Please try again.', 'error')
   }
 }

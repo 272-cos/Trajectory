@@ -16,12 +16,15 @@ Trajectory is a mobile-first USAF PFA readiness tracker (`/mnt/cephfs/shared/pro
 - [ ] Task 4 - Calendar days freedom + overtraining modal + constant-load scaling
 - [ ] Task 5 - Pill selector standardization
 - [ ] Task 6 - Milestones relocation
-- [ ] Task 7 - ROI math transparency
+- [x] Task 7 - ROI math transparency
 - [x] Task 9 - HAMR countdown cadence simplification (shipped `4de016c`)
 - [ ] Task 10 - AFPC research stream
 - [x] **Added mid-sprint:** AF Form 4446 PDF generator (`504aa51`, `5d7cc85`, `729edf1`, `57ea675`, `8a1595c`) - pdf-lib AcroForm with 4 PKCS#7 signature widgets. Wired into SelfCheck + History tabs (`3c34a25`).
 - [x] **Added mid-sprint:** Q11 scoring duplication audit - see [`docs/SCORING-DUPLICATION-MAP.md`](../SCORING-DUPLICATION-MAP.md) (828 lines, 134 touch points across 32 files). Prerequisite for the downstream rewrite items below.
-- [ ] All 790 existing + new tests green
+- [x] **Added mid-sprint (2026-04-19):** HAMR level-up audio now reuses the start-of-session 3-2-1-GO countdown pattern (see Task 9 section below) instead of the original triple beep.
+- [x] **Added mid-sprint (2026-04-19):** No-forced-flows modal audit - OnboardingModal, OvertrainingWarningModal, UnsavedWarningModal, ReportTab alert(). Policy captured as durable feedback memory (`feedback_no_forced_flows.md`).
+- [x] **Added mid-sprint (2026-04-19):** DAFMAN 36-2905 (24 Mar 2026) re-alignment (`1862db6`) - three §-level fixes against the newly-downloaded regulation: sub-chart-min scores 0 external per §3.7.4, WHtR truncated (not rounded) per §3.15.4.2, Body Composition has no per-component minimum per §3.7.1. Also lands the minimum-viable half of the D1 two-number split: `lookupScore` now returns both `points` (DAFMAN-literal external) and `internalPoints` (chart-min clamp for projection/ROI). Linear-extrapolation-below-floor still deferred to the full D1 PR. 853 tests green.
+- [ ] All 853 existing + new tests green
 - [ ] `npm run lint` zero warnings
 - [ ] Grep sweep clean (no em/en dashes, no codec jargon, no internal tracking IDs)
 - [ ] Sprint PR merged to `main`
@@ -240,6 +243,7 @@ CLRC library addition is folded into Task 2 (picker exposes it; entries confirme
 ### Task 9 - HAMR countdown cadence simplification (S, no binary assets this sprint)
 
 - [x] **Task 9 complete** (shipped `4de016c feat(task-9,pdf): HAMR cadence simplification + AF Form 1067 PDF generation`)
+- [x] **Task 9 revisit (2026-04-19):** level-up signal (previously a triple beep at the end of each level) now reuses the same 440 Hz / sweep countdown pattern as session start, so level transitions are audibly identical to the 3-2-1-GO. Implemented by routing the level-change branch of `scheduleAudioBeep` through the existing `scheduleCountdownTone` / `scheduleSweepTone` helpers in `HamrMetronome.jsx`.
 
 The current cadence emits seven signals (3 + 2 + 1 + sweep) which the user reports as too many and hard to read. Reduce to a clear Mario-Kart-style "3-2-1-GO" - four total signals - without changing timbre. User plans a sampled audio replacement in a future pass; this sprint is cadence only.
 
@@ -336,7 +340,31 @@ Two workstreams appeared mid-sprint, got executed, and now belong in the status 
 Reusable tooling produced this session, **intentionally kept uncommitted** (user directive: "Keep don't commit beyond scope"):
 - `scripts/pdf-to-html-form.mjs` - reusable PDF to HTML-form converter. Text PDFs via `pdftotext -bbox-layout`; image PDFs via `tesseract ... tsv` when `--tesseract` flag and binary are present; background-only fallback otherwise. Emits `<output>.html` + `<output>-assets/` (rendered PNGs via `pdftoppm`). Tested on our own generator output (68 fields inferred). Not yet tested on an image-only official PDF - tesseract was not installed on this node.
 
-### B - Q11 scoring duplication audit
+### C - No-forced-flows modal audit (2026-04-19)
+
+User directive: "every modal every click [should] be able to be backed out [or] navigated to, not be locking [or] forced, unless this was a prior design choice that explicitly states it." Captured as durable feedback memory (`feedback_no_forced_flows.md`) so future modal work honors it by default.
+
+Audited five modal surfaces + one OS `alert()`; four needed fixes, one (`ShareModal`) and one (`InstallPrompt`) were already clean.
+
+- [x] `src/components/layout/OnboardingModal.jsx` - added always-visible × close button (top-right, all slides including first and last) and backdrop click dismiss. Both route through `handleSkip` so first-run still navigates to Profile and reopens simply close.
+- [x] `src/components/shared/OvertrainingWarningModal.jsx` - added ESC key handler, backdrop click dismiss, and × close button. All three route to `onCancel`. Previously the only exits were the two action buttons.
+- [x] `src/context/AppContext.jsx` `UnsavedWarningModal` - added visible "Keep editing" button between "Save Assessment" and "Leave without saving". ESC and backdrop click were already wired but the only visible options committed to an action.
+- [x] `src/components/tabs/ReportTab.jsx` - replaced OS-native `alert('Failed to generate PDF...')` with `addToast(msg, 'error')` so PDF-generation failures surface as a dismissable toast instead of a blocking modal.
+
+**Verification.** `npm run lint` zero warnings, `npm run build` clean.
+
+### D - DAFMAN 36-2905 (24 Mar 2026) re-alignment (2026-04-19, shipped `1862db6`)
+
+User pulled the current DAFMAN 36-2905 (dated 24 March 2026, supersedes the 22 April 2022 edition) and asked to diff it against what the scoring engine encodes. Three drift items surfaced - all three fixed in one commit with test suite updated atomically.
+
+- [x] **§3.7.4 sub-chart-min = 0 external.** `scoringEngine.js` `lookupScore` no longer clamps sub-chart-min reps/durations to chart-minimum points. Returns `{ points: 0, internalPoints: <chart-min> }` for below-floor performance on reps-based, HAMR, plank, and time-based exercises. WHtR exempt (its chart already encodes 0 for ≥0.60, so external and internal coincide).
+- [x] **§3.15.4.2 WHtR truncation.** Changed `Math.round(value * 100) / 100` to `Math.floor(value * 100) / 100` in `lookupScore`. 0.499 now stays at 0.49 (20 pts) instead of rounding up to 0.50 (19 pts). 0.559 stays at 0.55 (passing), 0.560 becomes 0.56.
+- [x] **§3.7.1 Body Composition has no per-component minimum.** Removed `[COMPONENTS.BODY_COMP]: 50.0` from `COMPONENT_MINIMUMS`. Callers updated: `getMinimumToPass` returns `null` for WHtR, `projectionEngine.getMinPassingValue` returns `null` for bodyComp, `projectComponent` treats undefined minPct as 0 (always "passes" the component gate). The BFA failure gate (§3.1.2.1.1, WHtR >.55 AND composite <75) stays separate and is not enforced in this model yet.
+- [x] **Two-number split (partial).** `lookupScore` now returns `{ points, maxPoints, percentage, internalPoints }`. `calculateComponentScore` propagates `internalPoints`. This is the minimum-viable half of D1 below - the API is shaped for it but does not yet do full linear extrapolation below floor.
+- [x] **Tests updated (853 green).** Flipped sub-chart-min expectations from chart-min to 0 across `scoringEngine.test.js`, `scoringEngine.edgecase.test.js`, plus internalPoints assertions. `reverseScoring.test.js` 6 WHtR `getMinimumToPass` tests now expect `null`. `projectionEngine.test.js` + `.edgecase.test.js` WHtR threshold tests expect `null`. `optimalAllocation.edgecase.test.js` WHtR-0.60 `belowMinimum` now `false`.
+- [x] **CLAUDE.md** regulatory citation updated; scoring rules section rewritten.
+
+This landing **partially** subsumes D1 below - specifically the two-number API shape and the sub-floor = 0 external rule. The remaining D1 work (linear extrapolation below floor with 2x-floor hard cap for internal score, and audit of all internal-score consumers) is still open.
 
 - [x] `docs/SCORING-DUPLICATION-MAP.md` produced - 828 lines, 134 scoring touch points across 32 files, grouped ENGINE (5) / AGGREGATION (8) / DISPLAY (43) / PROJECTION (12) / GAP-ROI (18) / TRAINING (5) / PDF (15) / CODEC (4) / TESTS (22) / DOCS (2).
 - **Headline findings:**
@@ -352,13 +380,14 @@ This audit is the prerequisite for the four Downstream Items below.
 
 Four workstreams surfaced by the SCORING-STRATEGY-DISCUSSION.md boss directive (external DAFMAN-literal score vs internal continuous score with linear extrapolation below chart floor). These are **out of scope for this sprint's PR** but tracked here so they aren't lost.
 
-### D1 - Engine rewrite: `calculateOfficialScore` + `calculateInternalScore` (L)
+### D1 - Engine rewrite: `calculateOfficialScore` + `calculateInternalScore` (L, partially shipped `1862db6`)
 
-- [ ] Split `scoringEngine.js` into a two-number model. External score is the DAFMAN-literal display/composite/PDF number; internal score is a signed continuous number used for projection, ROI, and training emphasis only.
-- [ ] Below the chart floor, the external score is 0 and pass-gate is false; the internal score is a linear extrapolation using the slope of the last 2 chart rows, **floored at 2x chart height below the floor** (hard cap to prevent runaway negative numbers).
-- [ ] Above the chart ceiling, both scores clamp to max (EC-01 unchanged).
-- [ ] Internal scores **must never surface in user-facing UI** - they are a computation-layer concept. Sanity check: grep for `internalScore` usages and confirm every one is in projection/ROI/training code, not display.
-- [ ] Prerequisite for D2, D3, D4. Blast radius = 23 files per the duplication map.
+- [x] Split `scoringEngine.js` into a two-number model. External score is the DAFMAN-literal display/composite/PDF number; internal score is a signed continuous number used for projection, ROI, and training emphasis only. **Minimum viable version shipped in `1862db6`:** `lookupScore` returns `{ points, internalPoints }`; below chart floor `points = 0` per §3.7.4 and `internalPoints = chart-minimum` (old clamp behavior preserved for trajectory math).
+- [x] Below the chart floor, the external score is 0 and pass-gate is false. **(Shipped.)**
+- [ ] Internal score is a linear extrapolation using the slope of the last 2 chart rows, **floored at 2x chart height below the floor** (hard cap to prevent runaway negative numbers). **Still open** - current implementation uses chart-minimum clamp, not linear extrapolation.
+- [x] Above the chart ceiling, both scores clamp to max (EC-01 unchanged).
+- [ ] Internal scores **must never surface in user-facing UI** - they are a computation-layer concept. Sanity check: grep for `internalPoints` usages and confirm every one is in projection/ROI/training code, not display. **Still open** - `internalPoints` is currently only consumed by `calculateComponentScore` propagation; no UI uses it yet, but an audit pass is still owed.
+- [ ] Full D1 completion prerequisite for D4 (gapEngine) and recommended prior to D2 (table transcription). Blast radius = 23 files per the duplication map.
 
 ### D2 - Table rewrite: PFRA verbatim transcription (M)
 

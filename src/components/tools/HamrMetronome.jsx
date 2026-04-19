@@ -7,7 +7,7 @@
  *
  * Features:
  * - Accurate beep cadence per official HAMR timing table
- * - Single beep per shuttle, triple beep on level change
+ * - Single beep per shuttle, 3-2-1-GO countdown on level change (matches session start)
  * - Visual: current level, shuttle within level, total shuttles, elapsed time
  * - Level selector: start from any level (1-21)
  * - Pause/resume with drift-compensated scheduling
@@ -32,7 +32,6 @@ const SESSION_KEY = 'pfa_practice_hamr'
 // ── Shuttle beep audio parameters ────────────────────────────────────────────
 const BEEP_FREQ = 1320    // Hz - high-pitched short beep
 const BEEP_DURATION = 0.07 // seconds per beep tone
-const TRIPLE_GAP = 0.15    // seconds between triple beep starts
 
 // ── Countdown audio parameters ───────────────────────────────────────────────
 // Synth tones only - no human voice, no audio files.
@@ -144,19 +143,24 @@ function scheduleCountdown(ctx) {
 
 /**
  * Schedule audio beep(s) into the AudioContext.
- * Single beep for normal shuttle, triple beep for level change.
+ * Single beep for a normal shuttle; on a level change, replay the same
+ * 3-2-1-GO countdown pattern used at the start of the session so start
+ * and level-up are audibly identical.
  * @param {AudioContext} ctx - Web Audio context
- * @param {boolean} isLevelChange - Whether to play triple beep
+ * @param {boolean} isLevelChange - Whether to play the level-up countdown
  */
 function scheduleAudioBeep(ctx, isLevelChange) {
   if (!ctx || ctx.state === 'closed') return
   const when = ctx.currentTime + 0.01 // tiny lookahead to avoid glitches
   if (isLevelChange) {
-    scheduleBeepTone(ctx, when)
-    scheduleBeepTone(ctx, when + TRIPLE_GAP)
-    scheduleBeepTone(ctx, when + TRIPLE_GAP * 2)
-    // Haptic feedback for level change (Android/iOS with vibration support)
-    if (navigator.vibrate) navigator.vibrate([30, 50, 30, 50, 30])
+    // Same cadence as the session-start countdown: three 440Hz tones at
+    // 1s intervals, then an ascending 660->1320Hz sweep on "GO".
+    scheduleCountdownTone(ctx, when, CD_FREQ, CD_TONE_DURATION)
+    scheduleCountdownTone(ctx, when + CD_TONE_INTERVAL, CD_FREQ, CD_TONE_DURATION)
+    scheduleCountdownTone(ctx, when + CD_TONE_INTERVAL * 2, CD_FREQ, CD_TONE_DURATION)
+    scheduleSweepTone(ctx, when + CD_TONE_INTERVAL * 3)
+    // Haptic mirrors the countdown: three short pulses + one long
+    if (navigator.vibrate) navigator.vibrate([100, 100, 100, 100, 100, 100, 400])
   } else {
     scheduleBeepTone(ctx, when)
     // Brief haptic pulse per shuttle
@@ -701,7 +705,7 @@ export default function HamrMetronome() {
           <p className="text-xs font-semibold text-gray-600 mb-1">How to use</p>
           <ul className="text-xs text-gray-500 space-y-0.5">
             <li>- One beep = reach the line (20m shuttle)</li>
-            <li>- Triple beep = new level, speed increases</li>
+            <li>- 3-2-1-GO countdown = new level, speed increases on GO</li>
             <li>- Stay with the beeps; stop when you can no longer reach the line in time</li>
             <li>- Levels 1-21, speed 8.5-18.5 km/h</li>
           </ul>

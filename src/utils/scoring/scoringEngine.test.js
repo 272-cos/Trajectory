@@ -78,81 +78,85 @@ describe('EC-01 - run time faster than chart min -> max points', () => {
   })
 })
 
-// --- EC-01: below-chart-min clamps to minimum points (never 0) ---
+// --- Sub-minimum performance: external=0 per DAFMAN §3.7.4; internal preserves chart-min ---
+// DAFMAN 36-2905 §3.7.4: "Repetition/durations below the required minimum receive a component
+// score of zero." External `points` MUST be 0 for display/composite/PDF. An `internalPoints`
+// field preserves the chart-minimum clamp for projection/ROI/training math only (boss directive,
+// docs/SCORING-STRATEGY-DISCUSSION.md 2026-04-16; full D1 split follows in its own PR).
 
-describe('EC-01 - reps below chart min -> minimum chart points, never 0', () => {
-  it('pushups: value below chart min (30) returns minimum 2.5 pts, not 0', () => {
+describe('DAFMAN §3.7.4 - reps below chart min -> external 0, internal chart-min', () => {
+  it('pushups: 5 reps (below chart min 30) -> points=0, internalPoints=2.5', () => {
     const result = lookupScore(EXERCISES.PUSHUPS, 5, M, U25)
-    expect(result.points).toBe(2.5)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 
-  it('pushups: value = 1 (below chart min of 30) -> minimum chart points, not 0', () => {
+  it('pushups: 1 rep -> points=0, internalPoints=2.5', () => {
     const result = lookupScore(EXERCISES.PUSHUPS, 1, M, U25)
-    expect(result.points).toBe(2.5)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 
-  it('HAMR: value below chart min (42) returns minimum 35.0 pts, not 0', () => {
+  it('HAMR: 10 shuttles (below chart min 42) -> points=0, internalPoints=35.0', () => {
     const result = lookupScore(EXERCISES.HAMR, 10, M, U25)
-    expect(result.points).toBe(35.0)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(35.0)
   })
 
-  it('situps: value below chart min (33) returns minimum 2.5 pts, not 0', () => {
+  it('situps: 1 rep (below chart min 33) -> points=0, internalPoints=2.5', () => {
     const result = lookupScore(EXERCISES.SITUPS, 1, M, U25)
-    expect(result.points).toBe(2.5)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 })
 
-describe('EC-01 - plank time below chart min -> minimum chart points, never 0', () => {
-  it('plank: time below chart min (90s) returns minimum 2.5 pts, not 0', () => {
+describe('DAFMAN §3.7.4 - plank time below chart min -> external 0, internal chart-min', () => {
+  it('plank: 10s (below chart min 90s) -> points=0, internalPoints=2.5', () => {
     const result = lookupScore(EXERCISES.PLANK, 10, M, U25)
-    expect(result.points).toBe(2.5)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 })
 
-describe('EC-01 - run time slower than chart worst -> minimum chart points, never 0', () => {
-  it('2-mile run: time slower than chart worst (1185s) returns minimum 35.0 pts, not 0', () => {
+describe('DAFMAN §3.7.4 - run time slower than chart worst -> external 0, internal chart-min', () => {
+  it('2-mile run: 2000s (slower than chart worst 1185s) -> points=0, internalPoints=35.0', () => {
     const result = lookupScore(EXERCISES.RUN_2MILE, 2000, M, U25)
-    expect(result.points).toBe(35.0)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(35.0)
   })
 })
 
-// --- SL-10 / EC-10: 0 reps on non-exempt -> chart min points + component fail ---
+// --- 0 reps on non-exempt -> sub-minimum per §3.7.4 -> external 0; internal tracks chart-min ---
 
-describe('SL-10 - 0 reps -> chart minimum points (not 0, not null)', () => {
-  it('pushups: 0 reps -> chart min 2.5 pts (not 0)', () => {
+describe('DAFMAN §3.7.4 - 0 reps -> external 0, internal chart-min', () => {
+  it('pushups: 0 reps -> points=0, internalPoints=2.5', () => {
     const result = lookupScore(EXERCISES.PUSHUPS, 0, M, U25)
-    expect(result.points).toBe(2.5)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 
-  it('HAMR: 0 shuttles -> chart min 35.0 pts', () => {
+  it('HAMR: 0 shuttles -> points=0, internalPoints=35.0', () => {
     const result = lookupScore(EXERCISES.HAMR, 0, M, U25)
-    expect(result.points).toBe(35.0)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(35.0)
   })
 
-  it('situps: 0 reps -> chart min 2.5 pts', () => {
+  it('situps: 0 reps -> points=0, internalPoints=2.5', () => {
     const result = lookupScore(EXERCISES.SITUPS, 0, M, U25)
-    expect(result.points).toBe(2.5)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 
-  it('CLRC: 0 reps -> chart min 2.5 pts', () => {
+  it('CLRC: 0 reps -> points=0, internalPoints=2.5', () => {
     const result = lookupScore(EXERCISES.CLRC, 0, M, U25)
-    expect(result.points).toBe(2.5)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 
-  it('plank: 0 seconds -> chart min 2.5 pts', () => {
+  it('plank: 0 seconds -> points=0, internalPoints=2.5', () => {
     const result = lookupScore(EXERCISES.PLANK, 0, M, U25)
-    expect(result.points).toBe(2.5)
-    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 
   it('maxPoints still reflects the table max', () => {
@@ -163,7 +167,9 @@ describe('SL-10 - 0 reps -> chart minimum points (not 0, not null)', () => {
   it('0 reps is distinct from null (null = untested, 0 = attempted with no reps)', () => {
     expect(lookupScore(EXERCISES.PUSHUPS, null, M, U25)).toBeNull()
     expect(lookupScore(EXERCISES.PUSHUPS, 0, M, U25)).not.toBeNull()
-    expect(lookupScore(EXERCISES.PUSHUPS, 0, M, U25).points).toBeGreaterThan(0)
+    // External 0, internal chart-min - distinct from "untested"
+    expect(lookupScore(EXERCISES.PUSHUPS, 0, M, U25).points).toBe(0)
+    expect(lookupScore(EXERCISES.PUSHUPS, 0, M, U25).internalPoints).toBeGreaterThan(0)
   })
 })
 
@@ -181,45 +187,49 @@ describe('C3 - 0 time/ratio on lower-is-better exercises -> null', () => {
   })
 })
 
-describe('EC-10 - 0 reps on non-exempt component -> always pass:false', () => {
-  it('strength: 0 pushups -> tested=true, pass=false', () => {
+describe('DAFMAN §3.7.4 - 0 reps on non-exempt component -> pass:false, external 0, internal chart-min', () => {
+  it('strength: 0 pushups -> tested=true, pass=false, points=0, internalPoints=2.5', () => {
     const result = calculateComponentScore(
       { type: 'strength', exercise: EXERCISES.PUSHUPS, value: 0 },
       M, U25
     )
     expect(result.tested).toBe(true)
     expect(result.pass).toBe(false)
-    expect(result.points).toBe(2.5)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 
-  it('cardio: 0 HAMR -> tested=true, pass=false', () => {
+  it('cardio: 0 HAMR -> tested=true, pass=false, points=0, internalPoints=35.0', () => {
     const result = calculateComponentScore(
       { type: 'cardio', exercise: EXERCISES.HAMR, value: 0 },
       M, U25
     )
     expect(result.tested).toBe(true)
     expect(result.pass).toBe(false)
-    expect(result.points).toBe(35.0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(35.0)
   })
 
-  it('core: 0 situps -> tested=true, pass=false', () => {
+  it('core: 0 situps -> tested=true, pass=false, points=0, internalPoints=2.5', () => {
     const result = calculateComponentScore(
       { type: 'core', exercise: EXERCISES.SITUPS, value: 0 },
       M, U25
     )
     expect(result.tested).toBe(true)
     expect(result.pass).toBe(false)
-    expect(result.points).toBe(2.5)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 
-  it('core: 0s plank -> tested=true, pass=false', () => {
+  it('core: 0s plank -> tested=true, pass=false, points=0, internalPoints=2.5', () => {
     const result = calculateComponentScore(
       { type: 'core', exercise: EXERCISES.PLANK, value: 0 },
       M, U25
     )
     expect(result.tested).toBe(true)
     expect(result.pass).toBe(false)
-    expect(result.points).toBe(2.5)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(2.5)
   })
 })
 
@@ -309,35 +319,39 @@ describe('SL-04 - HAMR gap values use containing bracket (no interpolation)', ()
     expect(result.points).toBe(49.5)
   })
 
-  it('40 shuttles (below chart min 42) -> 35.0 pts (worst bracket)', () => {
+  it('40 shuttles (below chart min 42) -> external 0 per DAFMAN §3.7.4; internal 35.0', () => {
     const result = lookupScore(EXERCISES.HAMR, 40, M, U25)
-    expect(result.points).toBe(35.0)
+    expect(result.points).toBe(0)
+    expect(result.internalPoints).toBe(35.0)
   })
 })
 
-// --- SL-05 / EC-06: WHtR rounded to 2 decimals before lookup ---
+// --- SL-05 / EC-06: WHtR TRUNCATED to 2 decimals before lookup (DAFMAN §3.15.4.2) ---
 
-describe('SL-05 / EC-06 - WHtR rounded to 2 decimals before lookup', () => {
-  it('0.494 -> rounds to 0.49 -> 20.0 pts (not 19.0 from 0.50 bracket)', () => {
+describe('SL-05 / EC-06 - WHtR truncated (not rounded) to 2 decimals per DAFMAN §3.15.4.2', () => {
+  it('0.494 -> truncates to 0.49 -> 20.0 pts', () => {
     const result = lookupScore(EXERCISES.WHTR, 0.494, M, U25)
     expect(result.points).toBe(20.0)
-    expect(result.points).not.toBe(19.0)
   })
 
-  it('0.495 -> rounds to 0.50 -> 19.0 pts (midpoint rounds up)', () => {
+  it('0.495 -> truncates to 0.49 -> 20.0 pts (truncation, NOT round-half-up)', () => {
     const result = lookupScore(EXERCISES.WHTR, 0.495, M, U25)
-    expect(result.points).toBe(19.0)
+    expect(result.points).toBe(20.0)
   })
 
-  it('0.501 -> rounds to 0.50 -> 19.0 pts (not 18.0 from 0.51 bracket)', () => {
+  it('0.499 -> truncates to 0.49 -> 20.0 pts (anything <0.50 lands on 0.49 bracket)', () => {
+    const result = lookupScore(EXERCISES.WHTR, 0.499, M, U25)
+    expect(result.points).toBe(20.0)
+  })
+
+  it('0.501 -> truncates to 0.50 -> 19.0 pts', () => {
     const result = lookupScore(EXERCISES.WHTR, 0.501, M, U25)
     expect(result.points).toBe(19.0)
-    expect(result.points).not.toBe(18.0)
   })
 
-  it('0.504 -> rounds to 0.50 -> 19.0 pts', () => {
-    const result = lookupScore(EXERCISES.WHTR, 0.504, M, U25)
-    expect(result.points).toBe(19.0)
+  it('0.559 -> truncates to 0.55 (still passing) -> 12.5 pts', () => {
+    const result = lookupScore(EXERCISES.WHTR, 0.559, M, U25)
+    expect(result.points).toBe(12.5)
   })
 
   it('0.49 (exact threshold) -> 20.0 pts', () => {
@@ -1089,8 +1103,10 @@ describe('Female 25-29 scoring tables', () => {
   it('CLRC: best 56 reps = 15.0 pts', () => {
     expect(lookupScore(EXERCISES.CLRC, 56, F, bracket).points).toBe(15)
   })
-  it('plank: 50s (chart min area) = 2.5 pts', () => {
-    expect(lookupScore(EXERCISES.PLANK, 50, F, bracket).points).toBe(2.5)
+  it('plank: 50s (below chart min) = 0 external; internal 2.5 per DAFMAN §3.7.4', () => {
+    const r = lookupScore(EXERCISES.PLANK, 50, F, bracket)
+    expect(r.points).toBe(0)
+    expect(r.internalPoints).toBe(2.5)
   })
 })
 
@@ -1100,8 +1116,10 @@ describe('Female 30-34 scoring tables', () => {
   it('run: best 970s = 50.0 pts', () => {
     expect(lookupScore(EXERCISES.RUN_2MILE, 970, F, bracket).points).toBe(50)
   })
-  it('pushups: 11 reps = 2.5 pts (chart min)', () => {
-    expect(lookupScore(EXERCISES.PUSHUPS, 11, F, bracket).points).toBe(2.5)
+  it('pushups: 11 reps (below chart min) = 0 external; internal 2.5 per DAFMAN §3.7.4', () => {
+    const r = lookupScore(EXERCISES.PUSHUPS, 11, F, bracket)
+    expect(r.points).toBe(0)
+    expect(r.internalPoints).toBe(2.5)
   })
   it('situps: 26 reps = 5.5 pts', () => {
     expect(lookupScore(EXERCISES.SITUPS, 26, F, bracket).points).toBe(5.5)
@@ -1117,17 +1135,23 @@ describe('Female 40-44 scoring tables', () => {
   it('run: best 1005s = 50.0 pts', () => {
     expect(lookupScore(EXERCISES.RUN_2MILE, 1005, F, bracket).points).toBe(50)
   })
-  it('pushups: 8 reps = 2.5 pts (chart min area)', () => {
-    expect(lookupScore(EXERCISES.PUSHUPS, 8, F, bracket).points).toBe(2.5)
+  it('pushups: 8 reps (below chart min) = 0 external; internal 2.5 per DAFMAN §3.7.4', () => {
+    const r = lookupScore(EXERCISES.PUSHUPS, 8, F, bracket)
+    expect(r.points).toBe(0)
+    expect(r.internalPoints).toBe(2.5)
   })
   it('HRPU: best 34 reps = 15.0 pts', () => {
     expect(lookupScore(EXERCISES.HRPU, 34, F, bracket).points).toBe(15)
   })
-  it('plank: 35s (below chart min) = 2.5 pts', () => {
-    expect(lookupScore(EXERCISES.PLANK, 35, F, bracket).points).toBe(2.5)
+  it('plank: 35s (below chart min) = 0 external; internal 2.5 per DAFMAN §3.7.4', () => {
+    const r = lookupScore(EXERCISES.PLANK, 35, F, bracket)
+    expect(r.points).toBe(0)
+    expect(r.internalPoints).toBe(2.5)
   })
-  it('CLRC: 6 reps (below chart min) = 2.5 pts', () => {
-    expect(lookupScore(EXERCISES.CLRC, 6, F, bracket).points).toBe(2.5)
+  it('CLRC: 6 reps (below chart min) = 0 external; internal 2.5 per DAFMAN §3.7.4', () => {
+    const r = lookupScore(EXERCISES.CLRC, 6, F, bracket)
+    expect(r.points).toBe(0)
+    expect(r.internalPoints).toBe(2.5)
   })
 })
 
@@ -1152,11 +1176,15 @@ describe('Female 60+ scoring tables', () => {
   it('situps: 8 reps = 3.5 pts', () => {
     expect(lookupScore(EXERCISES.SITUPS, 8, F, bracket).points).toBe(3.5)
   })
-  it('HAMR: 2 shuttles = 35.0 pts (chart min)', () => {
-    expect(lookupScore(EXERCISES.HAMR, 2, F, bracket).points).toBe(35.0)
+  it('HAMR: 2 shuttles (below chart min) = 0 external; internal 35.0 per DAFMAN §3.7.4', () => {
+    const r = lookupScore(EXERCISES.HAMR, 2, F, bracket)
+    expect(r.points).toBe(0)
+    expect(r.internalPoints).toBe(35.0)
   })
-  it('plank: 15s (below chart min) = 2.5 pts', () => {
-    expect(lookupScore(EXERCISES.PLANK, 15, F, bracket).points).toBe(2.5)
+  it('plank: 15s (below chart min) = 0 external; internal 2.5 per DAFMAN §3.7.4', () => {
+    const r = lookupScore(EXERCISES.PLANK, 15, F, bracket)
+    expect(r.points).toBe(0)
+    expect(r.internalPoints).toBe(2.5)
   })
 })
 
@@ -1222,13 +1250,15 @@ describe('belowMinimum - calculateComponentScore flags below-minimum components'
     expect(result.belowMinimum).toBe(false)
   })
 
-  it('WHtR 0.60 -> belowMinimum: true (0% < 50% body comp min)', () => {
+  it('WHtR 0.60 -> belowMinimum: false (BC has no per-component minimum per DAFMAN §3.7.1)', () => {
     const result = calculateComponentScore(
       { type: 'bodyComp', exercise: EXERCISES.WHTR, value: 0.60 },
       M, U25
     )
-    expect(result.belowMinimum).toBe(true)
-    expect(result.pass).toBe(false)
+    // DAFMAN 36-2905 §3.7.1: Body Composition has no minimum requirement.
+    // BFA failure gate (§3.1.2.1.1) triggers separately when WHtR > .55 AND composite < 75.
+    expect(result.belowMinimum).toBe(false)
+    expect(result.points).toBe(0)
   })
 
   it('exempt component is never belowMinimum', () => {

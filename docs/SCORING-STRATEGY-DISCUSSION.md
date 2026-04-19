@@ -112,7 +112,7 @@ From `docs/SCORING-MATH-AUDIT.md`:
 ### Tables
 
 5. ~~**Anomaly preservation.**~~ **RESOLVED 2026-04-16.** EXACTLY ZERO DEVIATIONS from PFRA. Faithful mirror. Each oddity gets a comment in `scoringTables.js` AND an entry in `docs/SCORING-ANOMALIES.md` documenting what we see and why we chose to preserve it verbatim.
-6. **Monotonicity CI gate** — PARTIAL CLARIFICATION NEEDED. User confirmed "tables must match PFRA exactly; throw out anything that does not." That resolves the data source question. The remaining half of Q6 is about adding an automated test that REJECTS any future PR that breaks bracket-over-bracket monotonicity - a safety net against re-introducing transcription errors when the tables are next edited. Not the same as Q5. See clarification offered to user 2026-04-16.
+6. **Monotonicity CI gate** — DEFERRED 2026-04-18. Data source question resolved ("tables must match PFRA exactly; throw out anything that does not."). The CI-gate half is deferred until we have a reliable automated way to secure the authoritative PFRA data itself - a gate that enforces "matches PFRA" needs an automated PFRA pull to compare against, and AFPC is currently 403-blocking direct fetches. Revisit once upstream data acquisition is automated.
 7. ~~**Dimensional typing.**~~ **RESOLVED 2026-04-16.** Do it this sprint. Add `dimension` (TIME | COUNT | RATIO), `unit` (SECONDS | REPS | SHUTTLES | NONE), `direction` (LOWER_IS_BETTER | HIGHER_IS_BETTER) to each exercise definition. Engine gets one code path instead of `isPlank || isRun` special-cases.
 8. ~~**Asterisk semantics.**~~ **RESOLVED 2026-04-16.** Our inference ("slowest scoring performance; below this = off-chart") is the working definition. Document in `docs/SCORING-ANOMALIES.md` as "inferred, pending authoritative AFPC confirmation."
 
@@ -126,15 +126,9 @@ From `docs/SCORING-MATH-AUDIT.md`:
 11. ~~**Duplication map.**~~ **RESOLVED 2026-04-16.** Thorough read-only audit now. Produces a duplication-map document before engine refactor. Single agent run, read-only.
 12. ~~**Gap analysis API placement.**~~ **RESOLVED 2026-04-16.** New `gapEngine.js`. Separate from `strategyEngine.js` (ROI/effort math) because gap (distance) and strategy (effort-weighted return) are different concepts.
 
-## Questions still open after 2026-04-16 directives
+## Questions still open after 2026-04-18
 
-- **Q3** - ROI label when external is 0
-- **Q4** - Projection chart rendering of the 0 zone
-- **Q6** - Add CI gate to auto-reject future bracket-monotonicity regressions (half-clarified; needs confirmation)
-
-## Dependency order for resolving remaining questions
-
-Q11 (duplication audit) -> Q1 (internal floor policy) -> Q3/Q4 (ROI display + projection rendering) -> Q9 (PDF side-by-side) -> Q5-Q8 (table specifics) -> engine refactor code starts.
+None blocking. Q1-Q5, Q7-Q12 all RESOLVED. Q6's CI-gate half is DEFERRED pending automated PFRA data acquisition (see Q6 above).
 
 ## Recommended next action
 
@@ -143,3 +137,4 @@ Run the duplication audit (Q11) as a read-only pass so we know the full surface 
 ## Changelog
 
 - 2026-04-16: File created. Boss directive locked. Math audit sibling artifacts in place. 12 open questions grouped by topic with a recommended resolution order.
+- 2026-04-18: Q3 and Q4 removed from still-open list (both were already marked RESOLVED in the main list; the duplicate entries were a bookkeeping error). Q6 CI-gate half deferred pending automated PFRA data acquisition. No remaining blocking open questions.

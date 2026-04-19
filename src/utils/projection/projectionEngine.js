@@ -78,8 +78,12 @@ export function getMinPassingValue(exercise, componentType, gender, ageBracket) 
   const table = getScoringTable(gender, ageBracket, exercise)
   if (!table || table.length === 0) return null
 
+  // DAFMAN §3.7.1: Body Composition has no per-component minimum.
+  const minPctRaw = COMPONENT_MINIMUMS[componentType]
+  if (minPctRaw === undefined) return null
+
   const maxPts = table[0].points
-  const minPct = COMPONENT_MINIMUMS[componentType] / 100
+  const minPct = minPctRaw / 100
   const minPtsNeeded = maxPts * minPct
 
   // Walk from worst entry (last) toward best (first); return the worst that passes.
@@ -383,7 +387,8 @@ export function projectComponent(history, exercise, componentType, gender, ageBr
   if (!scoreResult) return null
 
   const { points, percentage } = scoreResult
-  const minPct = COMPONENT_MINIMUMS[componentType]
+  // DAFMAN §3.7.1: Body Composition has no per-component minimum -> always "passes" the component gate.
+  const minPct = COMPONENT_MINIMUMS[componentType] ?? 0
   const pass = percentage >= minPct
   const gap = percentage - minPct // positive = surplus, negative = deficit
 

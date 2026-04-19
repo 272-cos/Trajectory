@@ -286,8 +286,13 @@ export function getMinimumToPass(exercise, ageBracket, gender) {
   // Walk has no point scoring (pass/fail only) - no minimum threshold concept
   if (exercise === EXERCISES.WALK_2KM) return null
 
+  // Body Composition has no per-component minimum (DAFMAN 36-2905 §3.7.1).
+  // BC contributes whatever points the WHtR chart yields; there is no
+  // "minimum WHtR to pass the component" concept.
+  const minimumPct = COMPONENT_MINIMUMS[component]
+  if (minimumPct === undefined) return null
+
   const maxPts = COMPONENT_WEIGHTS[component]
-  const minimumPct = COMPONENT_MINIMUMS[component] // e.g. 60 for cardio/strength/core, 50 for bodyComp
   const targetPts = (minimumPct / 100) * maxPts // minimum points needed
 
   const result = reverseLookup(exercise, targetPts, gender, ageBracket)

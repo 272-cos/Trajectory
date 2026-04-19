@@ -318,13 +318,9 @@ describe('Target date before last S-code date', () => {
 
 // ─── GAP 10: getMinPassingValue edge - when every entry passes ──────────────
 
-describe('getMinPassingValue - every entry passes', () => {
-  it('returns the worst threshold when all table entries meet minimum', () => {
-    // WHtR bodyComp minimum is 50%. Max points = 20.0.
-    // 50% of 20 = 10. Looking at WHTR_TABLE, threshold 0.56 = 10.0 pts.
-    // So minPassingValue should be 0.56 (worst ratio that still passes).
+describe('getMinPassingValue - body comp has no minimum', () => {
+  it('returns null for bodyComp (DAFMAN §3.7.1: no per-component minimum)', () => {
     const val = getMinPassingValue(EXERCISES.WHTR, 'bodyComp', M, U25)
-    expect(val).not.toBeNull()
-    expect(val).toBe(0.56) // 10.0 pts = exactly 50% of 20
+    expect(val).toBeNull()
   })
 })
