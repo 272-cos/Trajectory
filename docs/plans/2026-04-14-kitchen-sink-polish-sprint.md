@@ -16,11 +16,13 @@ Trajectory is a mobile-first USAF PFA readiness tracker (`/mnt/cephfs/shared/pro
 - [ ] Task 4 - Calendar days freedom + overtraining modal + constant-load scaling
 - [ ] Task 5 - Pill selector standardization
 - [ ] Task 6 - Milestones relocation
-- [ ] Task 7 - ROI math transparency
+- [x] Task 7 - ROI math transparency
 - [x] Task 9 - HAMR countdown cadence simplification (shipped `4de016c`)
 - [ ] Task 10 - AFPC research stream
 - [x] **Added mid-sprint:** AF Form 4446 PDF generator (`504aa51`, `5d7cc85`, `729edf1`, `57ea675`, `8a1595c`) - pdf-lib AcroForm with 4 PKCS#7 signature widgets. Wired into SelfCheck + History tabs (`3c34a25`).
 - [x] **Added mid-sprint:** Q11 scoring duplication audit - see [`docs/SCORING-DUPLICATION-MAP.md`](../SCORING-DUPLICATION-MAP.md) (828 lines, 134 touch points across 32 files). Prerequisite for the downstream rewrite items below.
+- [x] **Added mid-sprint (2026-04-19):** HAMR level-up audio now reuses the start-of-session 3-2-1-GO countdown pattern (see Task 9 section below) instead of the original triple beep.
+- [x] **Added mid-sprint (2026-04-19):** No-forced-flows modal audit - OnboardingModal, OvertrainingWarningModal, UnsavedWarningModal, ReportTab alert(). Policy captured as durable feedback memory (`feedback_no_forced_flows.md`).
 - [ ] All 790 existing + new tests green
 - [ ] `npm run lint` zero warnings
 - [ ] Grep sweep clean (no em/en dashes, no codec jargon, no internal tracking IDs)
@@ -240,6 +242,7 @@ CLRC library addition is folded into Task 2 (picker exposes it; entries confirme
 ### Task 9 - HAMR countdown cadence simplification (S, no binary assets this sprint)
 
 - [x] **Task 9 complete** (shipped `4de016c feat(task-9,pdf): HAMR cadence simplification + AF Form 1067 PDF generation`)
+- [x] **Task 9 revisit (2026-04-19):** level-up signal (previously a triple beep at the end of each level) now reuses the same 440 Hz / sweep countdown pattern as session start, so level transitions are audibly identical to the 3-2-1-GO. Implemented by routing the level-change branch of `scheduleAudioBeep` through the existing `scheduleCountdownTone` / `scheduleSweepTone` helpers in `HamrMetronome.jsx`.
 
 The current cadence emits seven signals (3 + 2 + 1 + sweep) which the user reports as too many and hard to read. Reduce to a clear Mario-Kart-style "3-2-1-GO" - four total signals - without changing timbre. User plans a sampled audio replacement in a future pass; this sprint is cadence only.
 
@@ -336,7 +339,18 @@ Two workstreams appeared mid-sprint, got executed, and now belong in the status 
 Reusable tooling produced this session, **intentionally kept uncommitted** (user directive: "Keep don't commit beyond scope"):
 - `scripts/pdf-to-html-form.mjs` - reusable PDF to HTML-form converter. Text PDFs via `pdftotext -bbox-layout`; image PDFs via `tesseract ... tsv` when `--tesseract` flag and binary are present; background-only fallback otherwise. Emits `<output>.html` + `<output>-assets/` (rendered PNGs via `pdftoppm`). Tested on our own generator output (68 fields inferred). Not yet tested on an image-only official PDF - tesseract was not installed on this node.
 
-### B - Q11 scoring duplication audit
+### C - No-forced-flows modal audit (2026-04-19)
+
+User directive: "every modal every click [should] be able to be backed out [or] navigated to, not be locking [or] forced, unless this was a prior design choice that explicitly states it." Captured as durable feedback memory (`feedback_no_forced_flows.md`) so future modal work honors it by default.
+
+Audited five modal surfaces + one OS `alert()`; four needed fixes, one (`ShareModal`) and one (`InstallPrompt`) were already clean.
+
+- [x] `src/components/layout/OnboardingModal.jsx` - added always-visible × close button (top-right, all slides including first and last) and backdrop click dismiss. Both route through `handleSkip` so first-run still navigates to Profile and reopens simply close.
+- [x] `src/components/shared/OvertrainingWarningModal.jsx` - added ESC key handler, backdrop click dismiss, and × close button. All three route to `onCancel`. Previously the only exits were the two action buttons.
+- [x] `src/context/AppContext.jsx` `UnsavedWarningModal` - added visible "Keep editing" button between "Save Assessment" and "Leave without saving". ESC and backdrop click were already wired but the only visible options committed to an action.
+- [x] `src/components/tabs/ReportTab.jsx` - replaced OS-native `alert('Failed to generate PDF...')` with `addToast(msg, 'error')` so PDF-generation failures surface as a dismissable toast instead of a blocking modal.
+
+**Verification.** `npm run lint` zero warnings, `npm run build` clean.
 
 - [x] `docs/SCORING-DUPLICATION-MAP.md` produced - 828 lines, 134 scoring touch points across 32 files, grouped ENGINE (5) / AGGREGATION (8) / DISPLAY (43) / PROJECTION (12) / GAP-ROI (18) / TRAINING (5) / PDF (15) / CODEC (4) / TESTS (22) / DOCS (2).
 - **Headline findings:**

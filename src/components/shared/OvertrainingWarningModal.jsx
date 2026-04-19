@@ -4,16 +4,39 @@
  * in localStorage so it never appears again for that browser profile.
  */
 
+import { useEffect } from 'react'
+
 export default function OvertrainingWarningModal({ onAcknowledge, onCancel }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onCancel])
+
+  const handleBackdrop = (e) => {
+    if (e.target === e.currentTarget) onCancel()
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="overtraining-title"
+      onClick={handleBackdrop}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4">
-        <h2 id="overtraining-title" className="text-lg font-semibold text-gray-900">
+      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Close warning"
+          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-2xl leading-none min-h-[44px] min-w-[44px] flex items-center justify-center rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
+        >
+          &times;
+        </button>
+        <h2 id="overtraining-title" className="text-lg font-semibold text-gray-900 pr-8">
           Training more than three days a week?
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
