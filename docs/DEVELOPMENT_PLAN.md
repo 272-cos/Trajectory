@@ -931,3 +931,47 @@ UI component tests via React Testing Library for critical flows (Self-Check live
 - [ ] Extract SelfCheckTab sub-components (1,787 lines - scoring panel, practice form, shared controls)
 - [ ] Replace score calculation useEffect with useMemo in SelfCheckTab (eliminates extra render per keystroke)
 - [ ] Update scoring tables to final Mar 2026 AFPC release - see reconciliation note above (HRPU and HAMR critical; must complete before Sep 1 scored PFAs)
+
+---
+
+## AFPC recon (lower-priority candidate sprints)
+
+Source: `https://www.afpc.af.mil/Career-Management/Fitness-Program/`. The public AFPC entry page returned HTTP 403 to unauthenticated fetches during this recon pass (access appears gated to .mil/CAC context or geo/UA restrictions). Material below is drawn from the verbatim-extracted `docs/PFRA-Scoring-Charts.md` and `docs/DAFMAN-36-2905.md` already in the repo. A second pass from a CAC-context browser should confirm nothing public has shifted since those extractions.
+
+### (a) Table diff summary
+
+All 126 scored tables (9 brackets x 2 genders x 7 exercises) plus the universal WHtR table are now regenerated verbatim from `PFRA Scoring Charts.pdf`, validated by `scripts/validate-scoring-tables.mjs`, and frozen in `docs/PFRA-Scoring-Charts.md` as the source of truth. Zero drift against the official PDF as of `b309f23`. Any future chart revision from AFPC requires: (1) re-extract MD from the new PDF, (2) `node scripts/generate-scoring-tables.mjs`, (3) `node scripts/validate-scoring-tables.mjs` green, (4) regenerate `scoringEngine/strategyEngine/optimalAllocation` test fixtures.
+
+### (b) Exercises and policies not yet supported (candidate sprints)
+
+Grouped by user value. Items inside the existing scoring model bring the most value per unit effort; items outside require parallel engines or new UI surfaces.
+
+**Inside the existing scoring model:**
+- **AFSPECWAR/EOD scoring chart** (PFRA Charts Page 10). A separate higher-standards table for the Tier 2 population (Special Warfare and Explosive Ordnance Disposal career fields). Columns include Push-up, Hand-Release Push-up, Sit-up, Cross-Leg Reverse Crunch, Forearm Plank, 2-Mile Run, 20m HAMR - same exercise set, harder thresholds. Wiring: add a `specialOps` flag on the D-code (or a feature toggle on Profile), branch table lookup in `scoringEngine.js`, new `SPECIAL_OPS_TABLES` in `scoringTables.js`.
+- **2km walk as a substitute for 2-mile run / HAMR**. We already accept walk-only cardio and walk limits are in `PFRA-Scoring-Charts.md` Page 11; confirm the UI surfaces the walk option alongside run/HAMR in the forthcoming unified picker (Task 2 scope).
+- **Body Fat Assessment** slot on AF Form 4446. The PDF generator reserves the row; DAFMAN 36-2905 treats body fat as a follow-on assessment triggered by WHtR above threshold. Candidate sprint: add optional body-fat % input + scoring table when AFPC publishes it.
+
+**Outside the current scoring model:**
+- **Injury-related component substitution** (e.g., bike substitute for cardio under profile). Requires new substitution ruleset; out of scope for a polish sprint.
+- **Diagnostic vs scored assessment distinction**. Already auto-detected from S-code date in the engine. Confirmed working; no additional UI work needed.
+- **Exemption and waiver tracking** (per-component expiration dates). The PDF has per-row `_expiration` fields; the app has no equivalent slot yet. Candidate sprint: add exemption records in the D-code or a sibling E-code, surface expiration warnings on the Profile tab.
+
+### (c) Harvested official UI phrasing candidates
+
+Prefer these exact strings in future UI copy where they fit, since they mirror the form and regulation verbatim:
+
+| Concept                    | Official phrasing                                               | Current app phrasing                          |
+|----------------------------|-----------------------------------------------------------------|-----------------------------------------------|
+| The assessment             | Physical Fitness Readiness Assessment (PFRA)                    | "PFA" / "assessment"                          |
+| Composite                  | Total Score                                                     | "Composite Score"                             |
+| Component minimum          | Minimum Value Met? (Yes/No)                                     | "FAIL - 0 toward composite" / min-to-pass hint|
+| Non-completion             | Did Not Finish (DNF)                                            | "failed" / "incomplete"                       |
+| Cardio - long option       | 2 Mile Run                                                      | "2-mile run" (hyphen variant acceptable)      |
+| Cardio - shuttle           | 20m HAMR (20-Meter High-Aerobic Multi-Shuttle Run)              | "HAMR"                                        |
+| Cardio - walk              | 2.0 Kilometer Walk                                              | "2km walk"                                    |
+| Strength - variant         | Hand Release Push-up                                            | "HRPU" / "Hand-Release Push-up"               |
+| Core - variant             | Cross-Leg Reverse Crunch                                        | "CLRC" / "Reverse Crunch"                     |
+| Core - static              | Timed Forearm Plank                                             | "Plank"                                       |
+| Body comp                  | Waist Circumference / Body Fat Assessment                       | "WHtR" / "Waist-to-Height Ratio"              |
+
+Recommendation: keep internal identifiers (HAMR, HRPU, CLRC, WHtR) in code; expand to the full official names on first render in labels, tooltips, and the supervisor report. The Form 4446 PDF already uses the official long forms.
