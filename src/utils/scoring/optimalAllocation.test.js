@@ -92,17 +92,17 @@ describe('buildMarginalCostSchedule', () => {
   })
 
   it('returns non-empty schedule for mid-range push-ups (M/<25)', () => {
+    // 40 reps M/<25 = 6.0 pts (chart row 40=6.0)
     const schedule = buildMarginalCostSchedule(EXERCISES.PUSHUPS, 40, 'M', AGE_BRACKETS.UNDER_25)
     expect(schedule.length).toBeGreaterThan(0)
-    // First entry should show improvement from current row
-    expect(schedule[0].fromPts).toBeCloseTo(10.2, 1)
+    expect(schedule[0].fromPts).toBeCloseTo(6.0, 1)
   })
 
   it('push-ups cliff zone (30 reps, M/<25) has low marginal cost', () => {
-    // 30 reps = 0.8 pts, 31 reps = 3.0 pts - massive cliff
+    // 30 reps M/<25 = 2.5 pts (chart floor row), +1 = 31 = 3.0 pts
     const schedule = buildMarginalCostSchedule(EXERCISES.PUSHUPS, 30, 'M', AGE_BRACKETS.UNDER_25)
     expect(schedule.length).toBeGreaterThan(0)
-    expect(schedule[0].ptsGain).toBeCloseTo(2.2, 1) // 3.0 - 0.8
+    expect(schedule[0].ptsGain).toBeCloseTo(0.5, 1) // 3.0 - 2.5
     // Low marginal cost = great ROI
     expect(schedule[0].marginalCost).toBeLessThan(2)
   })
@@ -196,11 +196,12 @@ describe('computeOptimalAllocation', () => {
   })
 
   it('handles all components maxed but target unreachable', () => {
-    // Very low scores, target 100 (impossible)
+    // Very low scores, target 100 (impossible without maxing everything)
+    // Pts reflect official PFRA tables (effective 1 Mar 26).
     const scores = {
-      [COMPONENTS.CARDIO]: { exercise: EXERCISES.RUN_2MILE, value: 1440, pts: 29.5 },
-      [COMPONENTS.STRENGTH]: { exercise: EXERCISES.PUSHUPS, value: 21, pts: 0.8 },
-      [COMPONENTS.CORE]: { exercise: EXERCISES.SITUPS, value: 34, pts: 2.3 },
+      [COMPONENTS.CARDIO]: { exercise: EXERCISES.RUN_2MILE, value: 1440, pts: 35.0 },
+      [COMPONENTS.STRENGTH]: { exercise: EXERCISES.PUSHUPS, value: 21, pts: 2.5 },
+      [COMPONENTS.CORE]: { exercise: EXERCISES.SITUPS, value: 34, pts: 3.0 },
       [COMPONENTS.BODY_COMP]: { exercise: EXERCISES.WHTR, value: 0.60, pts: 0.0 },
     }
     // Target 100 is achievable if all components reach max

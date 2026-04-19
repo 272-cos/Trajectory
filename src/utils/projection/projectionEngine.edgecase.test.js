@@ -285,8 +285,8 @@ describe('clampToChartBounds - additional exercise types', () => {
 
   it('plank: value above chart max clamped', () => {
     const clamped = clampToChartBounds(1000, EXERCISES.PLANK, M, U25)
-    // Plank chart max for M/U25 is 215s
-    expect(clamped).toBeLessThanOrEqual(215)
+    // Plank chart max for M/U25 is 220s (3:40)
+    expect(clamped).toBeLessThanOrEqual(220)
   })
 })
 
