@@ -45,63 +45,64 @@ describe('analyzeNextGain', () => {
   })
 
   it('finds next threshold for push-ups near the bottom cliff', () => {
-    // M/<25 push-ups: 30 reps = 0.8 pts, 31 reps = 3.0 pts
+    // M/<25 push-ups: 30 reps is at chart floor (row 2.5 pts), 31 reps = 3.0 pts
     const result = analyzeNextGain(EXERCISES.PUSHUPS, 30, 'M', AGE_BRACKETS.UNDER_25)
     expect(result).not.toBeNull()
     expect(result.alreadyMaxed).toBe(false)
-    expect(result.currentPts).toBeCloseTo(0.8, 1)
-    expect(result.ptsGain).toBeCloseTo(2.2, 1) // 3.0 - 0.8
+    expect(result.currentPts).toBeCloseTo(2.5, 1)
+    expect(result.ptsGain).toBeCloseTo(0.5, 1) // 3.0 - 2.5
     expect(result.improvementNeeded).toBe(1)    // 31 - 30 = 1 rep
     expect(result.unitsNeeded).toBe(1)           // ceil(1/5) = 1 unit
     expect(result.roi).toBeGreaterThan(0)
   })
 
   it('finds correct units needed when gap exceeds one standard unit (push-ups)', () => {
-    // M/<25 push-ups: 37 reps = 9.0 pts, next threshold 38 reps = 9.5 pts
-    // Improvement needed: 38 - 37 = 1 rep; units = ceil(1/5) = 1
+    // M/<25 push-ups: 37 reps = 5.0 pts, next threshold 39 reps = 5.5 pts
+    // Improvement needed: 39 - 37 = 2 reps; units = ceil(2/5) = 1
     const result = analyzeNextGain(EXERCISES.PUSHUPS, 37, 'M', AGE_BRACKETS.UNDER_25)
     expect(result).not.toBeNull()
-    expect(result.currentPts).toBeCloseTo(9.0, 1)
-    expect(result.unitsNeeded).toBe(1) // 1 rep gap, 1 unit (5 reps)
+    expect(result.currentPts).toBeCloseTo(5.0, 1)
+    expect(result.unitsNeeded).toBe(1) // 2 rep gap, 1 unit (5 reps)
   })
 
   it('computes next gain for 2-mile run (lower is better)', () => {
-    // M/<25 run: 1075s (17:55) = 37.5 pts, next threshold 1057s = 38.6 pts
+    // M/<25 run: 1075s is within 37.5 tier (boundary 1090s), next threshold 1071s = 38.0 pts
     const result = analyzeNextGain(EXERCISES.RUN_2MILE, 1075, 'M', AGE_BRACKETS.UNDER_25)
     expect(result).not.toBeNull()
     expect(result.alreadyMaxed).toBe(false)
     expect(result.currentPts).toBeCloseTo(37.5, 1)
-    expect(result.ptsGain).toBeCloseTo(1.1, 1)        // 38.6 - 37.5
-    expect(result.improvementNeeded).toBeCloseTo(18, 0) // 1075 - 1057 = 18s
-    expect(result.unitsNeeded).toBe(2)                  // ceil(18/10) = 2 units
+    expect(result.ptsGain).toBeCloseTo(0.5, 1)          // 38.0 - 37.5
+    expect(result.improvementNeeded).toBeCloseTo(4, 0)  // 1075 - 1071 = 4s
+    expect(result.unitsNeeded).toBe(1)                   // ceil(4/10) = 1 unit
   })
 
   it('computes next gain for run when within a tier (not at the threshold boundary)', () => {
-    // Runner at 1065s: in the 1075 tier (37.5 pts); next threshold 1057 (38.6 pts)
+    // Runner at 1065s: within the 38.0 tier (boundary 1071s); next threshold 1052s = 38.5 pts
     const result = analyzeNextGain(EXERCISES.RUN_2MILE, 1065, 'M', AGE_BRACKETS.UNDER_25)
     expect(result).not.toBeNull()
-    expect(result.currentPts).toBeCloseTo(37.5, 1)
-    expect(result.improvementNeeded).toBeCloseTo(8, 0)  // 1065 - 1057 = 8s
-    expect(result.unitsNeeded).toBe(1)                   // ceil(8/10) = 1 unit
+    expect(result.currentPts).toBeCloseTo(38.0, 1)
+    expect(result.improvementNeeded).toBeCloseTo(13, 0) // 1065 - 1052 = 13s
+    expect(result.unitsNeeded).toBe(2)                   // ceil(13/10) = 2 units
   })
 
   it('computes next gain for HAMR when gap requires more than one unit', () => {
-    // M/<25 HAMR: 39 shuttles = 29.5 pts, next threshold 42 = 31.0 pts
+    // M/<25 HAMR: 39 shuttles clamps to chart min 35.0 pts, next threshold 44 = 35.5 pts
     const result = analyzeNextGain(EXERCISES.HAMR, 39, 'M', AGE_BRACKETS.UNDER_25)
     expect(result).not.toBeNull()
-    expect(result.currentPts).toBeCloseTo(29.5, 1)
-    expect(result.ptsGain).toBeCloseTo(1.5, 1) // 31.0 - 29.5
-    expect(result.improvementNeeded).toBe(3)    // 42 - 39 = 3 shuttles
-    expect(result.unitsNeeded).toBe(2)           // ceil(3/2) = 2 units
+    expect(result.currentPts).toBeCloseTo(35.0, 1)
+    expect(result.ptsGain).toBeCloseTo(0.5, 1) // 35.5 - 35.0
+    expect(result.improvementNeeded).toBe(5)    // 44 - 39 = 5 shuttles
+    expect(result.unitsNeeded).toBe(3)           // ceil(5/2) = 3 units
   })
 
   it('computes next gain for forearm plank (higher time = better)', () => {
-    // Plank at 65s = 7.5 pts, next threshold 85s = 8.5 pts
+    // Plank at 65s: below chart min (95s = 2.5 pts for M/<25); clamps to 2.5 pts
+    // Next threshold is 100s = 3.5 pts (3.0 doesn't exist as separate row in chart floor)
     const result = analyzeNextGain(EXERCISES.PLANK, 65, 'M', AGE_BRACKETS.UNDER_25)
     expect(result).not.toBeNull()
-    expect(result.currentPts).toBeCloseTo(7.5, 1)
-    expect(result.improvementNeeded).toBe(20)   // 85 - 65 = 20s
-    expect(result.unitsNeeded).toBe(2)           // ceil(20/15) = 2
+    expect(result.currentPts).toBeCloseTo(2.5, 1)
+    expect(result.improvementNeeded).toBe(35)   // 100 - 65 = 35s
+    expect(result.unitsNeeded).toBe(3)           // ceil(35/15) = 3
   })
 
   it('computes next gain for WHtR (lower ratio = better)', () => {
@@ -145,11 +146,11 @@ describe('marginalReturn', () => {
   })
 
   it('computes non-zero marginal pts when unit crosses a threshold (push-ups)', () => {
-    // 32 reps = 5.3 pts, 37 reps = 9.0 pts (5-rep unit crosses multiple rows)
+    // 32 reps = 3.0 pts, +5 reps = 37 reps = 5.0 pts (crosses multiple half-point rows)
     const result = marginalReturn(EXERCISES.PUSHUPS, 32, 'M', AGE_BRACKETS.UNDER_25)
     expect(result).not.toBeNull()
     expect(result.marginalPts).toBeGreaterThan(0)
-    expect(result.currentPts).toBeCloseTo(5.3, 1)
+    expect(result.currentPts).toBeCloseTo(3.0, 1)
   })
 
   it('may return 0 marginalPts when unit does not cross any threshold (small unit)', () => {
@@ -160,11 +161,10 @@ describe('marginalReturn', () => {
   })
 
   it('returns positive marginalPts when unit crosses threshold (HAMR at right position)', () => {
-    // 42 HAMR = 31.0 pts; +2 = 44 shuttles; check if we cross to next level
+    // 42 HAMR = 35.0 pts (clamp to chart min); +2 = 44 = 35.5 pts (first chart row)
     const result = marginalReturn(EXERCISES.HAMR, 42, 'M', AGE_BRACKETS.UNDER_25)
     expect(result).not.toBeNull()
-    expect(result.currentPts).toBeCloseTo(31.0, 1)
-    // 44 shuttles >= 45 threshold for 32.5 pts? Depends on table, but verify non-negative
+    expect(result.currentPts).toBeCloseTo(35.0, 1)
     expect(result.marginalPts).toBeGreaterThanOrEqual(0)
   })
 

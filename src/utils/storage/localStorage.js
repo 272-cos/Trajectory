@@ -402,6 +402,24 @@ export function setShowMilestones(show) {
   safeSetItem(SHOW_MILESTONES_KEY, show ? 'true' : 'false')
 }
 
+// ── Overtraining acknowledgement ────────────────────────────────────────────
+
+const OVERTRAINING_ACK_KEY = 'pfa_overtraining_ack'
+
+/** Has the user acknowledged the >3 training-days warning? */
+export function getOvertrainingAck() {
+  try {
+    return localStorage.getItem(OVERTRAINING_ACK_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+/** Record that the user has seen and acknowledged the >3 days warning. */
+export function setOvertrainingAck() {
+  safeSetItem(OVERTRAINING_ACK_KEY, 'true')
+}
+
 // ── Backup / Restore ────────────────────────────────────────────────────────
 
 /** All localStorage keys managed by this app. */
@@ -410,7 +428,7 @@ const ALL_KEYS = [
   'pfa_dark_mode', 'pfa_personal_goal', 'pfa_draft', 'pfa_outliers',
   'pfa_exercise_prefs', 'pfa_practice_sessions', 'pfa_preferred_days',
   'pfa_completed_days', 'pfa_show_milestones', 'pfa_chart_banner_dismissed',
-  'pfa_selected_base', 'pfa_workout_rpe',
+  'pfa_selected_base', 'pfa_workout_rpe', 'pfa_overtraining_ack',
 ]
 
 /**

@@ -4,6 +4,8 @@
 
 import { describe, it, expect } from 'vitest'
 import { generateFormPDF, downloadPDF } from './generateFormPDF.js'
+import { lookupScore } from '../scoring/scoringEngine.js'
+import { calculateAge, getAgeBracket } from '../scoring/constants.js'
 
 // Mock demographics, S-code decoded data, and component scores
 const mockDemographics = {
@@ -14,7 +16,7 @@ const mockDemographics = {
 const mockDecoded = {
   date: new Date('2026-04-15'),
   cardio: { exercise: '2mile_run', value: 1140 },
-  strength: { exercise: 'pushups', value: 42 },
+  strength: { exercise: 'pushups', value: 55 },
   core: { exercise: 'situps', value: 55 },
   bodyComp: { heightInches: 70, waistInches: 32.5 },
   isDiagnostic: false,
@@ -26,7 +28,7 @@ const mockScores = {
       type: 'cardio',
       exercise: '2mile_run',
       value: 1140,
-      points: 45.5,
+      points: 36,
       maxPoints: 50,
       pass: true,
       tested: true,
@@ -36,8 +38,8 @@ const mockScores = {
     {
       type: 'strength',
       exercise: 'pushups',
-      value: 42,
-      points: 13.2,
+      value: 55,
+      points: 12,
       maxPoints: 15,
       pass: true,
       tested: true,
@@ -47,7 +49,7 @@ const mockScores = {
       type: 'core',
       exercise: 'situps',
       value: 55,
-      points: 12.8,
+      points: 14.5,
       maxPoints: 15,
       pass: true,
       tested: true,
@@ -57,7 +59,7 @@ const mockScores = {
       type: 'bodyComp',
       exercise: 'whtr',
       value: 0.464,
-      points: 19.5,
+      points: 20,
       maxPoints: 20,
       pass: true,
       tested: true,
@@ -66,7 +68,7 @@ const mockScores = {
     },
   ],
   composite: {
-    composite: 85.6,
+    composite: 82.5,
     pass: true,
   },
 }
@@ -147,6 +149,43 @@ describe('generateFormPDF', () => {
     }
     const bytes = await generateFormPDF(mockDemographics, mockDecoded, walkScores)
     expect(bytes).toBeInstanceOf(Uint8Array)
+  })
+})
+
+describe('score validation - mock fixtures match scoring engine', () => {
+  const age = calculateAge(mockDemographics.dob, mockDecoded.date)
+  const bracket = getAgeBracket(age)
+  const gender = mockDemographics.gender
+
+  it('cardio score matches engine lookup', () => {
+    const comp = mockScores.components.find(c => c.type === 'cardio')
+    const result = lookupScore(comp.exercise, comp.value, gender, bracket)
+    expect(result.points).toBe(comp.points)
+  })
+
+  it('strength score matches engine lookup', () => {
+    const comp = mockScores.components.find(c => c.type === 'strength')
+    const result = lookupScore(comp.exercise, comp.value, gender, bracket)
+    expect(result.points).toBe(comp.points)
+  })
+
+  it('core score matches engine lookup', () => {
+    const comp = mockScores.components.find(c => c.type === 'core')
+    const result = lookupScore(comp.exercise, comp.value, gender, bracket)
+    expect(result.points).toBe(comp.points)
+  })
+
+  it('body comp score matches engine lookup', () => {
+    const comp = mockScores.components.find(c => c.type === 'bodyComp')
+    const result = lookupScore(comp.exercise, comp.value, gender, bracket)
+    expect(result.points).toBe(comp.points)
+  })
+
+  it('composite matches sum of components', () => {
+    const earned = mockScores.components.reduce((sum, c) => sum + c.points, 0)
+    const possible = mockScores.components.reduce((sum, c) => sum + c.maxPoints, 0)
+    const expected = Math.round((earned / possible) * 1000) / 10
+    expect(mockScores.composite.composite).toBe(expected)
   })
 })
 

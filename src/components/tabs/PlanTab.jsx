@@ -16,6 +16,8 @@ import {
   toggleCompletedDay,
   getPreferredDays,
   savePreferredDays,
+  getOvertrainingAck,
+  setOvertrainingAck,
 } from '../../utils/storage/localStorage.js'
 import {
   UPPER_BODY,
@@ -48,6 +50,8 @@ import {
   ADAPTATION_STATES,
 } from '../../utils/training/adaptiveFeedback.js'
 import HintBanner from '../shared/HintBanner.jsx'
+import PillGroup from '../shared/PillGroup.jsx'
+import OvertrainingWarningModal from '../shared/OvertrainingWarningModal.jsx'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -508,6 +512,8 @@ export default function PlanTab() {
   const [calendarKey, setCalendarKey] = useState(0)
   const [preferredDays, setPreferredDays] = useState(() => getPreferredDays())
   const [pendingDays, setPendingDays] = useState(() => getPreferredDays())
+  const [overtrainingAck, setOvertrainingAckState] = useState(() => getOvertrainingAck())
+  const [showOvertrainingModal, setShowOvertrainingModal] = useState(false)
 
   const handlePrevMonth = () => {
     const p = prevMonth(viewYear, viewMonth)
@@ -538,20 +544,42 @@ export default function PlanTab() {
   }
 
   const handleToggleDay = useCallback((dow) => {
-    setPendingDays(prev =>
-      prev.includes(dow)
+    setPendingDays(prev => {
+      const next = prev.includes(dow)
         ? prev.filter(d => d !== dow)
-        : [...prev, dow].sort((a, b) => a - b),
-    )
+        : [...prev, dow].sort((a, b) => a - b)
+      if (next.length > 7) return prev
+      return next
+    })
   }, [])
 
   const handleConfirmDays = useCallback(() => {
-    if (pendingDays.length !== 3) return
+    const count = pendingDays.length
+    if (count < 3 || count > 7) return
+    if (count > 3 && !overtrainingAck) {
+      setShowOvertrainingModal(true)
+      return
+    }
+    savePreferredDays(pendingDays)
+    setPreferredDays(pendingDays)
+    setSelectedDate(null)
+    setCalendarKey(k => k + 1)
+  }, [pendingDays, overtrainingAck])
+
+  const handleOvertrainingAcknowledge = useCallback(() => {
+    setOvertrainingAck()
+    setOvertrainingAckState(true)
+    setShowOvertrainingModal(false)
     savePreferredDays(pendingDays)
     setPreferredDays(pendingDays)
     setSelectedDate(null)
     setCalendarKey(k => k + 1)
   }, [pendingDays])
+
+  const handleOvertrainingCancel = useCallback(() => {
+    setShowOvertrainingModal(false)
+    setPendingDays(prev => prev.slice(0, 3))
+  }, [])
 
   // ── Compute current scores from most recent S-code ─────────────────────────
   const currentScores = useMemo(() => {
@@ -665,7 +693,7 @@ export default function PlanTab() {
 
   // ── Generate the calendar ─────────────────────────────────────────────────
   const calendar = useMemo(() => {
-    if (!targetPfaDate || preferredDays.length !== 3) return null
+    if (!targetPfaDate || preferredDays.length < 3) return null
     return generateCalendar(
       demographics,
       targetPfaDate,
@@ -923,30 +951,29 @@ export default function PlanTab() {
           const DOW_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
           const DOW_FULL   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
           const n          = pendingDays.length
-          const over       = n > 3
-          const exact      = n === 3
+          const valid      = n >= 3 && n <= 7
           const consecutive = hasConsecutiveDays(pendingDays)
           const changed    = pendingDays.join(',') !== preferredDays.join(',')
 
-          // Three-segment progress bar: one pip per slot
+          // Seven-segment progress bar: one pip per possible day
           const pipColor = (i) => {
-            if (i >= Math.min(n, 3)) return 'bg-gray-200'
-            return over ? 'bg-amber-400' : 'bg-blue-500'
+            if (i >= n) return 'bg-gray-200'
+            return n > 3 ? 'bg-blue-600' : 'bg-blue-500'
           }
 
           // Hint text below bar
           const hint =
-            n === 0 ? 'Pick the three days that fit your week best'  :
-            n === 1 ? 'Two more to go'                               :
-            n === 2 ? 'One more and you are set'                     :
-            over    ? 'Rest is part of the plan - drop it to three'  :
+            n === 0 ? 'Pick at least three days that fit your week' :
+            n === 1 ? 'Two more to reach the minimum'               :
+            n === 2 ? 'One more and you meet the minimum'           :
+            n === 3 ? 'Minimum met - add more days if you want'     :
             null
 
           return (
             <div className="mt-3 pt-3 border-t border-gray-100">
-              {/* Three-pip progress bar */}
-              <div className="flex gap-1.5 mb-1">
-                {[0, 1, 2].map(i => (
+              {/* Seven-pip progress bar (one per possible day) */}
+              <div className="flex gap-1 mb-1">
+                {[0, 1, 2, 3, 4, 5, 6].map(i => (
                   <div
                     key={i}
                     className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${pipColor(i)}`}
@@ -955,7 +982,7 @@ export default function PlanTab() {
               </div>
 
               {/* Status copy */}
-              <div className={`text-xs mb-2.5 min-h-[1rem] transition-colors leading-snug ${over ? 'text-amber-600 font-medium' : 'text-gray-400'}`}>
+              <div className="text-xs mb-2.5 min-h-[1rem] transition-colors leading-snug text-gray-400">
                 {hint}
               </div>
 
@@ -970,9 +997,7 @@ export default function PlanTab() {
                       className={[
                         'flex-1 py-1.5 rounded text-xs font-semibold transition-colors border',
                         active
-                          ? over
-                            ? 'bg-amber-400 border-amber-500 text-white'
-                            : 'bg-blue-600 border-blue-700 text-white'
+                          ? 'bg-blue-600 border-blue-700 text-white'
                           : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
                       ].join(' ')}
                       aria-pressed={active}
@@ -984,8 +1009,8 @@ export default function PlanTab() {
                 })}
               </div>
 
-              {/* Consecutive-day warning (only when not already showing over-limit warning) */}
-              {consecutive && !over && (
+              {/* Consecutive-day warning */}
+              {consecutive && (
                 <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2.5 py-1.5">
                   Back-to-back days increase injury risk - spacing workouts aids recovery.
                 </div>
@@ -994,15 +1019,15 @@ export default function PlanTab() {
               {/* Confirm button */}
               <button
                 onClick={handleConfirmDays}
-                disabled={!exact || !changed}
+                disabled={!valid || !changed}
                 className={[
                   'mt-2.5 w-full py-2 rounded-lg text-xs font-semibold border transition-all',
-                  exact && changed
+                  valid && changed
                     ? 'bg-blue-600 border-blue-700 text-white hover:bg-blue-700 shadow-sm'
                     : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed',
                 ].join(' ')}
               >
-                {exact && changed ? 'Confirm training days' : 'Confirm training days'}
+                Confirm training days
               </button>
             </div>
           )
@@ -1010,57 +1035,34 @@ export default function PlanTab() {
 
         {/* PFA exercise preference picker */}
         <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">PFA Events</div>
-          {[
-            {
-              label:   'Upper Body',
-              options: [
-                { value: UPPER_BODY.PUSHUPS, short: 'Push-ups' },
-                { value: UPPER_BODY.HRPU,    short: 'Hand-Release' },
-              ],
-              current: pfaPreferences?.upperBody || UPPER_BODY.PUSHUPS,
-              onChange: (v) => updatePfaPreferences({ ...pfaPreferences, upperBody: v }),
-            },
-            {
-              label:   'Core',
-              options: [
-                { value: CORE.SITUPS, short: 'Sit-ups' },
-                { value: CORE.PLANK,  short: 'Plank' },
-              ],
-              current: pfaPreferences?.core || CORE.SITUPS,
-              onChange: (v) => updatePfaPreferences({ ...pfaPreferences, core: v }),
-            },
-            {
-              label:   'Cardio',
-              options: [
-                { value: CARDIO.RUN,  short: 'Dist. Run' },
-                { value: CARDIO.HAMR, short: 'HAMR' },
-              ],
-              current: pfaPreferences?.cardio || CARDIO.RUN,
-              onChange: (v) => updatePfaPreferences({ ...pfaPreferences, cardio: v }),
-            },
-          ].map(({ label, options, current, onChange }) => (
-            <div key={label} className="flex items-center gap-2 mb-1.5">
-              <div className="text-xs text-gray-500 w-20 shrink-0">{label}</div>
-              <div className="flex gap-1 flex-1">
-                {options.map(({ value, short }) => (
-                  <button
-                    key={value}
-                    onClick={() => onChange(value)}
-                    aria-pressed={current === value}
-                    className={[
-                      'flex-1 py-1 rounded text-xs font-semibold transition-colors border',
-                      current === value
-                        ? 'bg-blue-600 border-blue-700 text-white'
-                        : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
-                    ].join(' ')}
-                  >
-                    {short}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">PFA Event Preferences</div>
+          <PillGroup
+            label="Upper Body"
+            value={pfaPreferences?.upperBody || UPPER_BODY.PUSHUPS}
+            onChange={(v) => updatePfaPreferences({ ...pfaPreferences, upperBody: v })}
+            options={[
+              { value: UPPER_BODY.PUSHUPS, label: 'Push-ups' },
+              { value: UPPER_BODY.HRPU,    label: 'Hand-Release' },
+            ]}
+          />
+          <PillGroup
+            label="Core"
+            value={pfaPreferences?.core || CORE.SITUPS}
+            onChange={(v) => updatePfaPreferences({ ...pfaPreferences, core: v })}
+            options={[
+              { value: CORE.SITUPS, label: 'Sit-ups' },
+              { value: CORE.PLANK,  label: 'Plank' },
+            ]}
+          />
+          <PillGroup
+            label="Cardio"
+            value={pfaPreferences?.cardio || CARDIO.RUN}
+            onChange={(v) => updatePfaPreferences({ ...pfaPreferences, cardio: v })}
+            options={[
+              { value: CARDIO.RUN,  label: 'Dist. Run' },
+              { value: CARDIO.HAMR, label: 'HAMR' },
+            ]}
+          />
         </div>
 
         {/* Fitness level summary */}
@@ -1196,6 +1198,13 @@ export default function PlanTab() {
       </div>
 
       <div className="h-4" />
+
+      {showOvertrainingModal && (
+        <OvertrainingWarningModal
+          onAcknowledge={handleOvertrainingAcknowledge}
+          onCancel={handleOvertrainingCancel}
+        />
+      )}
     </div>
   )
 }

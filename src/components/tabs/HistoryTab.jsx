@@ -20,6 +20,7 @@ import { EXERCISES, COMPONENTS, calculateAge, getAgeBracket } from '../../utils/
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, formatTime } from '../../utils/scoring/scoringEngine.js'
 import { getOutliers, toggleOutlier, saveDraft, getPracticeSessions, removePracticeSession } from '../../utils/storage/localStorage.js'
 import ShareModal from '../shared/ShareModal.jsx'
+import AchievementBadges from '../shared/AchievementBadges.jsx'
 import { PI_EXERCISE_LABELS, formatSecondsMMSS } from '../../utils/training/practiceSession.js'
 import { generatePDFAndDownload } from '../../utils/pdf/generateFormPDF.js'
 
@@ -559,6 +560,9 @@ export default function HistoryTab() {
           </div>
         )}
       </div>
+
+      {/* Milestones */}
+      <AchievementBadges />
 
       {/* Trend Chart - only show when demographics available and there are scored entries */}
       {demographics && hasScored && (

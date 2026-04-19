@@ -276,3 +276,22 @@ function calculateScore(components, demographics) {
 ---
 
 **Status**: Decisions documented. Ready to execute Sprint 1.
+
+---
+
+## Kitchen Sink Polish Sprint
+
+### Training-day range 3-7 with constant per-session load
+
+**Date:** 2026-04-18
+
+**Context:** Users previously locked to exactly 3 training days per week. Experienced trainees wanted 4-7. The expansion raises the question: when a user jumps from 3 to 5 days, does the phase engine cut per-session volume by 40% (pro-rate) or keep it constant (let weekly volume scale linearly)?
+
+**Decision:** Keep per-session volume **constant**. Weekly volume scales linearly with day count.
+
+**Rationale:**
+- Phase engine reads per-session parameters (sets, reps, duration, intensity) from `phaseConfig` indexed by phase and session role. No references to `preferredDays.length`, no weekly aggregate anywhere.
+- Pro-rating punishes experienced trainees who chose more days for a reason: to get more total work. Holding weekly volume constant would make "more days" a UX no-op.
+- The overtraining risk is addressed by the one-time acknowledgement modal at the UI layer, not by shrinking sessions at the engine layer.
+
+**Enforcement:** `phaseEngine.js` has no `preferredDays` parameter at all. Any future PR adding one should be rejected unless the intent is explicit weekly-volume control, in which case it should be named `weeklyVolumeCap` and documented here.

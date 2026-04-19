@@ -1,0 +1,895 @@
+Page 1 [whtr] — 12 rows parsed — OK
+Page 2 [pushups] — 26 rows parsed — 20 MISMATCH
+Page 3 [hrpu] — 26 rows parsed — OK
+Page 4 [situps] — 26 rows parsed — OK
+Page 5 [clrc] — 26 rows parsed — 78 MISMATCH
+Page 6 [plank] — 26 rows parsed — 435 MISMATCH
+Page 7 [2mile_run] — 21 rows parsed — 205 MISMATCH
+Page 8 [hamr] — 21 rows parsed — 40 MISMATCH
+
+================================================================================
+778 MISMATCH(ES) FOUND
+================================================================================
+
+
+▸ pushups | M | 45-49  (3 issues)
+   @ 12.5 pts  expected 43  actual 42  L1053
+   @ 12.0 pts  expected 42  actual 41  L1054
+   @ 5.5 pts  expected 26  actual 27  L1067
+
+▸ pushups | M | 40-44  (2 issues)
+   @ 9.5 pts  expected 39  actual 38  L867
+   @ 4.0 pts  expected 24  actual 25  L878
+
+▸ pushups | M | 55-59  (8 issues)
+   @ 9.5 pts  expected 30  actual 29  L1443
+   @ 9.0 pts  expected 29  actual 28  L1444
+   @ 7.5 pts  expected 25  actual 24  L1447
+   @ 7.0 pts  expected 24  actual 23  L1448
+   @ 6.5 pts  expected 23  actual 22  L1449
+   @ 6.0 pts  expected 22  actual 21  L1450
+   @ 5.5 pts  expected 21  actual 20  L1451
+   @ 5.0 pts  expected 20  actual 19  L1452
+
+▸ pushups | M | 35-39  (1 issue)
+   @ 8.0 pts  expected 38  actual 37  L678
+
+▸ pushups | M | 50-54  (5 issues)
+   @ 4.5 pts  expected 21  actual 22  L1261
+   @ 4.0 pts  expected 20  actual 21  L1262
+   @ 3.5 pts  expected 19  actual 20  L1263
+   @ 3.0 pts  expected 18  actual 19  L1264
+   @ 2.5 pts  expected 17  actual 18  L1265
+
+▸ pushups | M | 30-34  (1 issue)
+   @ 3.0 pts  expected 26  actual 28  L496
+
+▸ clrc | M | 35-39  (26 issues)
+   @ 15.0 pts  expected 54  actual 52  L748
+   @ 14.5 pts  expected 53  actual 51  L749
+   @ 14.0 pts  expected 52  actual 50  L750
+   @ 13.5 pts  expected 51  actual 49  L751
+   @ 13.0 pts  expected 50  actual 48  L752
+   @ 12.5 pts  expected 49  actual 47  L753
+   @ 12.0 pts  expected 48  actual 46  L754
+   @ 11.5 pts  expected 47  actual 45  L755
+   @ 11.0 pts  expected 46  actual 44  L756
+   @ 10.5 pts  expected 45  actual 43  L757
+   @ 10.0 pts  expected 44  actual 42  L758
+   @ 9.5 pts  expected 43  actual 41  L759
+   @ 9.0 pts  expected 42  actual 40  L760
+   @ 8.5 pts  expected 41  actual 39  L761
+   @ 8.0 pts  expected 40  actual 38  L762
+   @ 7.5 pts  expected 39  actual 37  L763
+   @ 7.0 pts  expected 38  actual 36  L764
+   @ 6.5 pts  expected 37  actual 35  L765
+   @ 6.0 pts  expected 36  actual 34  L766
+   @ 5.5 pts  expected 35  actual 33  L767
+   @ 5.0 pts  expected 34  actual 32  L768
+   @ 4.5 pts  expected 33  actual 31  L769
+   @ 4.0 pts  expected 32  actual 30  L770
+   @ 3.5 pts  expected 31  actual 29  L771
+   @ 3.0 pts  expected 30  actual 28  L772
+   @ 2.5 pts  expected 29  actual 27  L773
+
+▸ clrc | M | 55-59  (26 issues)
+   @ 15.0 pts  expected 46  actual 44  L1516
+   @ 14.5 pts  expected 45  actual 43  L1517
+   @ 14.0 pts  expected 44  actual 42  L1518
+   @ 13.5 pts  expected 43  actual 41  L1519
+   @ 13.0 pts  expected 42  actual 40  L1520
+   @ 12.5 pts  expected 41  actual 39  L1521
+   @ 12.0 pts  expected 40  actual 38  L1522
+   @ 11.5 pts  expected 39  actual 37  L1523
+   @ 11.0 pts  expected 38  actual 36  L1524
+   @ 10.5 pts  expected 37  actual 35  L1525
+   @ 10.0 pts  expected 36  actual 34  L1526
+   @ 9.5 pts  expected 35  actual 33  L1527
+   @ 9.0 pts  expected 34  actual 32  L1528
+   @ 8.5 pts  expected 33  actual 31  L1529
+   @ 8.0 pts  expected 32  actual 30  L1530
+   @ 7.5 pts  expected 31  actual 29  L1531
+   @ 7.0 pts  expected 30  actual 28  L1532
+   @ 6.5 pts  expected 29  actual 27  L1533
+   @ 6.0 pts  expected 28  actual 26  L1534
+   @ 5.5 pts  expected 27  actual 25  L1535
+   @ 5.0 pts  expected 26  actual 24  L1536
+   @ 4.5 pts  expected 25  actual 23  L1537
+   @ 4.0 pts  expected 24  actual 22  L1538
+   @ 3.5 pts  expected 23  actual 21  L1539
+   @ 3.0 pts  expected 22  actual 20  L1540
+   @ 2.5 pts  expected 21  actual 19  L1541
+
+▸ clrc | M | 60+  (26 issues)
+   @ 15.0 pts  expected 44  actual 42  L1708
+   @ 14.5 pts  expected 43  actual 41  L1709
+   @ 14.0 pts  expected 42  actual 40  L1710
+   @ 13.5 pts  expected 41  actual 39  L1711
+   @ 13.0 pts  expected 40  actual 38  L1712
+   @ 12.5 pts  expected 39  actual 37  L1713
+   @ 12.0 pts  expected 38  actual 36  L1714
+   @ 11.5 pts  expected 37  actual 35  L1715
+   @ 11.0 pts  expected 36  actual 34  L1716
+   @ 10.5 pts  expected 35  actual 33  L1717
+   @ 10.0 pts  expected 34  actual 32  L1718
+   @ 9.5 pts  expected 33  actual 31  L1719
+   @ 9.0 pts  expected 32  actual 30  L1720
+   @ 8.5 pts  expected 31  actual 29  L1721
+   @ 8.0 pts  expected 30  actual 28  L1722
+   @ 7.5 pts  expected 29  actual 27  L1723
+   @ 7.0 pts  expected 28  actual 26  L1724
+   @ 6.5 pts  expected 27  actual 25  L1725
+   @ 6.0 pts  expected 26  actual 24  L1726
+   @ 5.5 pts  expected 25  actual 23  L1727
+   @ 5.0 pts  expected 24  actual 22  L1728
+   @ 4.5 pts  expected 23  actual 21  L1729
+   @ 4.0 pts  expected 22  actual 20  L1730
+   @ 3.5 pts  expected 21  actual 19  L1731
+   @ 3.0 pts  expected 20  actual 18  L1732
+   @ 2.5 pts  expected 19  actual 17  L1733
+
+▸ plank | M | 25-29  (26 issues)
+   @ 15.0 pts  expected 3:35 (215s)  actual 3:30 (210s)  L392
+   @ 14.5 pts  expected 3:30 (210s)  actual 3:25 (205s)  L393
+   @ 14.0 pts  expected 3:25 (205s)  actual 3:20 (200s)  L394
+   @ 13.5 pts  expected 3:20 (200s)  actual 3:15 (195s)  L395
+   @ 13.0 pts  expected 3:15 (195s)  actual 3:10 (190s)  L396
+   @ 12.5 pts  expected 3:10 (190s)  actual 3:05 (185s)  L397
+   @ 12.0 pts  expected 3:05 (185s)  actual 3:00 (180s)  L398
+   @ 11.5 pts  expected 3:00 (180s)  actual 2:55 (175s)  L399
+   @ 11.0 pts  expected 2:55 (175s)  actual 2:50 (170s)  L400
+   @ 10.5 pts  expected 2:50 (170s)  actual 2:45 (165s)  L401
+   @ 10.0 pts  expected 2:45 (165s)  actual 2:40 (160s)  L402
+   @ 9.5 pts  expected 2:40 (160s)  actual 2:35 (155s)  L403
+   @ 9.0 pts  expected 2:35 (155s)  actual 2:30 (150s)  L404
+   @ 8.5 pts  expected 2:30 (150s)  actual 2:25 (145s)  L405
+   @ 8.0 pts  expected 2:25 (145s)  actual 2:20 (140s)  L406
+   @ 7.5 pts  expected 2:20 (140s)  actual 2:15 (135s)  L407
+   @ 7.0 pts  expected 2:15 (135s)  actual 2:10 (130s)  L408
+   @ 6.5 pts  expected 2:10 (130s)  actual 2:05 (125s)  L409
+   @ 6.0 pts  expected 2:05 (125s)  actual 2:00 (120s)  L410
+   @ 5.5 pts  expected 2:00 (120s)  actual 1:55 (115s)  L411
+   @ 5.0 pts  expected 1:55 (115s)  actual 1:50 (110s)  L412
+   @ 4.5 pts  expected 1:50 (110s)  actual 1:45 (105s)  L413
+   @ 4.0 pts  expected 1:45 (105s)  actual 1:40 (100s)  L414
+   @ 3.5 pts  expected 1:40 (100s)  actual 1:35 (95s)  L415
+   @ 3.0 pts  expected 1:35 (95s)  actual 1:30 (90s)  L416
+   @ 2.5 pts  expected 1:30 (90s)  actual 1:25 (85s)  L417
+
+▸ plank | M | 30-34  (26 issues)
+   @ 15.0 pts  expected 3:30 (210s)  actual 3:25 (205s)  L584
+   @ 14.5 pts  expected 3:25 (205s)  actual 3:20 (200s)  L585
+   @ 14.0 pts  expected 3:20 (200s)  actual 3:15 (195s)  L586
+   @ 13.5 pts  expected 3:15 (195s)  actual 3:10 (190s)  L587
+   @ 13.0 pts  expected 3:10 (190s)  actual 3:05 (185s)  L588
+   @ 12.5 pts  expected 3:05 (185s)  actual 3:00 (180s)  L589
+   @ 12.0 pts  expected 3:00 (180s)  actual 2:55 (175s)  L590
+   @ 11.5 pts  expected 2:55 (175s)  actual 2:50 (170s)  L591
+   @ 11.0 pts  expected 2:50 (170s)  actual 2:45 (165s)  L592
+   @ 10.5 pts  expected 2:45 (165s)  actual 2:40 (160s)  L593
+   @ 10.0 pts  expected 2:40 (160s)  actual 2:35 (155s)  L594
+   @ 9.5 pts  expected 2:35 (155s)  actual 2:30 (150s)  L595
+   @ 9.0 pts  expected 2:30 (150s)  actual 2:25 (145s)  L596
+   @ 8.5 pts  expected 2:25 (145s)  actual 2:20 (140s)  L597
+   @ 8.0 pts  expected 2:20 (140s)  actual 2:15 (135s)  L598
+   @ 7.5 pts  expected 2:15 (135s)  actual 2:10 (130s)  L599
+   @ 7.0 pts  expected 2:10 (130s)  actual 2:05 (125s)  L600
+   @ 6.5 pts  expected 2:05 (125s)  actual 2:00 (120s)  L601
+   @ 6.0 pts  expected 2:00 (120s)  actual 1:55 (115s)  L602
+   @ 5.5 pts  expected 1:55 (115s)  actual 1:50 (110s)  L603
+   @ 5.0 pts  expected 1:50 (110s)  actual 1:45 (105s)  L604
+   @ 4.5 pts  expected 1:45 (105s)  actual 1:40 (100s)  L605
+   @ 4.0 pts  expected 1:40 (100s)  actual 1:35 (95s)  L606
+   @ 3.5 pts  expected 1:35 (95s)  actual 1:30 (90s)  L607
+   @ 3.0 pts  expected 1:30 (90s)  actual 1:25 (85s)  L608
+   @ 2.5 pts  expected 1:25 (85s)  actual 1:20 (80s)  L609
+
+▸ plank | F | 30-34  (26 issues)
+   @ 15.0 pts  expected 3:25 (205s)  actual 3:20 (200s)  L2317
+   @ 14.5 pts  expected 3:20 (200s)  actual 3:15 (195s)  L2318
+   @ 14.0 pts  expected 3:15 (195s)  actual 3:10 (190s)  L2319
+   @ 13.5 pts  expected 3:10 (190s)  actual 3:05 (185s)  L2320
+   @ 13.0 pts  expected 3:05 (185s)  actual 3:00 (180s)  L2321
+   @ 12.5 pts  expected 3:00 (180s)  actual 2:55 (175s)  L2322
+   @ 12.0 pts  expected 2:55 (175s)  actual 2:50 (170s)  L2323
+   @ 11.5 pts  expected 2:50 (170s)  actual 2:45 (165s)  L2324
+   @ 11.0 pts  expected 2:45 (165s)  actual 2:40 (160s)  L2325
+   @ 10.5 pts  expected 2:40 (160s)  actual 2:35 (155s)  L2326
+   @ 10.0 pts  expected 2:35 (155s)  actual 2:30 (150s)  L2327
+   @ 9.5 pts  expected 2:30 (150s)  actual 2:25 (145s)  L2328
+   @ 9.0 pts  expected 2:25 (145s)  actual 2:20 (140s)  L2329
+   @ 8.5 pts  expected 2:20 (140s)  actual 2:15 (135s)  L2330
+   @ 8.0 pts  expected 2:15 (135s)  actual 2:10 (130s)  L2331
+   @ 7.5 pts  expected 2:10 (130s)  actual 2:05 (125s)  L2332
+   @ 7.0 pts  expected 2:05 (125s)  actual 2:00 (120s)  L2333
+   @ 6.5 pts  expected 2:00 (120s)  actual 1:55 (115s)  L2334
+   @ 6.0 pts  expected 1:55 (115s)  actual 1:50 (110s)  L2335
+   @ 5.5 pts  expected 1:50 (110s)  actual 1:45 (105s)  L2336
+   @ 5.0 pts  expected 1:45 (105s)  actual 1:40 (100s)  L2337
+   @ 4.5 pts  expected 1:40 (100s)  actual 1:35 (95s)  L2338
+   @ 4.0 pts  expected 1:35 (95s)  actual 1:30 (90s)  L2339
+   @ 3.5 pts  expected 1:30 (90s)  actual 1:25 (85s)  L2340
+   @ 3.0 pts  expected 1:25 (85s)  actual 1:20 (80s)  L2341
+   @ 2.5 pts  expected 1:20 (80s)  actual 1:15 (75s)  L2342
+
+▸ plank | M | 35-39  (26 issues)
+   @ 15.0 pts  expected 3:25 (205s)  actual 3:20 (200s)  L776
+   @ 14.5 pts  expected 3:20 (200s)  actual 3:15 (195s)  L777
+   @ 14.0 pts  expected 3:15 (195s)  actual 3:10 (190s)  L778
+   @ 13.5 pts  expected 3:10 (190s)  actual 3:05 (185s)  L779
+   @ 13.0 pts  expected 3:05 (185s)  actual 3:00 (180s)  L780
+   @ 12.5 pts  expected 3:00 (180s)  actual 2:55 (175s)  L781
+   @ 12.0 pts  expected 2:55 (175s)  actual 2:50 (170s)  L782
+   @ 11.5 pts  expected 2:50 (170s)  actual 2:45 (165s)  L783
+   @ 11.0 pts  expected 2:45 (165s)  actual 2:40 (160s)  L784
+   @ 10.5 pts  expected 2:40 (160s)  actual 2:35 (155s)  L785
+   @ 10.0 pts  expected 2:35 (155s)  actual 2:30 (150s)  L786
+   @ 9.5 pts  expected 2:30 (150s)  actual 2:25 (145s)  L787
+   @ 9.0 pts  expected 2:25 (145s)  actual 2:20 (140s)  L788
+   @ 8.5 pts  expected 2:20 (140s)  actual 2:15 (135s)  L789
+   @ 8.0 pts  expected 2:15 (135s)  actual 2:10 (130s)  L790
+   @ 7.5 pts  expected 2:10 (130s)  actual 2:05 (125s)  L791
+   @ 7.0 pts  expected 2:05 (125s)  actual 2:00 (120s)  L792
+   @ 6.5 pts  expected 2:00 (120s)  actual 1:55 (115s)  L793
+   @ 6.0 pts  expected 1:55 (115s)  actual 1:50 (110s)  L794
+   @ 5.5 pts  expected 1:50 (110s)  actual 1:45 (105s)  L795
+   @ 5.0 pts  expected 1:45 (105s)  actual 1:40 (100s)  L796
+   @ 4.5 pts  expected 1:40 (100s)  actual 1:35 (95s)  L797
+   @ 4.0 pts  expected 1:35 (95s)  actual 1:30 (90s)  L798
+   @ 3.5 pts  expected 1:30 (90s)  actual 1:25 (85s)  L799
+   @ 3.0 pts  expected 1:25 (85s)  actual 1:20 (80s)  L800
+   @ 2.5 pts  expected 1:20 (80s)  actual 1:15 (75s)  L801
+
+▸ plank | F | 35-39  (26 issues)
+   @ 15.0 pts  expected 3:20 (200s)  actual 3:15 (195s)  L2509
+   @ 14.5 pts  expected 3:15 (195s)  actual 3:10 (190s)  L2510
+   @ 14.0 pts  expected 3:10 (190s)  actual 3:00 (180s)  L2511
+   @ 13.5 pts  expected 3:05 (185s)  actual 2:55 (175s)  L2512
+   @ 13.0 pts  expected 3:00 (180s)  actual 2:50 (170s)  L2513
+   @ 12.5 pts  expected 2:55 (175s)  actual 2:45 (165s)  L2514
+   @ 12.0 pts  expected 2:50 (170s)  actual 2:40 (160s)  L2515
+   @ 11.5 pts  expected 2:45 (165s)  actual 2:35 (155s)  L2516
+   @ 11.0 pts  expected 2:40 (160s)  actual 2:30 (150s)  L2517
+   @ 10.5 pts  expected 2:35 (155s)  actual 2:25 (145s)  L2518
+   @ 10.0 pts  expected 2:30 (150s)  actual 2:20 (140s)  L2519
+   @ 9.5 pts  expected 2:25 (145s)  actual 2:15 (135s)  L2520
+   @ 9.0 pts  expected 2:20 (140s)  actual 2:10 (130s)  L2521
+   @ 8.5 pts  expected 2:15 (135s)  actual 2:05 (125s)  L2522
+   @ 8.0 pts  expected 2:10 (130s)  actual 2:00 (120s)  L2523
+   @ 7.5 pts  expected 2:05 (125s)  actual 1:55 (115s)  L2524
+   @ 7.0 pts  expected 2:00 (120s)  actual 1:50 (110s)  L2525
+   @ 6.5 pts  expected 1:55 (115s)  actual 1:45 (105s)  L2526
+   @ 6.0 pts  expected 1:50 (110s)  actual 1:40 (100s)  L2527
+   @ 5.5 pts  expected 1:45 (105s)  actual 1:35 (95s)  L2528
+   @ 5.0 pts  expected 1:40 (100s)  actual 1:30 (90s)  L2529
+   @ 4.5 pts  expected 1:35 (95s)  actual 1:25 (85s)  L2530
+   @ 4.0 pts  expected 1:30 (90s)  actual 1:20 (80s)  L2531
+   @ 3.5 pts  expected 1:25 (85s)  actual 1:15 (75s)  L2532
+   @ 3.0 pts  expected 1:20 (80s)  actual 1:10 (70s)  L2533
+   @ 2.5 pts  expected 1:15 (75s)  actual 1:05 (65s)  L2534
+
+▸ plank | M | 40-44  (26 issues)
+   @ 15.0 pts  expected 3:20 (200s)  actual 3:15 (195s)  L968
+   @ 14.5 pts  expected 3:15 (195s)  actual 3:10 (190s)  L969
+   @ 14.0 pts  expected 3:10 (190s)  actual 3:05 (185s)  L970
+   @ 13.5 pts  expected 3:05 (185s)  actual 3:00 (180s)  L971
+   @ 13.0 pts  expected 3:00 (180s)  actual 2:55 (175s)  L972
+   @ 12.5 pts  expected 2:55 (175s)  actual 2:50 (170s)  L973
+   @ 12.0 pts  expected 2:50 (170s)  actual 2:45 (165s)  L974
+   @ 11.5 pts  expected 2:45 (165s)  actual 2:40 (160s)  L975
+   @ 11.0 pts  expected 2:40 (160s)  actual 2:35 (155s)  L976
+   @ 10.5 pts  expected 2:35 (155s)  actual 2:30 (150s)  L977
+   @ 10.0 pts  expected 2:30 (150s)  actual 2:25 (145s)  L978
+   @ 9.5 pts  expected 2:25 (145s)  actual 2:20 (140s)  L979
+   @ 9.0 pts  expected 2:20 (140s)  actual 2:15 (135s)  L980
+   @ 8.5 pts  expected 2:15 (135s)  actual 2:10 (130s)  L981
+   @ 8.0 pts  expected 2:10 (130s)  actual 2:05 (125s)  L982
+   @ 7.5 pts  expected 2:05 (125s)  actual 2:00 (120s)  L983
+   @ 7.0 pts  expected 2:00 (120s)  actual 1:55 (115s)  L984
+   @ 6.5 pts  expected 1:55 (115s)  actual 1:50 (110s)  L985
+   @ 6.0 pts  expected 1:50 (110s)  actual 1:45 (105s)  L986
+   @ 5.5 pts  expected 1:45 (105s)  actual 1:40 (100s)  L987
+   @ 5.0 pts  expected 1:40 (100s)  actual 1:35 (95s)  L988
+   @ 4.5 pts  expected 1:35 (95s)  actual 1:30 (90s)  L989
+   @ 4.0 pts  expected 1:30 (90s)  actual 1:25 (85s)  L990
+   @ 3.5 pts  expected 1:25 (85s)  actual 1:20 (80s)  L991
+   @ 3.0 pts  expected 1:20 (80s)  actual 1:15 (75s)  L992
+   @ 2.5 pts  expected 1:15 (75s)  actual 1:10 (70s)  L993
+
+▸ plank | F | 40-44  (26 issues)
+   @ 15.0 pts  expected 3:15 (195s)  actual 3:10 (190s)  L2701
+   @ 14.5 pts  expected 3:10 (190s)  actual 3:05 (185s)  L2702
+   @ 14.0 pts  expected 3:05 (185s)  actual 2:55 (175s)  L2703
+   @ 13.5 pts  expected 3:00 (180s)  actual 2:50 (170s)  L2704
+   @ 13.0 pts  expected 2:55 (175s)  actual 2:45 (165s)  L2705
+   @ 12.5 pts  expected 2:50 (170s)  actual 2:40 (160s)  L2706
+   @ 12.0 pts  expected 2:45 (165s)  actual 2:35 (155s)  L2707
+   @ 11.5 pts  expected 2:40 (160s)  actual 2:30 (150s)  L2708
+   @ 11.0 pts  expected 2:35 (155s)  actual 2:25 (145s)  L2709
+   @ 10.5 pts  expected 2:30 (150s)  actual 2:20 (140s)  L2710
+   @ 10.0 pts  expected 2:25 (145s)  actual 2:15 (135s)  L2711
+   @ 9.5 pts  expected 2:20 (140s)  actual 2:10 (130s)  L2712
+   @ 9.0 pts  expected 2:15 (135s)  actual 2:05 (125s)  L2713
+   @ 8.5 pts  expected 2:10 (130s)  actual 2:00 (120s)  L2714
+   @ 8.0 pts  expected 2:05 (125s)  actual 1:55 (115s)  L2715
+   @ 7.5 pts  expected 2:00 (120s)  actual 1:50 (110s)  L2716
+   @ 7.0 pts  expected 1:55 (115s)  actual 1:45 (105s)  L2717
+   @ 6.5 pts  expected 1:50 (110s)  actual 1:40 (100s)  L2718
+   @ 6.0 pts  expected 1:45 (105s)  actual 1:35 (95s)  L2719
+   @ 5.5 pts  expected 1:40 (100s)  actual 1:30 (90s)  L2720
+   @ 5.0 pts  expected 1:35 (95s)  actual 1:25 (85s)  L2721
+   @ 4.5 pts  expected 1:30 (90s)  actual 1:20 (80s)  L2722
+   @ 4.0 pts  expected 1:25 (85s)  actual 1:15 (75s)  L2723
+   @ 3.5 pts  expected 1:20 (80s)  actual 1:10 (70s)  L2724
+   @ 3.0 pts  expected 1:15 (75s)  actual 1:05 (65s)  L2725
+   @ 2.5 pts  expected 1:10 (70s)  actual 1:00 (60s)  L2726
+
+▸ plank | M | 45-49  (26 issues)
+   @ 15.0 pts  expected 3:15 (195s)  actual 3:10 (190s)  L1160
+   @ 14.5 pts  expected 3:10 (190s)  actual 3:05 (185s)  L1161
+   @ 14.0 pts  expected 3:05 (185s)  actual 3:00 (180s)  L1162
+   @ 13.5 pts  expected 3:00 (180s)  actual 2:55 (175s)  L1163
+   @ 13.0 pts  expected 2:55 (175s)  actual 2:50 (170s)  L1164
+   @ 12.5 pts  expected 2:50 (170s)  actual 2:45 (165s)  L1165
+   @ 12.0 pts  expected 2:45 (165s)  actual 2:40 (160s)  L1166
+   @ 11.5 pts  expected 2:40 (160s)  actual 2:35 (155s)  L1167
+   @ 11.0 pts  expected 2:35 (155s)  actual 2:30 (150s)  L1168
+   @ 10.5 pts  expected 2:30 (150s)  actual 2:25 (145s)  L1169
+   @ 10.0 pts  expected 2:25 (145s)  actual 2:20 (140s)  L1170
+   @ 9.5 pts  expected 2:20 (140s)  actual 2:15 (135s)  L1171
+   @ 9.0 pts  expected 2:15 (135s)  actual 2:10 (130s)  L1172
+   @ 8.5 pts  expected 2:10 (130s)  actual 2:05 (125s)  L1173
+   @ 8.0 pts  expected 2:05 (125s)  actual 2:00 (120s)  L1174
+   @ 7.5 pts  expected 2:00 (120s)  actual 1:55 (115s)  L1175
+   @ 7.0 pts  expected 1:55 (115s)  actual 1:50 (110s)  L1176
+   @ 6.5 pts  expected 1:50 (110s)  actual 1:45 (105s)  L1177
+   @ 6.0 pts  expected 1:45 (105s)  actual 1:40 (100s)  L1178
+   @ 5.5 pts  expected 1:40 (100s)  actual 1:35 (95s)  L1179
+   @ 5.0 pts  expected 1:35 (95s)  actual 1:30 (90s)  L1180
+   @ 4.5 pts  expected 1:30 (90s)  actual 1:25 (85s)  L1181
+   @ 4.0 pts  expected 1:25 (85s)  actual 1:20 (80s)  L1182
+   @ 3.5 pts  expected 1:20 (80s)  actual 1:15 (75s)  L1183
+   @ 3.0 pts  expected 1:15 (75s)  actual 1:10 (70s)  L1184
+   @ 2.5 pts  expected 1:10 (70s)  actual 1:05 (65s)  L1185
+
+▸ plank | F | 45-49  (26 issues)
+   @ 15.0 pts  expected 3:10 (190s)  actual 3:05 (185s)  L2893
+   @ 14.5 pts  expected 3:05 (185s)  actual 3:00 (180s)  L2894
+   @ 14.0 pts  expected 3:00 (180s)  actual 2:50 (170s)  L2895
+   @ 13.5 pts  expected 2:55 (175s)  actual 2:45 (165s)  L2896
+   @ 13.0 pts  expected 2:50 (170s)  actual 2:40 (160s)  L2897
+   @ 12.5 pts  expected 2:45 (165s)  actual 2:35 (155s)  L2898
+   @ 12.0 pts  expected 2:40 (160s)  actual 2:30 (150s)  L2899
+   @ 11.5 pts  expected 2:35 (155s)  actual 2:25 (145s)  L2900
+   @ 11.0 pts  expected 2:30 (150s)  actual 2:20 (140s)  L2901
+   @ 10.5 pts  expected 2:25 (145s)  actual 2:15 (135s)  L2902
+   @ 10.0 pts  expected 2:20 (140s)  actual 2:10 (130s)  L2903
+   @ 9.5 pts  expected 2:15 (135s)  actual 2:05 (125s)  L2904
+   @ 9.0 pts  expected 2:10 (130s)  actual 2:00 (120s)  L2905
+   @ 8.5 pts  expected 2:05 (125s)  actual 1:55 (115s)  L2906
+   @ 8.0 pts  expected 2:00 (120s)  actual 1:50 (110s)  L2907
+   @ 7.5 pts  expected 1:55 (115s)  actual 1:45 (105s)  L2908
+   @ 7.0 pts  expected 1:50 (110s)  actual 1:40 (100s)  L2909
+   @ 6.5 pts  expected 1:45 (105s)  actual 1:35 (95s)  L2910
+   @ 6.0 pts  expected 1:40 (100s)  actual 1:30 (90s)  L2911
+   @ 5.5 pts  expected 1:35 (95s)  actual 1:25 (85s)  L2912
+   @ 5.0 pts  expected 1:30 (90s)  actual 1:20 (80s)  L2913
+   @ 4.5 pts  expected 1:25 (85s)  actual 1:15 (75s)  L2914
+   @ 4.0 pts  expected 1:20 (80s)  actual 1:10 (70s)  L2915
+   @ 3.5 pts  expected 1:15 (75s)  actual 1:05 (65s)  L2916
+   @ 3.0 pts  expected 1:10 (70s)  actual 1:00 (60s)  L2917
+   @ 2.5 pts  expected 1:05 (65s)  actual 0:55 (55s)  L2918
+
+▸ plank | M | 50-54  (26 issues)
+   @ 15.0 pts  expected 3:10 (190s)  actual 3:05 (185s)  L1352
+   @ 14.5 pts  expected 3:05 (185s)  actual 3:00 (180s)  L1353
+   @ 14.0 pts  expected 3:00 (180s)  actual 2:55 (175s)  L1354
+   @ 13.5 pts  expected 2:55 (175s)  actual 2:50 (170s)  L1355
+   @ 13.0 pts  expected 2:50 (170s)  actual 2:45 (165s)  L1356
+   @ 12.5 pts  expected 2:45 (165s)  actual 2:40 (160s)  L1357
+   @ 12.0 pts  expected 2:40 (160s)  actual 2:35 (155s)  L1358
+   @ 11.5 pts  expected 2:35 (155s)  actual 2:30 (150s)  L1359
+   @ 11.0 pts  expected 2:30 (150s)  actual 2:25 (145s)  L1360
+   @ 10.5 pts  expected 2:25 (145s)  actual 2:20 (140s)  L1361
+   @ 10.0 pts  expected 2:20 (140s)  actual 2:15 (135s)  L1362
+   @ 9.5 pts  expected 2:15 (135s)  actual 2:10 (130s)  L1363
+   @ 9.0 pts  expected 2:10 (130s)  actual 2:05 (125s)  L1364
+   @ 8.5 pts  expected 2:05 (125s)  actual 2:00 (120s)  L1365
+   @ 8.0 pts  expected 2:00 (120s)  actual 1:55 (115s)  L1366
+   @ 7.5 pts  expected 1:55 (115s)  actual 1:50 (110s)  L1367
+   @ 7.0 pts  expected 1:50 (110s)  actual 1:45 (105s)  L1368
+   @ 6.5 pts  expected 1:45 (105s)  actual 1:40 (100s)  L1369
+   @ 6.0 pts  expected 1:40 (100s)  actual 1:35 (95s)  L1370
+   @ 5.5 pts  expected 1:35 (95s)  actual 1:30 (90s)  L1371
+   @ 5.0 pts  expected 1:30 (90s)  actual 1:25 (85s)  L1372
+   @ 4.5 pts  expected 1:25 (85s)  actual 1:20 (80s)  L1373
+   @ 4.0 pts  expected 1:20 (80s)  actual 1:15 (75s)  L1374
+   @ 3.5 pts  expected 1:15 (75s)  actual 1:10 (70s)  L1375
+   @ 3.0 pts  expected 1:10 (70s)  actual 1:05 (65s)  L1376
+   @ 2.5 pts  expected 1:05 (65s)  actual 1:00 (60s)  L1377
+
+▸ plank | F | 50-54  (26 issues)
+   @ 15.0 pts  expected 3:05 (185s)  actual 3:00 (180s)  L3085
+   @ 14.5 pts  expected 3:00 (180s)  actual 2:55 (175s)  L3086
+   @ 14.0 pts  expected 2:55 (175s)  actual 2:45 (165s)  L3087
+   @ 13.5 pts  expected 2:50 (170s)  actual 2:40 (160s)  L3088
+   @ 13.0 pts  expected 2:45 (165s)  actual 2:35 (155s)  L3089
+   @ 12.5 pts  expected 2:40 (160s)  actual 2:30 (150s)  L3090
+   @ 12.0 pts  expected 2:35 (155s)  actual 2:25 (145s)  L3091
+   @ 11.5 pts  expected 2:30 (150s)  actual 2:20 (140s)  L3092
+   @ 11.0 pts  expected 2:25 (145s)  actual 2:15 (135s)  L3093
+   @ 10.5 pts  expected 2:20 (140s)  actual 2:10 (130s)  L3094
+   @ 10.0 pts  expected 2:15 (135s)  actual 2:05 (125s)  L3095
+   @ 9.5 pts  expected 2:10 (130s)  actual 2:00 (120s)  L3096
+   @ 9.0 pts  expected 2:05 (125s)  actual 1:55 (115s)  L3097
+   @ 8.5 pts  expected 2:00 (120s)  actual 1:50 (110s)  L3098
+   @ 8.0 pts  expected 1:55 (115s)  actual 1:45 (105s)  L3099
+   @ 7.5 pts  expected 1:50 (110s)  actual 1:40 (100s)  L3100
+   @ 7.0 pts  expected 1:45 (105s)  actual 1:35 (95s)  L3101
+   @ 6.5 pts  expected 1:40 (100s)  actual 1:30 (90s)  L3102
+   @ 6.0 pts  expected 1:35 (95s)  actual 1:25 (85s)  L3103
+   @ 5.5 pts  expected 1:30 (90s)  actual 1:20 (80s)  L3104
+   @ 5.0 pts  expected 1:25 (85s)  actual 1:15 (75s)  L3105
+   @ 4.5 pts  expected 1:20 (80s)  actual 1:10 (70s)  L3106
+   @ 4.0 pts  expected 1:15 (75s)  actual 1:05 (65s)  L3107
+   @ 3.5 pts  expected 1:10 (70s)  actual 1:00 (60s)  L3108
+   @ 3.0 pts  expected 1:05 (65s)  actual 0:55 (55s)  L3109
+   @ 2.5 pts  expected 1:00 (60s)  actual 0:50 (50s)  L3110
+
+▸ plank | M | 55-59  (26 issues)
+   @ 15.0 pts  expected 3:05 (185s)  actual 3:00 (180s)  L1544
+   @ 14.5 pts  expected 3:00 (180s)  actual 2:55 (175s)  L1545
+   @ 14.0 pts  expected 2:55 (175s)  actual 2:50 (170s)  L1546
+   @ 13.5 pts  expected 2:50 (170s)  actual 2:45 (165s)  L1547
+   @ 13.0 pts  expected 2:45 (165s)  actual 2:40 (160s)  L1548
+   @ 12.5 pts  expected 2:40 (160s)  actual 2:35 (155s)  L1549
+   @ 12.0 pts  expected 2:35 (155s)  actual 2:30 (150s)  L1550
+   @ 11.5 pts  expected 2:30 (150s)  actual 2:25 (145s)  L1551
+   @ 11.0 pts  expected 2:25 (145s)  actual 2:20 (140s)  L1552
+   @ 10.5 pts  expected 2:20 (140s)  actual 2:15 (135s)  L1553
+   @ 10.0 pts  expected 2:15 (135s)  actual 2:10 (130s)  L1554
+   @ 9.5 pts  expected 2:10 (130s)  actual 2:05 (125s)  L1555
+   @ 9.0 pts  expected 2:05 (125s)  actual 2:00 (120s)  L1556
+   @ 8.5 pts  expected 2:00 (120s)  actual 1:55 (115s)  L1557
+   @ 8.0 pts  expected 1:55 (115s)  actual 1:50 (110s)  L1558
+   @ 7.5 pts  expected 1:50 (110s)  actual 1:45 (105s)  L1559
+   @ 7.0 pts  expected 1:45 (105s)  actual 1:40 (100s)  L1560
+   @ 6.5 pts  expected 1:40 (100s)  actual 1:35 (95s)  L1561
+   @ 6.0 pts  expected 1:35 (95s)  actual 1:30 (90s)  L1562
+   @ 5.5 pts  expected 1:30 (90s)  actual 1:25 (85s)  L1563
+   @ 5.0 pts  expected 1:25 (85s)  actual 1:20 (80s)  L1564
+   @ 4.5 pts  expected 1:20 (80s)  actual 1:15 (75s)  L1565
+   @ 4.0 pts  expected 1:15 (75s)  actual 1:10 (70s)  L1566
+   @ 3.5 pts  expected 1:10 (70s)  actual 1:05 (65s)  L1567
+   @ 3.0 pts  expected 1:05 (65s)  actual 1:00 (60s)  L1568
+   @ 2.5 pts  expected 1:00 (60s)  actual 0:55 (55s)  L1569
+
+▸ plank | M | 60+  (26 issues)
+   @ 15.0 pts  expected 3:00 (180s)  actual 2:55 (175s)  L1736
+   @ 14.5 pts  expected 2:55 (175s)  actual 2:50 (170s)  L1737
+   @ 14.0 pts  expected 2:50 (170s)  actual 2:45 (165s)  L1738
+   @ 13.5 pts  expected 2:45 (165s)  actual 2:40 (160s)  L1739
+   @ 13.0 pts  expected 2:40 (160s)  actual 2:35 (155s)  L1740
+   @ 12.5 pts  expected 2:35 (155s)  actual 2:30 (150s)  L1741
+   @ 12.0 pts  expected 2:30 (150s)  actual 2:25 (145s)  L1742
+   @ 11.5 pts  expected 2:25 (145s)  actual 2:20 (140s)  L1743
+   @ 11.0 pts  expected 2:20 (140s)  actual 2:15 (135s)  L1744
+   @ 10.5 pts  expected 2:15 (135s)  actual 2:10 (130s)  L1745
+   @ 10.0 pts  expected 2:10 (130s)  actual 2:05 (125s)  L1746
+   @ 9.5 pts  expected 2:05 (125s)  actual 2:00 (120s)  L1747
+   @ 9.0 pts  expected 2:00 (120s)  actual 1:55 (115s)  L1748
+   @ 8.5 pts  expected 1:55 (115s)  actual 1:50 (110s)  L1749
+   @ 8.0 pts  expected 1:50 (110s)  actual 1:45 (105s)  L1750
+   @ 7.5 pts  expected 1:45 (105s)  actual 1:40 (100s)  L1751
+   @ 7.0 pts  expected 1:40 (100s)  actual 1:35 (95s)  L1752
+   @ 6.5 pts  expected 1:35 (95s)  actual 1:30 (90s)  L1753
+   @ 6.0 pts  expected 1:30 (90s)  actual 1:25 (85s)  L1754
+   @ 5.5 pts  expected 1:25 (85s)  actual 1:20 (80s)  L1755
+   @ 5.0 pts  expected 1:20 (80s)  actual 1:15 (75s)  L1756
+   @ 4.5 pts  expected 1:15 (75s)  actual 1:10 (70s)  L1757
+   @ 4.0 pts  expected 1:10 (70s)  actual 1:05 (65s)  L1758
+   @ 3.5 pts  expected 1:05 (65s)  actual 1:00 (60s)  L1759
+   @ 3.0 pts  expected 1:00 (60s)  actual 0:55 (55s)  L1760
+   @ 2.5 pts  expected 0:55 (55s)  actual 0:50 (50s)  L1761
+
+▸ plank | M | <25  (25 issues)
+   @ 14.5 pts  expected 3:35 (215s)  actual 3:30 (210s)  L201
+   @ 14.0 pts  expected 3:30 (210s)  actual 3:25 (205s)  L202
+   @ 13.5 pts  expected 3:25 (205s)  actual 3:20 (200s)  L203
+   @ 13.0 pts  expected 3:20 (200s)  actual 3:15 (195s)  L204
+   @ 12.5 pts  expected 3:15 (195s)  actual 3:10 (190s)  L205
+   @ 12.0 pts  expected 3:10 (190s)  actual 3:05 (185s)  L206
+   @ 11.5 pts  expected 3:05 (185s)  actual 3:00 (180s)  L207
+   @ 11.0 pts  expected 3:00 (180s)  actual 2:55 (175s)  L208
+   @ 10.5 pts  expected 2:55 (175s)  actual 2:50 (170s)  L209
+   @ 10.0 pts  expected 2:50 (170s)  actual 2:45 (165s)  L210
+   @ 9.5 pts  expected 2:45 (165s)  actual 2:40 (160s)  L211
+   @ 9.0 pts  expected 2:40 (160s)  actual 2:35 (155s)  L212
+   @ 8.5 pts  expected 2:35 (155s)  actual 2:30 (150s)  L213
+   @ 8.0 pts  expected 2:30 (150s)  actual 2:25 (145s)  L214
+   @ 7.5 pts  expected 2:25 (145s)  actual 2:20 (140s)  L215
+   @ 7.0 pts  expected 2:20 (140s)  actual 2:15 (135s)  L216
+   @ 6.5 pts  expected 2:15 (135s)  actual 2:10 (130s)  L217
+   @ 6.0 pts  expected 2:10 (130s)  actual 2:05 (125s)  L218
+   @ 5.5 pts  expected 2:05 (125s)  actual 2:00 (120s)  L219
+   @ 5.0 pts  expected 2:00 (120s)  actual 1:55 (115s)  L220
+   @ 4.5 pts  expected 1:55 (115s)  actual 1:50 (110s)  L221
+   @ 4.0 pts  expected 1:50 (110s)  actual 1:45 (105s)  L222
+   @ 3.5 pts  expected 1:45 (105s)  actual 1:40 (100s)  L223
+   @ 3.0 pts  expected 1:40 (100s)  actual 1:35 (95s)  L224
+   @ 2.5 pts  expected 1:35 (95s)  actual 1:30 (90s)  L225
+
+▸ plank | F | <25  (24 issues)
+   @ 14.0 pts  expected 3:25 (205s)  actual 3:20 (200s)  L1935
+   @ 13.5 pts  expected 3:20 (200s)  actual 3:15 (195s)  L1936
+   @ 13.0 pts  expected 3:15 (195s)  actual 3:10 (190s)  L1937
+   @ 12.5 pts  expected 3:10 (190s)  actual 3:05 (185s)  L1938
+   @ 12.0 pts  expected 3:05 (185s)  actual 3:00 (180s)  L1939
+   @ 11.5 pts  expected 3:00 (180s)  actual 2:55 (175s)  L1940
+   @ 11.0 pts  expected 2:55 (175s)  actual 2:50 (170s)  L1941
+   @ 10.5 pts  expected 2:50 (170s)  actual 2:45 (165s)  L1942
+   @ 10.0 pts  expected 2:45 (165s)  actual 2:40 (160s)  L1943
+   @ 9.5 pts  expected 2:40 (160s)  actual 2:35 (155s)  L1944
+   @ 9.0 pts  expected 2:35 (155s)  actual 2:30 (150s)  L1945
+   @ 8.5 pts  expected 2:30 (150s)  actual 2:25 (145s)  L1946
+   @ 8.0 pts  expected 2:25 (145s)  actual 2:20 (140s)  L1947
+   @ 7.5 pts  expected 2:20 (140s)  actual 2:15 (135s)  L1948
+   @ 7.0 pts  expected 2:15 (135s)  actual 2:10 (130s)  L1949
+   @ 6.5 pts  expected 2:10 (130s)  actual 2:05 (125s)  L1950
+   @ 6.0 pts  expected 2:05 (125s)  actual 2:00 (120s)  L1951
+   @ 5.5 pts  expected 2:00 (120s)  actual 1:55 (115s)  L1952
+   @ 5.0 pts  expected 1:55 (115s)  actual 1:50 (110s)  L1953
+   @ 4.5 pts  expected 1:50 (110s)  actual 1:45 (105s)  L1954
+   @ 4.0 pts  expected 1:45 (105s)  actual 1:40 (100s)  L1955
+   @ 3.5 pts  expected 1:40 (100s)  actual 1:35 (95s)  L1956
+   @ 3.0 pts  expected 1:35 (95s)  actual 1:30 (90s)  L1957
+   @ 2.5 pts  expected 1:30 (90s)  actual 1:25 (85s)  L1958
+
+▸ plank | F | 25-29  (24 issues)
+   @ 14.0 pts  expected 3:20 (200s)  actual 3:15 (195s)  L2127
+   @ 13.5 pts  expected 3:15 (195s)  actual 3:10 (190s)  L2128
+   @ 13.0 pts  expected 3:10 (190s)  actual 3:05 (185s)  L2129
+   @ 12.5 pts  expected 3:05 (185s)  actual 3:00 (180s)  L2130
+   @ 12.0 pts  expected 3:00 (180s)  actual 2:55 (175s)  L2131
+   @ 11.5 pts  expected 2:55 (175s)  actual 2:50 (170s)  L2132
+   @ 11.0 pts  expected 2:50 (170s)  actual 2:45 (165s)  L2133
+   @ 10.5 pts  expected 2:45 (165s)  actual 2:40 (160s)  L2134
+   @ 10.0 pts  expected 2:40 (160s)  actual 2:35 (155s)  L2135
+   @ 9.5 pts  expected 2:35 (155s)  actual 2:30 (150s)  L2136
+   @ 9.0 pts  expected 2:30 (150s)  actual 2:25 (145s)  L2137
+   @ 8.5 pts  expected 2:25 (145s)  actual 2:20 (140s)  L2138
+   @ 8.0 pts  expected 2:20 (140s)  actual 2:15 (135s)  L2139
+   @ 7.5 pts  expected 2:15 (135s)  actual 2:10 (130s)  L2140
+   @ 7.0 pts  expected 2:10 (130s)  actual 2:05 (125s)  L2141
+   @ 6.5 pts  expected 2:05 (125s)  actual 2:00 (120s)  L2142
+   @ 6.0 pts  expected 2:00 (120s)  actual 1:55 (115s)  L2143
+   @ 5.5 pts  expected 1:55 (115s)  actual 1:50 (110s)  L2144
+   @ 5.0 pts  expected 1:50 (110s)  actual 1:45 (105s)  L2145
+   @ 4.5 pts  expected 1:45 (105s)  actual 1:40 (100s)  L2146
+   @ 4.0 pts  expected 1:40 (100s)  actual 1:35 (95s)  L2147
+   @ 3.5 pts  expected 1:35 (95s)  actual 1:30 (90s)  L2148
+   @ 3.0 pts  expected 1:30 (90s)  actual 1:25 (85s)  L2149
+   @ 2.5 pts  expected 1:25 (85s)  actual 1:20 (80s)  L2150
+
+▸ plank | F | 55-59  (24 issues)
+   @ 14.0 pts  expected 2:50 (170s)  actual 2:45 (165s)  L3279
+   @ 13.5 pts  expected 2:45 (165s)  actual 2:40 (160s)  L3280
+   @ 13.0 pts  expected 2:40 (160s)  actual 2:35 (155s)  L3281
+   @ 12.5 pts  expected 2:35 (155s)  actual 2:30 (150s)  L3282
+   @ 12.0 pts  expected 2:30 (150s)  actual 2:25 (145s)  L3283
+   @ 11.5 pts  expected 2:25 (145s)  actual 2:20 (140s)  L3284
+   @ 11.0 pts  expected 2:20 (140s)  actual 2:15 (135s)  L3285
+   @ 10.5 pts  expected 2:15 (135s)  actual 2:10 (130s)  L3286
+   @ 10.0 pts  expected 2:10 (130s)  actual 2:05 (125s)  L3287
+   @ 9.5 pts  expected 2:05 (125s)  actual 2:00 (120s)  L3288
+   @ 9.0 pts  expected 2:00 (120s)  actual 1:55 (115s)  L3289
+   @ 8.5 pts  expected 1:55 (115s)  actual 1:50 (110s)  L3290
+   @ 8.0 pts  expected 1:50 (110s)  actual 1:45 (105s)  L3291
+   @ 7.5 pts  expected 1:45 (105s)  actual 1:40 (100s)  L3292
+   @ 7.0 pts  expected 1:40 (100s)  actual 1:35 (95s)  L3293
+   @ 6.5 pts  expected 1:35 (95s)  actual 1:30 (90s)  L3294
+   @ 6.0 pts  expected 1:30 (90s)  actual 1:25 (85s)  L3295
+   @ 5.5 pts  expected 1:25 (85s)  actual 1:20 (80s)  L3296
+   @ 5.0 pts  expected 1:20 (80s)  actual 1:15 (75s)  L3297
+   @ 4.5 pts  expected 1:15 (75s)  actual 1:10 (70s)  L3298
+   @ 4.0 pts  expected 1:10 (70s)  actual 1:05 (65s)  L3299
+   @ 3.5 pts  expected 1:05 (65s)  actual 1:00 (60s)  L3300
+   @ 3.0 pts  expected 1:00 (60s)  actual 0:55 (55s)  L3301
+   @ 2.5 pts  expected 0:55 (55s)  actual 0:50 (50s)  L3302
+
+▸ 2mile_run | F | 35-39  (15 issues)
+   @ 50.0 pts  expected 16:12 (972s)  actual 16:16 (976s)  L2351
+   @ 49.5 pts  expected 16:43 (1003s)  actual 16:51 (1011s)  L2352
+   @ 48.0 pts  expected 17:45 (1065s)  actual 17:51 (1071s)  L2354
+   @ 44.0 pts  expected 19:48 (1188s)  actual 19:47 (1187s)  L2358
+   @ 42.0 pts  expected 20:50 (1250s)  actual 20:52 (1252s)  L2360
+   @ 40.0 pts  expected 21:52 (1312s)  actual 21:48 (1308s)  L2362
+   @ 39.0 pts  expected 22:23 (1343s)  actual 22:10 (1330s)  L2363
+   @ 38.5 pts  expected 22:54 (1374s)  actual 22:30 (1350s)  L2364
+   @ 38.0 pts  expected 23:25 (1405s)  actual 22:50 (1370s)  L2365
+   @ 37.5 pts  expected 23:56 (1436s)  actual 23:10 (1390s)  L2366
+   @ 37.0 pts  expected 24:26 (1466s)  actual 23:30 (1410s)  L2367
+   @ 36.5 pts  expected 24:57 (1497s)  actual 23:50 (1430s)  L2368
+   @ 36.0 pts  expected 25:28 (1528s)  actual 24:10 (1450s)  L2369
+   @ 35.5 pts  expected 25:59 (1559s)  actual 24:32 (1472s)  L2370
+   @ 35.0 pts  expected 26:30 (1590s)  actual 24:50 (1490s)  L2371
+
+▸ 2mile_run | F | 45-49  (19 issues)
+   @ 50.0 pts  expected 16:55 (1015s)  actual 17:35 (1055s)  L2735
+   @ 49.5 pts  expected 17:26 (1046s)  actual 18:06 (1086s)  L2736
+   @ 49.0 pts  expected 17:57 (1077s)  actual 18:37 (1117s)  L2737
+   @ 48.0 pts  expected 18:28 (1108s)  actual 19:10 (1150s)  L2738
+   @ 47.0 pts  expected 18:59 (1139s)  actual 19:37 (1177s)  L2739
+   @ 46.0 pts  expected 19:30 (1170s)  actual 20:01 (1201s)  L2740
+   @ 45.0 pts  expected 20:01 (1201s)  actual 20:21 (1221s)  L2741
+   @ 44.0 pts  expected 20:32 (1232s)  actual 20:43 (1243s)  L2742
+   @ 41.0 pts  expected 22:05 (1325s)  actual 21:58 (1318s)  L2745
+   @ 40.0 pts  expected 22:36 (1356s)  actual 22:16 (1336s)  L2746
+   @ 39.0 pts  expected 23:07 (1387s)  actual 22:38 (1358s)  L2747
+   @ 38.5 pts  expected 23:38 (1418s)  actual 22:58 (1378s)  L2748
+   @ 38.0 pts  expected 24:09 (1449s)  actual 23:18 (1398s)  L2749
+   @ 37.5 pts  expected 24:40 (1480s)  actual 23:38 (1418s)  L2750
+   @ 37.0 pts  expected 25:11 (1511s)  actual 23:58 (1438s)  L2751
+   @ 36.5 pts  expected 25:42 (1542s)  actual 24:20 (1460s)  L2752
+   @ 36.0 pts  expected 26:13 (1573s)  actual 24:40 (1480s)  L2753
+   @ 35.5 pts  expected 26:44 (1604s)  actual 25:02 (1502s)  L2754
+   @ 35.0 pts  expected 27:15 (1635s)  actual 25:24 (1524s)  L2755
+
+▸ 2mile_run | F | 55-59  (21 issues)
+   @ 50.0 pts  expected 17:43 (1063s)  actual 17:23 (1043s)  L3119
+   @ 49.5 pts  expected 18:16 (1096s)  actual 17:59 (1079s)  L3120
+   @ 49.0 pts  expected 18:49 (1129s)  actual 18:34 (1114s)  L3121
+   @ 48.0 pts  expected 19:22 (1162s)  actual 19:09 (1149s)  L3122
+   @ 47.0 pts  expected 19:54 (1194s)  actual 19:41 (1181s)  L3123
+   @ 46.0 pts  expected 20:27 (1227s)  actual 20:13 (1213s)  L3124
+   @ 45.0 pts  expected 21:00 (1260s)  actual 20:40 (1240s)  L3125
+   @ 44.0 pts  expected 21:33 (1293s)  actual 21:11 (1271s)  L3126
+   @ 43.0 pts  expected 22:06 (1326s)  actual 21:37 (1297s)  L3127
+   @ 42.0 pts  expected 22:39 (1359s)  actual 22:06 (1326s)  L3128
+   @ 41.0 pts  expected 23:12 (1392s)  actual 22:32 (1352s)  L3129
+   @ 40.0 pts  expected 23:44 (1424s)  actual 23:07 (1387s)  L3130
+   @ 39.0 pts  expected 24:17 (1457s)  actual 23:32 (1412s)  L3131
+   @ 38.5 pts  expected 24:50 (1490s)  actual 23:52 (1432s)  L3132
+   @ 38.0 pts  expected 25:23 (1523s)  actual 24:13 (1453s)  L3133
+   @ 37.5 pts  expected 25:56 (1556s)  actual 24:33 (1473s)  L3134
+   @ 37.0 pts  expected 26:29 (1589s)  actual 24:53 (1493s)  L3135
+   @ 36.5 pts  expected 27:01 (1621s)  actual 25:16 (1516s)  L3136
+   @ 36.0 pts  expected 27:34 (1654s)  actual 25:36 (1536s)  L3137
+   @ 35.5 pts  expected 28:07 (1687s)  actual 25:59 (1559s)  L3138
+   @ 35.0 pts  expected 28:40 (1720s)  actual 26:20 (1580s)  L3139
+
+▸ 2mile_run | M | 35-39  (20 issues)
+   @ 49.5 pts  expected 14:18 (858s)  actual 14:16 (856s)  L619
+   @ 49.0 pts  expected 14:40 (880s)  actual 14:36 (876s)  L620
+   @ 48.0 pts  expected 15:02 (902s)  actual 14:57 (897s)  L621
+   @ 47.0 pts  expected 15:24 (924s)  actual 15:18 (918s)  L622
+   @ 46.0 pts  expected 15:46 (946s)  actual 15:40 (940s)  L623
+   @ 45.0 pts  expected 16:08 (968s)  actual 16:00 (960s)  L624
+   @ 44.0 pts  expected 16:30 (990s)  actual 16:21 (981s)  L625
+   @ 43.0 pts  expected 16:52 (1012s)  actual 16:42 (1002s)  L626
+   @ 42.0 pts  expected 17:14 (1034s)  actual 17:04 (1024s)  L627
+   @ 41.0 pts  expected 17:36 (1056s)  actual 17:24 (1044s)  L628
+   @ 40.0 pts  expected 17:58 (1078s)  actual 17:46 (1066s)  L629
+   @ 39.0 pts  expected 18:20 (1100s)  actual 18:07 (1087s)  L630
+   @ 38.5 pts  expected 18:42 (1122s)  actual 18:28 (1108s)  L631
+   @ 38.0 pts  expected 19:04 (1144s)  actual 18:48 (1128s)  L632
+   @ 37.5 pts  expected 19:26 (1166s)  actual 19:10 (1150s)  L633
+   @ 37.0 pts  expected 19:48 (1188s)  actual 19:30 (1170s)  L634
+   @ 36.5 pts  expected 20:10 (1210s)  actual 19:52 (1192s)  L635
+   @ 36.0 pts  expected 20:32 (1232s)  actual 20:12 (1212s)  L636
+   @ 35.5 pts  expected 20:54 (1254s)  actual 20:33 (1233s)  L637
+   @ 35.0 pts  expected 21:16 (1276s)  actual 20:55 (1255s)  L638
+
+▸ 2mile_run | F | <25  (18 issues)
+   @ 48.0 pts  expected 16:59 (1019s)  actual 16:51 (1011s)  L1778
+   @ 47.0 pts  expected 17:29 (1049s)  actual 17:17 (1037s)  L1779
+   @ 46.0 pts  expected 17:58 (1078s)  actual 17:37 (1057s)  L1780
+   @ 45.0 pts  expected 18:28 (1108s)  actual 17:57 (1077s)  L1781
+   @ 44.0 pts  expected 18:58 (1138s)  actual 18:17 (1097s)  L1782
+   @ 43.0 pts  expected 19:27 (1167s)  actual 18:37 (1117s)  L1783
+   @ 42.0 pts  expected 19:57 (1197s)  actual 19:03 (1143s)  L1784
+   @ 41.0 pts  expected 20:27 (1227s)  actual 19:23 (1163s)  L1785
+   @ 40.0 pts  expected 20:56 (1256s)  actual 19:46 (1186s)  L1786
+   @ 39.0 pts  expected 21:26 (1286s)  actual 20:13 (1213s)  L1787
+   @ 38.5 pts  expected 21:55 (1315s)  actual 20:36 (1236s)  L1788
+   @ 38.0 pts  expected 22:25 (1345s)  actual 20:58 (1258s)  L1789
+   @ 37.5 pts  expected 22:55 (1375s)  actual 21:18 (1278s)  L1790
+   @ 37.0 pts  expected 23:24 (1404s)  actual 21:38 (1298s)  L1791
+   @ 36.5 pts  expected 23:54 (1434s)  actual 21:58 (1318s)  L1792
+   @ 36.0 pts  expected 24:24 (1464s)  actual 22:18 (1338s)  L1793
+   @ 35.5 pts  expected 24:53 (1493s)  actual 22:38 (1358s)  L1794
+   @ 35.0 pts  expected 25:23 (1523s)  actual 22:58 (1378s)  L1795
+
+▸ 2mile_run | M | 30-34  (7 issues)
+   @ 48.0 pts  expected 14:45 (885s)  actual 14:46 (886s)  L429
+   @ 41.0 pts  expected 17:13 (1033s)  actual 17:14 (1034s)  L436
+   @ 39.0 pts  expected 17:55 (1075s)  actual 17:56 (1076s)  L438
+   @ 38.5 pts  expected 18:16 (1096s)  actual 18:17 (1097s)  L439
+   @ 37.0 pts  expected 19:20 (1160s)  actual 19:19 (1159s)  L442
+   @ 36.0 pts  expected 20:02 (1202s)  actual 20:01 (1201s)  L444
+   @ 35.5 pts  expected 20:23 (1223s)  actual 20:22 (1222s)  L445
+
+▸ 2mile_run | F | 30-34  (16 issues)
+   @ 48.0 pts  expected 17:41 (1061s)  actual 17:43 (1063s)  L2162
+   @ 45.0 pts  expected 19:12 (1152s)  actual 19:06 (1146s)  L2165
+   @ 44.0 pts  expected 19:42 (1182s)  actual 19:32 (1172s)  L2166
+   @ 43.0 pts  expected 20:12 (1212s)  actual 19:57 (1197s)  L2167
+   @ 42.0 pts  expected 20:42 (1242s)  actual 20:22 (1222s)  L2168
+   @ 41.0 pts  expected 21:13 (1273s)  actual 20:42 (1242s)  L2169
+   @ 40.0 pts  expected 21:43 (1303s)  actual 21:03 (1263s)  L2170
+   @ 39.0 pts  expected 22:13 (1333s)  actual 21:33 (1293s)  L2171
+   @ 38.5 pts  expected 22:43 (1363s)  actual 21:54 (1314s)  L2172
+   @ 38.0 pts  expected 23:14 (1394s)  actual 22:17 (1337s)  L2173
+   @ 37.5 pts  expected 23:44 (1424s)  actual 22:40 (1360s)  L2174
+   @ 37.0 pts  expected 24:14 (1454s)  actual 23:03 (1383s)  L2175
+   @ 36.5 pts  expected 24:44 (1484s)  actual 23:24 (1404s)  L2176
+   @ 36.0 pts  expected 25:15 (1515s)  actual 23:46 (1426s)  L2177
+   @ 35.5 pts  expected 25:45 (1545s)  actual 24:09 (1449s)  L2178
+   @ 35.0 pts  expected 26:15 (1575s)  actual 24:29 (1469s)  L2179
+
+▸ 2mile_run | F | 50-54  (16 issues)
+   @ 48.0 pts  expected 18:48 (1128s)  actual 18:49 (1129s)  L2930
+   @ 45.0 pts  expected 20:27 (1227s)  actual 20:21 (1221s)  L2933
+   @ 44.0 pts  expected 20:59 (1259s)  actual 20:50 (1250s)  L2934
+   @ 43.0 pts  expected 21:32 (1292s)  actual 21:18 (1278s)  L2935
+   @ 42.0 pts  expected 22:05 (1325s)  actual 21:40 (1300s)  L2936
+   @ 41.0 pts  expected 22:38 (1358s)  actual 22:04 (1324s)  L2937
+   @ 40.0 pts  expected 23:10 (1390s)  actual 22:36 (1356s)  L2938
+   @ 39.0 pts  expected 23:43 (1423s)  actual 23:02 (1382s)  L2939
+   @ 38.5 pts  expected 24:16 (1456s)  actual 23:20 (1400s)  L2940
+   @ 38.0 pts  expected 24:49 (1489s)  actual 23:40 (1420s)  L2941
+   @ 37.5 pts  expected 25:21 (1521s)  actual 24:00 (1440s)  L2942
+   @ 37.0 pts  expected 25:54 (1554s)  actual 24:20 (1460s)  L2943
+   @ 36.5 pts  expected 26:27 (1587s)  actual 24:50 (1490s)  L2944
+   @ 36.0 pts  expected 27:00 (1620s)  actual 25:16 (1516s)  L2945
+   @ 35.5 pts  expected 27:32 (1652s)  actual 25:42 (1542s)  L2946
+   @ 35.0 pts  expected 28:05 (1685s)  actual 26:00 (1560s)  L2947
+
+▸ 2mile_run | M | 45-49  (17 issues)
+   @ 47.0 pts  expected 16:05 (965s)  actual 16:06 (966s)  L1006
+   @ 46.0 pts  expected 16:29 (989s)  actual 16:30 (990s)  L1007
+   @ 45.0 pts  expected 16:53 (1013s)  actual 16:54 (1014s)  L1008
+   @ 44.0 pts  expected 17:17 (1037s)  actual 17:18 (1038s)  L1009
+   @ 43.0 pts  expected 17:41 (1061s)  actual 17:42 (1062s)  L1010
+   @ 42.0 pts  expected 18:05 (1085s)  actual 18:06 (1086s)  L1011
+   @ 41.0 pts  expected 18:29 (1109s)  actual 18:30 (1110s)  L1012
+   @ 40.0 pts  expected 18:52 (1132s)  actual 18:54 (1134s)  L1013
+   @ 39.0 pts  expected 19:16 (1156s)  actual 19:18 (1158s)  L1014
+   @ 38.5 pts  expected 19:40 (1180s)  actual 19:42 (1182s)  L1015
+   @ 38.0 pts  expected 20:04 (1204s)  actual 20:06 (1206s)  L1016
+   @ 37.5 pts  expected 20:28 (1228s)  actual 20:30 (1230s)  L1017
+   @ 37.0 pts  expected 20:52 (1252s)  actual 20:54 (1254s)  L1018
+   @ 36.5 pts  expected 21:15 (1275s)  actual 21:18 (1278s)  L1019
+   @ 36.0 pts  expected 21:39 (1299s)  actual 21:42 (1302s)  L1020
+   @ 35.5 pts  expected 22:03 (1323s)  actual 22:06 (1326s)  L1021
+   @ 35.0 pts  expected 22:27 (1347s)  actual 22:30 (1350s)  L1022
+
+▸ 2mile_run | F | 40-44  (15 issues)
+   @ 45.0 pts  expected 19:47 (1187s)  actual 19:37 (1177s)  L2549
+   @ 44.0 pts  expected 20:17 (1217s)  actual 19:57 (1197s)  L2550
+   @ 43.0 pts  expected 20:48 (1248s)  actual 20:17 (1217s)  L2551
+   @ 42.0 pts  expected 21:18 (1278s)  actual 20:37 (1237s)  L2552
+   @ 41.0 pts  expected 21:49 (1309s)  actual 20:59 (1259s)  L2553
+   @ 40.0 pts  expected 22:19 (1339s)  actual 21:19 (1279s)  L2554
+   @ 39.0 pts  expected 22:49 (1369s)  actual 21:39 (1299s)  L2555
+   @ 38.5 pts  expected 23:20 (1400s)  actual 22:20 (1340s)  L2556
+   @ 38.0 pts  expected 23:50 (1430s)  actual 23:00 (1380s)  L2557
+   @ 37.5 pts  expected 24:20 (1460s)  actual 23:30 (1410s)  L2558
+   @ 37.0 pts  expected 24:51 (1491s)  actual 24:00 (1440s)  L2559
+   @ 36.5 pts  expected 25:21 (1521s)  actual 24:30 (1470s)  L2560
+   @ 36.0 pts  expected 25:51 (1551s)  actual 24:50 (1490s)  L2561
+   @ 35.5 pts  expected 26:22 (1582s)  actual 25:12 (1512s)  L2562
+   @ 35.0 pts  expected 26:52 (1612s)  actual 25:40 (1540s)  L2563
+
+▸ 2mile_run | F | 60+  (14 issues)
+   @ 45.0 pts  expected 21:44 (1304s)  actual 21:38 (1298s)  L3317
+   @ 44.0 pts  expected 22:18 (1338s)  actual 22:10 (1330s)  L3318
+   @ 43.0 pts  expected 22:52 (1372s)  actual 22:32 (1352s)  L3319
+   @ 42.0 pts  expected 23:26 (1406s)  actual 23:06 (1386s)  L3320
+   @ 41.0 pts  expected 24:00 (1440s)  actual 23:40 (1420s)  L3321
+   @ 40.0 pts  expected 24:34 (1474s)  actual 24:14 (1454s)  L3322
+   @ 39.0 pts  expected 25:08 (1508s)  actual 24:52 (1492s)  L3323
+   @ 38.0 pts  expected 26:16 (1576s)  actual 26:32 (1592s)  L3325
+   @ 37.5 pts  expected 26:50 (1610s)  actual 27:18 (1638s)  L3326
+   @ 37.0 pts  expected 27:24 (1644s)  actual 27:52 (1672s)  L3327
+   @ 36.5 pts  expected 27:58 (1678s)  actual 28:36 (1716s)  L3328
+   @ 36.0 pts  expected 28:32 (1712s)  actual 29:16 (1756s)  L3329
+   @ 35.5 pts  expected 29:06 (1746s)  actual 29:40 (1780s)  L3330
+   @ 35.0 pts  expected 29:40 (1780s)  actual 30:20 (1820s)  L3331
+
+▸ 2mile_run | F | 25-29  (13 issues)
+   @ 44.0 pts  expected 19:20 (1160s)  actual 19:21 (1161s)  L1974
+   @ 42.0 pts  expected 20:18 (1218s)  actual 20:22 (1222s)  L1976
+   @ 41.0 pts  expected 20:48 (1248s)  actual 20:52 (1252s)  L1977
+   @ 40.0 pts  expected 21:17 (1277s)  actual 21:18 (1278s)  L1978
+   @ 39.0 pts  expected 21:46 (1306s)  actual 21:38 (1298s)  L1979
+   @ 38.5 pts  expected 22:15 (1335s)  actual 21:58 (1318s)  L1980
+   @ 38.0 pts  expected 22:45 (1365s)  actual 22:18 (1338s)  L1981
+   @ 37.5 pts  expected 23:14 (1394s)  actual 22:38 (1358s)  L1982
+   @ 37.0 pts  expected 23:43 (1423s)  actual 22:58 (1378s)  L1983
+   @ 36.5 pts  expected 24:12 (1452s)  actual 23:18 (1398s)  L1984
+   @ 36.0 pts  expected 24:42 (1482s)  actual 23:38 (1418s)  L1985
+   @ 35.5 pts  expected 25:11 (1511s)  actual 23:58 (1438s)  L1986
+   @ 35.0 pts  expected 25:40 (1540s)  actual 24:18 (1458s)  L1987
+
+▸ 2mile_run | M | 55-59  (8 issues)
+   @ 41.0 pts  expected 19:32 (1172s)  actual 19:33 (1173s)  L1396
+   @ 38.0 pts  expected 21:10 (1270s)  actual 21:11 (1271s)  L1400
+   @ 37.5 pts  expected 21:34 (1294s)  actual 21:32 (1292s)  L1401
+   @ 37.0 pts  expected 21:58 (1318s)  actual 22:06 (1326s)  L1402
+   @ 36.5 pts  expected 22:23 (1343s)  actual 22:27 (1347s)  L1403
+   @ 36.0 pts  expected 22:47 (1367s)  actual 22:50 (1370s)  L1404
+   @ 35.5 pts  expected 23:12 (1392s)  actual 23:19 (1399s)  L1405
+   @ 35.0 pts  expected 23:36 (1416s)  actual 23:39 (1419s)  L1406
+
+▸ 2mile_run | M | 60+  (5 issues)
+   @ 37.0 pts  expected 22:27 (1347s)  actual 22:36 (1356s)  L1594
+   @ 36.5 pts  expected 22:36 (1356s)  actual 23:19 (1399s)  L1595
+   @ 36.0 pts  expected 23:18 (1398s)  actual 23:39 (1419s)  L1596
+   @ 35.5 pts  expected 23:39 (1419s)  actual 24:00 (1440s)  L1597
+   @ 35.0 pts  expected 24:00 (1440s)  actual 24:20 (1460s)  L1598
+
+▸ 2mile_run | M | <25  (1 issue)
+   @ 35.5 pts  expected 19:36 (1176s)  actual 19:26 (1166s)  L61
+
+▸ hamr | F | 30-34  (1 issue)
+   @ 47.0 pts  expected 51  actual 50  L2186
+
+▸ hamr | M | 30-34  (13 issues)
+   @ 44.0 pts  expected 63  actual 64  L456
+   @ 43.0 pts  expected 61  actual 62  L457
+   @ 41.0 pts  expected 56  actual 57  L459
+   @ 40.0 pts  expected 54  actual 55  L460
+   @ 39.0 pts  expected 52  actual 53  L461
+   @ 38.5 pts  expected 50  actual 52  L462
+   @ 38.0 pts  expected 48  actual 50  L463
+   @ 37.5 pts  expected 46  actual 48  L464
+   @ 37.0 pts  expected 44  actual 46  L465
+   @ 36.5 pts  expected 43  actual 44  L466
+   @ 36.0 pts  expected 41  actual 43  L467
+   @ 35.5 pts  expected 39  actual 41  L468
+   @ 35.0 pts  expected 38  actual 39  L469
+
+▸ hamr | M | 55-59  (5 issues)
+   @ 44.0 pts  expected 50  actual 49  L1416
+   @ 43.0 pts  expected 48  actual 47  L1417
+   @ 39.0 pts  expected 40  actual 39  L1421
+   @ 38.5 pts  expected 38  actual 37  L1422
+   @ 38.0 pts  expected 36  actual 35  L1423
+
+▸ hamr | F | 50-54  (8 issues)
+   @ 42.0 pts  expected 32  actual 33  L2959
+   @ 41.0 pts  expected 30  actual 31  L2960
+   @ 40.0 pts  expected 28  actual 29  L2961
+   @ 39.0 pts  expected 26  actual 28  L2962
+   @ 38.5 pts  expected 25  actual 26  L2963
+   @ 38.0 pts  expected 23  actual 24  L2964
+   @ 37.5 pts  expected 21  actual 22  L2965
+   @ 35.5 pts  expected 16  actual 15  L2969
+
+▸ hamr | M | 25-29  (1 issue)
+   @ 41.0 pts  expected 59  actual 60  L267
+
+▸ hamr | F | 60+  (3 issues)
+   @ 38.0 pts  expected 19  actual 18  L3348
+   @ 37.5 pts  expected 18  actual 17  L3349
+   @ 37.0 pts  expected 17  actual 15  L3350
+
+▸ hamr | M | 45-49  (1 issue)
+   @ 36.5 pts  expected 36  actual 35  L1042
+
+▸ hamr | M | 60+  (4 issues)
+   @ 36.5 pts  expected 30  actual 28  L1618
+   @ 36.0 pts  expected 28  actual 27  L1619
+   @ 35.5 pts  expected 27  actual 26  L1620
+   @ 35.0 pts  expected 26  actual 24  L1621
+
+▸ hamr | F | 40-44  (3 issues)
+   @ 36.0 pts  expected 20  actual 19  L2584
+   @ 35.5 pts  expected 19  actual 17  L2585
+   @ 35.0 pts  expected 17  actual 16  L2586
+
+▸ hamr | F | 45-49  (1 issue)
+   @ 35.5 pts  expected 18  actual 17  L2777
+
+TOTAL: 778 mismatch(es)
