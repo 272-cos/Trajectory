@@ -29,3 +29,19 @@ screenshots/
 # throwaway review artifacts (DAFMAN ~40MB). CI uploads them as artifacts.
 docs/upstream-snapshots/*.pdf
 docs/upstream-snapshots/*.html
+
+# Root-level junk patterns (prevent re-accumulation of session artifacts and
+# ad-hoc downloads). Leading slash anchors to repo root only; subdir assets
+# like public/icons/*.webp and src/**/*.jpg remain unaffected.
+/*.zip
+/*.rar
+/*.7z
+/*.tar
+/*.tar.gz
+/*.JPG
+/*.PNG
+/*.pdf
+/claude.resume
+/Trajectory*.html
+/comparison*.jpg
+/screenshot*.png
