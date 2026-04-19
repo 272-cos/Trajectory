@@ -1,3 +1,7 @@
 - [DAF Form 4446 PDF Generation](project_daf4446_pdf.md) - Future: replace print report with jsPDF mirroring DAF 4446 scorecard + digital signatures
 - [CAC/ID Card Scanning](project_cac_scan.md) - Future: scan CAC barcode via camera to auto-populate report form fields (zxing-js, client-side only)
 - [Commit plans into the repo](feedback_plan_artifacts.md) - Plans go to docs/plans/ and get committed + pushed, not just left in /root/.claude/plans/
+- [No unauthorized additions](feedback_no_unauthorized_additions.md) - Never add watermarks, disclaimers, or features not explicitly requested
+- [No forced/locking flows](feedback_no_forced_flows.md) - Every modal/gate must offer cancel/back/dismiss unless a prior design doc explicitly justifies locking
+- [PDF reference files in repo root](project_pdf_sources.md) - af4446.pdf is XFA (use scripts/xfa2md.py); af1067_unsec.pdf is a mislabeled raster of 4446, not 1067
+- [External scoring is the DAFMAN pillar](feedback_scoring_pillar_rule.md) - External `points` = DAFMAN-literal, change-controlled; internal `internalPoints` = tunable, never rendered. If unsure, treat as external.

@@ -83,6 +83,14 @@ Key scoring rules:
 - Body Composition has no per-component minimum per DAFMAN §3.7.1 (BC is points-only via WHtR; BFA gate is separate)
 - Exempt components contribute 0 earned and 0 possible to composite
 
+### Pillar rule: external scoring is DAFMAN-authoritative
+
+The scoring engine returns two numbers per exercise: `points` (external) and `internalPoints` (internal). They serve different purposes and have different change-control rules.
+
+- **External score (`points`, composite, pass/fail, UI, PDF, S-code) is a PILLAR.** It must match DAFMAN 36-2905 and the AFPC PFRA Scoring Charts **literally**. Changes require a deliberate commit that (a) updates `docs/DAFMAN-COMPLIANCE-MATRIX.md`, (b) bumps the regulation/chart version constants in `constants.js`, (c) cites the specific §/table/row authority, and (d) is recorded in `docs/DECISIONS.md`. No silent edits. No "I rounded differently." No "it felt more fair."
+- **Internal score (`internalPoints`) is TUNABLE.** It feeds only projection, ROI, training emphasis, and optimal-allocation math. Engineering can refine the algorithm (below-floor extrapolation, slope caps, effort-weight curves) based on empirical training data without triggering the regulation-change workflow, **provided** (a) it never surfaces in user-facing output, (b) the rationale is captured in `docs/DECISIONS.md`, and (c) the external score is unaffected.
+- **If you are unsure which bucket a change falls into, treat it as external.** The pillar is DAFMAN; internal is the shock absorber.
+
 ## Codec System
 
 Compact codes encode user data for sharing/storage without PII:

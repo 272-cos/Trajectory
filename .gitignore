@@ -23,3 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 screenshots/
+
+# Upstream publication snapshots saved on drift for human review.
+# docs/UPSTREAM-PINS.json is the durable record; the PDFs themselves are
+# throwaway review artifacts (DAFMAN ~40MB). CI uploads them as artifacts.
+docs/upstream-snapshots/*.pdf
+docs/upstream-snapshots/*.html
