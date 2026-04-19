@@ -48,6 +48,7 @@ import {
   ADAPTATION_STATES,
 } from '../../utils/training/adaptiveFeedback.js'
 import HintBanner from '../shared/HintBanner.jsx'
+import PillGroup from '../shared/PillGroup.jsx'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1010,57 +1011,34 @@ export default function PlanTab() {
 
         {/* PFA exercise preference picker */}
         <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">PFA Events</div>
-          {[
-            {
-              label:   'Upper Body',
-              options: [
-                { value: UPPER_BODY.PUSHUPS, short: 'Push-ups' },
-                { value: UPPER_BODY.HRPU,    short: 'Hand-Release' },
-              ],
-              current: pfaPreferences?.upperBody || UPPER_BODY.PUSHUPS,
-              onChange: (v) => updatePfaPreferences({ ...pfaPreferences, upperBody: v }),
-            },
-            {
-              label:   'Core',
-              options: [
-                { value: CORE.SITUPS, short: 'Sit-ups' },
-                { value: CORE.PLANK,  short: 'Plank' },
-              ],
-              current: pfaPreferences?.core || CORE.SITUPS,
-              onChange: (v) => updatePfaPreferences({ ...pfaPreferences, core: v }),
-            },
-            {
-              label:   'Cardio',
-              options: [
-                { value: CARDIO.RUN,  short: 'Dist. Run' },
-                { value: CARDIO.HAMR, short: 'HAMR' },
-              ],
-              current: pfaPreferences?.cardio || CARDIO.RUN,
-              onChange: (v) => updatePfaPreferences({ ...pfaPreferences, cardio: v }),
-            },
-          ].map(({ label, options, current, onChange }) => (
-            <div key={label} className="flex items-center gap-2 mb-1.5">
-              <div className="text-xs text-gray-500 w-20 shrink-0">{label}</div>
-              <div className="flex gap-1 flex-1">
-                {options.map(({ value, short }) => (
-                  <button
-                    key={value}
-                    onClick={() => onChange(value)}
-                    aria-pressed={current === value}
-                    className={[
-                      'flex-1 py-1 rounded text-xs font-semibold transition-colors border',
-                      current === value
-                        ? 'bg-blue-600 border-blue-700 text-white'
-                        : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
-                    ].join(' ')}
-                  >
-                    {short}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">PFA Event Preferences</div>
+          <PillGroup
+            label="Upper Body"
+            value={pfaPreferences?.upperBody || UPPER_BODY.PUSHUPS}
+            onChange={(v) => updatePfaPreferences({ ...pfaPreferences, upperBody: v })}
+            options={[
+              { value: UPPER_BODY.PUSHUPS, label: 'Push-ups' },
+              { value: UPPER_BODY.HRPU,    label: 'Hand-Release' },
+            ]}
+          />
+          <PillGroup
+            label="Core"
+            value={pfaPreferences?.core || CORE.SITUPS}
+            onChange={(v) => updatePfaPreferences({ ...pfaPreferences, core: v })}
+            options={[
+              { value: CORE.SITUPS, label: 'Sit-ups' },
+              { value: CORE.PLANK,  label: 'Plank' },
+            ]}
+          />
+          <PillGroup
+            label="Cardio"
+            value={pfaPreferences?.cardio || CARDIO.RUN}
+            onChange={(v) => updatePfaPreferences({ ...pfaPreferences, cardio: v })}
+            options={[
+              { value: CARDIO.RUN,  label: 'Dist. Run' },
+              { value: CARDIO.HAMR, label: 'HAMR' },
+            ]}
+          />
         </div>
 
         {/* Fitness level summary */}
