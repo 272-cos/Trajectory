@@ -295,3 +295,40 @@ function calculateScore(components, demographics) {
 - The overtraining risk is addressed by the one-time acknowledgement modal at the UI layer, not by shrinking sessions at the engine layer.
 
 **Enforcement:** `phaseEngine.js` has no `preferredDays` parameter at all. Any future PR adding one should be rejected unless the intent is explicit weekly-volume control, in which case it should be named `weeklyVolumeCap` and documented here.
+
+### External vs internal scoring - pillar rule (2026-04-19)
+
+**Decision:** The scoring engine returns two numbers per exercise and they have different change-control rules.
+
+- **External score (`points`, composite, pass/fail, UI, PDF, S-code) is a PILLAR.** Must match DAFMAN 36-2905 + AFPC PFRA Scoring Charts *literally*. Changes require a deliberate commit that updates the compliance matrix (`docs/DAFMAN-COMPLIANCE-MATRIX.md`), bumps the regulation/chart version constants, cites the specific §/table/row authority, and is recorded in this file. No silent edits.
+- **Internal score (`internalPoints`) is TUNABLE.** Consumed only by projection/ROI/training-emphasis math. Engineering can refine the algorithm (below-floor extrapolation, slope caps, effort-weight curves, etc.) without triggering the regulation-change workflow, **provided** it never surfaces in user-facing output and the rationale is recorded here.
+
+**Rationale:**
+- DAFMAN is the legal authority; our UI/PDF must be defensible against the regulation line-by-line. Even well-intentioned drift on the external number is a compliance problem.
+- Projection, ROI, and trajectory math operate *below* the chart floor and *beyond* thresholds in ways the regulation doesn't specify. Forcing those to match literal chart values makes trajectory math worse (0 points tells you nothing about "how far below the floor am I" or "which component has the cheapest next-point"). A continuous internal score captures that.
+- Separating the two lets the engine be DAFMAN-literal where it must and algorithmically useful where DAFMAN is silent.
+
+**Enforcement:**
+- CI gate (`scripts/check-dafman-hash.sh` + `scripts/check-dafman-citations.sh`) blocks merges that touch scoring logic without a matching `docs/DAFMAN-COMPLIANCE-MATRIX.md` update.
+- PR template (`.github/pull_request_template.md`) requires scoring PRs to declare whether the change is external (requires citation + matrix row) or internal (requires DECISIONS.md entry).
+- `internalPoints` must never appear in `src/components/**` JSX that renders to the screen. A grep check in CI enforces this.
+- See `docs/plans/2026-04-19-dafman-compliance-guardrails.md` for the full guardrail stack.
+
+**If unsure which bucket:** treat as external. DAFMAN is the pillar; internal is the shock absorber.
+
+### Upstream drift: download-and-halt, never auto-accept (2026-04-19)
+
+**Decision:** When `scripts/check-upstream-pubs.sh` detects that an upstream USAF publication (DAFMAN 36-2905 or the AFPC PFRA Scoring Charts) has drifted from its pin in `docs/UPSTREAM-PINS.json`, the script downloads the new PDF to `docs/upstream-snapshots/<key>.pdf` (gitignored) and **halts with exit 1**. It never auto-updates the pin in check mode. Acceptance is an explicit, separate human action: `bash scripts/check-upstream-pubs.sh --refresh`, committed alongside a corresponding `docs/DAFMAN-COMPLIANCE-MATRIX.md` update.
+
+**Rationale:**
+- The whole point of pinning upstream content is to be surprised by changes. A checker that notices drift and quietly rewrites the pin to silence itself defeats the purpose — we would never notice a substantive regulation change until a user filed a scoring bug.
+- The check script cannot interpret a PDF. It cannot know whether AFPC re-published to fix a typo or to change the 2-mile run chart. Only a human (or Claude reading the PDF in a follow-up session) can make that call. So the script's job is to **force the reflex**, not to decide.
+- Saving the new PDF to the working tree (and uploading it as a CI artifact on the failing workflow run) gives reviewers something concrete to open — the alternative is a "hash changed" message with no way to see the change.
+
+**Enforcement:**
+- `.github/workflows/deploy.yml` runs the check before `npm run build`. On drift, deploy is blocked, and the drifted PDFs are uploaded as a `upstream-drift-snapshots` workflow artifact with 30-day retention.
+- The pin file is the durable record; the PDFs themselves are throwaway review artifacts (`.gitignore` excludes them from commits — DAFMAN is ~40MB and does not belong in git history).
+- Content-keyword regex matches (e.g. `PFRA Scoring Charts`) rather than positional (e.g. `Tab 2.`) or date-stamped filenames, so AFPC's tab-reordering or date-bumping does not produce false positives; the match only fires on genuine URL/content drift.
+- The `--refresh` mode exists only for explicit human acceptance and rewrites the pin + snapshots in one atomic operation, to be committed with the compliance matrix update.
+
+**If upstream is unreachable:** script exits 2 (upstream blocked / network failure), which the workflow treats as a failure. This is deliberate — an unreachable upstream means we cannot verify compliance and should not publish. Manual workflow re-run resolves transient failures.

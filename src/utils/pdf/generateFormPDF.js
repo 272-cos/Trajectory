@@ -233,6 +233,20 @@ function placeTextField(form, page, name, x, yTop, w, h, defaultValue = '') {
   return tf
 }
 
+/**
+ * Attach an AA/C (calculate) JavaScript action to a text field. Fires on every
+ * document-wide field change, per PDF spec: the reader walks AcroForm /CO and
+ * runs each listed field's AA/C in order, so any edit triggers the recompute.
+ */
+function attachCalculateAction(ctx, tf, jsCode, formatJs) {
+  const calcAction = ctx.obj({ S: PDFName.of('JavaScript'), JS: PDFString.of(jsCode) })
+  const aaDict = { C: calcAction }
+  if (formatJs) {
+    aaDict.F = ctx.obj({ S: PDFName.of('JavaScript'), JS: PDFString.of(formatJs) })
+  }
+  tf.acroField.dict.set(PDFName.of('AA'), ctx.obj(aaDict))
+}
+
 function placeDateField(form, page, name, x, yTop, w, h, defaultValue = '') {
   const tf = placeTextField(form, page, name, x, yTop, w, h, defaultValue)
   const ctx = form.doc.context
@@ -745,7 +759,7 @@ function drawComponentHeader(page, helvBold, helvBoldItalic, x, yTop, w, categor
   return yTop + HEADER_ROW_H
 }
 
-function drawWaistRow(page, form, helv, x, yTop, w, data, decoded) {
+function drawWaistRow(page, form, helv, x, yTop, w, data, decoded, calcRefs) {
   const cols = componentCols(w)
   const h = ROW_H
   let cx = x
@@ -762,7 +776,7 @@ function drawWaistRow(page, form, helv, x, yTop, w, data, decoded) {
   placeDateField(form, page, exFields('waist').expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
   cx += cols[2]
   // Measurement: 1: __ 2: __ 3: __ Average: __  (4 fields)
-  // 1/2/3 are manual-entry; Average is the only measured value — give it most space
+  // 1/2/3 are manual-entry; Average auto-calcs from the three on every change
   setRect(page, cx, yTop, cols[3], h)
   const smallSlotW = cols[3] * 0.18  // 1:, 2:, 3: each get 18%
   const avgSlotW = cols[3] - 3 * smallSlotW  // Average gets remaining 46%
@@ -772,13 +786,30 @@ function drawWaistRow(page, form, helv, x, yTop, w, data, decoded) {
   const waistAvgVal = decoded.bodyComp?.waistInches ? String(decoded.bodyComp.waistInches) : ''
   const fieldVals = ['', '', '', waistAvgVal]
   let sx = cx
+  let avgField = null
   for (let i = 0; i < 4; i++) {
     const ls = labelSizes[i]
     drawText(page, labels[i], sx + 1, yTop + h / 2 - 3, { size: ls, font: helv })
     const lw = helv.widthOfTextAtSize(labels[i], ls)
-    placeTextField(form, page, WAIST_FIELDS[i], sx + lw + 2, yTop + 2, slotWidths[i] - lw - 3, h - 4, fieldVals[i])
+    const tf = placeTextField(form, page, WAIST_FIELDS[i], sx + lw + 2, yTop + 2, slotWidths[i] - lw - 3, h - 4, fieldVals[i])
+    if (i === 3) avgField = tf
     sx += slotWidths[i]
   }
+  // Wire waist_avg to auto-recalc on any document field change.
+  // /CO lists this field; AA/C runs when any field changes; AA/F formats it.
+  const ctx = form.doc.context
+  const calcJs = `
+    var w1 = parseFloat(this.getField("waist_w1").value) || 0;
+    var w2 = parseFloat(this.getField("waist_w2").value) || 0;
+    var w3 = parseFloat(this.getField("waist_w3").value) || 0;
+    var n = (w1 > 0 ? 1 : 0) + (w2 > 0 ? 1 : 0) + (w3 > 0 ? 1 : 0);
+    event.value = n > 0 ? ((w1 + w2 + w3) / n).toFixed(1) : "";
+  `
+  const fmtJs = `
+    if (event.value) event.value = parseFloat(event.value).toFixed(1);
+  `
+  attachCalculateAction(ctx, avgField, calcJs, fmtJs)
+  calcRefs.push(avgField.acroField.ref)
   cx += cols[3]
   // Min Met
   setRect(page, cx, yTop, cols[4], h)

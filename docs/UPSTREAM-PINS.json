@@ -1,0 +1,26 @@
+{
+  "_comment": "Upstream regulation/chart pins. Drift detected at deploy time by scripts/check-upstream-pubs.sh. To intentionally accept new upstream publications, run: bash scripts/check-upstream-pubs.sh --refresh  then update docs/DAFMAN-COMPLIANCE-MATRIX.md in the SAME commit.",
+  "parent_page": "https://www.afpc.af.mil/Career-Management/Fitness-Program/",
+  "sources": {
+    "dafman_36_2905": {
+      "name": "DAFMAN 36-2905",
+      "match_regex": "/Portals/70/documents/FITNESS/DAFMAN[ %20]+36-2905\\.pdf",
+      "exclude_regex": null,
+      "expect_count": 1,
+      "pinned_url": "https://www.afpc.af.mil/Portals/70/documents/FITNESS/DAFMAN 36-2905.pdf",
+      "pinned_last_modified": "Tue, 24 Mar 2026 20:04:17 GMT",
+      "pinned_sha256": "44cd4a78acb5aebfc0a3f856d9498befa7c48137ef3d2b280d9039a495ceed82",
+      "pinned_content_length": 40130813
+    },
+    "pfra_scoring_charts": {
+      "name": "PFRA Scoring Charts (standard)",
+      "match_regex": "/Portals/70/documents/FITNESS/[^\"]*PFRA[ %20]+Scoring[ %20]+Charts[^\"]*\\.pdf",
+      "exclude_regex": "AFSPECWAR|EOD",
+      "expect_count": 1,
+      "pinned_url": "https://www.afpc.af.mil/Portals/70/documents/FITNESS/Tab 2. PFRA Scoring Charts, cao 17 Mar 26.pdf",
+      "pinned_last_modified": "Tue, 17 Mar 2026 16:07:43 GMT",
+      "pinned_sha256": "24052f9a00b6b6ae944d22d9fc11654f9bb9005fd248ac4f72e3909115a593a1",
+      "pinned_content_length": 632854
+    }
+  }
+}
