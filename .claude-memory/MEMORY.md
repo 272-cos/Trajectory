@@ -5,3 +5,4 @@
 - [No forced/locking flows](feedback_no_forced_flows.md) - Every modal/gate must offer cancel/back/dismiss unless a prior design doc explicitly justifies locking
 - [PDF reference files in refs/](project_pdf_sources.md) - af4446.pdf is XFA (use scripts/xfa2md.py); verify unknown AF-form PDFs with `pdfinfo` before treating as source
 - [External scoring is the DAFMAN pillar](feedback_scoring_pillar_rule.md) - External `points` = DAFMAN-literal, change-controlled; internal `internalPoints` = tunable, never rendered. If unsure, treat as external.
+- [Delete before regenerate](feedback_delete_before_regen.md) - Unlink/rm target file before re-writing (viewer caches; plain overwrite leaves stale content visible).
