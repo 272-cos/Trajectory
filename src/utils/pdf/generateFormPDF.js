@@ -25,7 +25,7 @@
 
 import {
   PDFDocument, StandardFonts, rgb,
-  PDFName, PDFString, PDFNumber,
+  PDFName, PDFString, PDFNumber, PDFBool,
 } from 'pdf-lib'
 import {
   EXERCISES,
@@ -33,6 +33,7 @@ import {
   DIAGNOSTIC_PERIOD_END,
   calculateAge,
 } from '../scoring/constants.js'
+import { buildScoringJs } from './pdfScoringJs.js'
 
 // -------------------- Layout constants (points, 1 pt = 1/72") --------------------
 
@@ -138,6 +139,7 @@ const SIG_LOCKS = {
     FIELDS.pfra_admin_date, FIELDS.pfra_admin_injury,
   ],
   member_sig: () => [
+    FIELDS.rank_name, FIELDS.dod_id,
     FIELDS.member_accept_official, FIELDS.member_accept_dpfra, FIELDS.member_dispute,
     FIELDS.member_signature_date, FIELDS.next_pfra_due,
   ],
@@ -247,6 +249,310 @@ function attachCalculateAction(ctx, tf, jsCode, formatJs) {
   tf.acroField.dict.set(PDFName.of('AA'), ctx.obj(aaDict))
 }
 
+// Merge an additional action slot (K=keystroke, V=validate, Bl=blur) onto a
+// field's /AA dict without stomping any existing /AA/C calc wiring.
+function attachFieldAction(ctx, tf, slot, jsCode) {
+  const action = ctx.obj({ S: PDFName.of('JavaScript'), JS: PDFString.of(jsCode) })
+  const existing = tf.acroField.dict.get(PDFName.of('AA'))
+  if (existing) {
+    existing.set(PDFName.of(slot), action)
+  } else {
+    const aaDict = {}
+    aaDict[slot] = action
+    tf.acroField.dict.set(PDFName.of('AA'), ctx.obj(aaDict))
+  }
+}
+
+function setTooltip(tf, text) {
+  if (!text) return
+  tf.acroField.dict.set(PDFName.of('TU'), PDFString.of(text))
+}
+
+function setMaxLen(tf, n) {
+  tf.acroField.dict.set(PDFName.of('MaxLen'), PDFNumber.of(n))
+}
+
+// Per-exercise score calc JS. Pulls sex/age from Part I and the matching
+// measurement/exempt fields. this.TR.scoreFor() is defined in the doc-level JS.
+// Also auto-drives the companion {key}_min_met radio (Yes if score > 0, No if 0).
+function scoreCalcJs(exerciseKey, measurementField, exemptField, minMetField, siblings) {
+  const sibJson = JSON.stringify(siblings || [])
+  return `
+    try {
+      var mm = null;
+      try { mm = this.getField("${minMetField}"); } catch (e1) {}
+      var ex = this.getField("${exemptField}");
+      var m = this.getField("${measurementField}");
+      var s = this.getField("sex");
+      var a = this.getField("age");
+      var pts = "";
+      var mmVal = "Off";
+      if (ex && String(ex.value) === "Yes") {
+        pts = ""; mmVal = "Off";
+      } else if (!m || m.value === "" || !s || !s.value || !a || !a.value) {
+        pts = ""; mmVal = "Off";
+      } else {
+        pts = this.TR.scoreFor("${exerciseKey}", m.value, s.value, parseInt(a.value, 10));
+        mmVal = (pts !== "" && parseFloat(pts) > 0) ? "Yes" : "No";
+      }
+      event.value = pts;
+      if (mm) mm.value = mmVal;
+      try { this.TR.lockSiblings(this, ${sibJson}); } catch (eS) {}
+    } catch (e) { event.value = ""; }
+  `
+}
+
+// Waist score = WHtR → points. WHtR = waist_avg / height_inches.
+// BC has no per-component minimum (DAFMAN §3.7.1) — min_met is Yes whenever a
+// score is produced (WHtR < 0.60 → points > 0; ≥ 0.60 → 0 but still "met").
+function waistScoreCalcJs() {
+  return `
+    try {
+      var mm = null;
+      try { mm = this.getField("waist_min_met"); } catch (e1) {}
+      var ex = this.getField("waist_exempt");
+      var pts = "";
+      var mmVal = "Off";
+      if (ex && String(ex.value) === "Yes") {
+        pts = ""; mmVal = "Off";
+      } else {
+        var w = parseFloat(this.getField("waist_avg").value);
+        var h = parseFloat(this.getField("height_inches").value);
+        if (!w || !h || h <= 0) {
+          pts = ""; mmVal = "Off";
+        } else {
+          pts = this.TR.scoreFor("whtr", w / h);
+          mmVal = "Yes";
+        }
+      }
+      event.value = pts;
+      if (mm) mm.value = mmVal;
+    } catch (e) { event.value = ""; }
+  `
+}
+
+function compositeCalcJs() {
+  return `
+    try { event.value = this.TR.compositeScore(this); }
+    catch (e) { event.value = ""; }
+  `
+}
+
+// Walk is pass/fail only (DAFMAN §3.15; EC-05). 2-km walk time vs age/sex
+// cutoff determines PASS/FAIL; the value never contributes to composite, but
+// a FAIL fails the overall PFRA. Also drives walk_min_met + exclusivity.
+function walkCalcJs() {
+  return `
+    try {
+      var mm = null;
+      try { mm = this.getField("walk_min_met"); } catch (eM) {}
+      var ex = this.getField("walk_exempt");
+      var result = "";
+      var mmVal = "Off";
+      if (ex && String(ex.value) === "Yes") {
+        result = ""; mmVal = "Off";
+      } else {
+        result = this.TR.walkResult(this);
+        if (result === "PASS") mmVal = "Yes";
+        else if (result === "FAIL") mmVal = "No";
+        else mmVal = "Off";
+      }
+      event.value = result;
+      if (mm) mm.value = mmVal;
+      try { this.TR.lockSiblings(this, ${JSON.stringify(CARDIO_GRP)}); } catch (eS) {}
+    } catch (e) { event.value = ""; }
+  `
+}
+
+// Component exclusivity groups: one exercise per component may be tested.
+// Walk is profile-only alternative to the run/HAMR cardio pair.
+// Keys map to {key}_measurement, {key}_exempt, {key}_expiration, {key}_score,
+// {key}_min_met — the library's lockSiblings walks all companions.
+const STRENGTH_GRP = ['pushup', 'hrpu']
+const CORE_GRP     = ['situp', 'clrc', 'plank']
+const CARDIO_GRP   = ['run', 'hamr', 'walk']
+
+// Attach calc actions to every output score field and the composite, and
+// build the /CO refs list in dependency order (components first, composite last).
+function attachScoreCalcs(form, calcRefs) {
+  const ctx = form.doc.context
+
+  // (field name, calc JS) pairs. Order matters — /CO is walked top to bottom.
+  const scoreSpecs = [
+    ['waist_score',  waistScoreCalcJs()],
+    ['pushup_score', scoreCalcJs('pushups',  'pushup_measurement', 'pushup_exempt', 'pushup_min_met', STRENGTH_GRP)],
+    ['hrpu_score',   scoreCalcJs('hrpu',     'hrpu_measurement',   'hrpu_exempt',   'hrpu_min_met',   STRENGTH_GRP)],
+    ['situp_score',  scoreCalcJs('situps',   'situp_measurement',  'situp_exempt',  'situp_min_met',  CORE_GRP)],
+    ['clrc_score',   scoreCalcJs('clrc',     'clrc_measurement',   'clrc_exempt',   'clrc_min_met',   CORE_GRP)],
+    ['plank_score',  scoreCalcJs('plank',    'plank_measurement',  'plank_exempt',  'plank_min_met',  CORE_GRP)],
+    ['run_score',    scoreCalcJs('2mile_run','run_measurement',    'run_exempt',    'run_min_met',    CARDIO_GRP)],
+    ['hamr_score',   scoreCalcJs('hamr',     'hamr_measurement',   'hamr_exempt',   'hamr_min_met',   CARDIO_GRP)],
+    ['walk_score',   walkCalcJs()],
+  ]
+  for (const [name, js] of scoreSpecs) {
+    const tf = form.getTextField(name)
+    attachCalculateAction(ctx, tf, js)
+    calcRefs.push(tf.acroField.ref)
+  }
+
+  // Composite must run after all component scores → last in /CO.
+  const total = form.getTextField('total_score')
+  attachCalculateAction(ctx, total, compositeCalcJs())
+  calcRefs.push(total.acroField.ref)
+
+  // Install /CO on the AcroForm dict (next_pfra_due is appended later by
+  // attachNextPfraDueCalc after the member-testing block has created it).
+  const acroFormDict = form.acroForm.dict
+  acroFormDict.set(PDFName.of('CO'), ctx.obj(calcRefs))
+}
+
+// Tooltip / mask / validate polish. Runs after all fields are created.
+// Non-structural: no new fields, just /TU + /AA/K + /AA/V dict entries.
+function attachFieldPolish(form) {
+  const ctx = form.doc.context
+  const safe = (name, fn) => {
+    try { const tf = form.getTextField(name); if (tf) fn(tf) } catch (e) {}
+  }
+
+  // DoD ID: 10-digit integer only.
+  safe('dod_id', (tf) => {
+    setMaxLen(tf, 10)
+    setTooltip(tf, 'DoD ID (EDIPI) - 10 digits')
+    attachFieldAction(ctx, tf, 'K', 'AFNumber_Keystroke(0, 0, 0, 0, "", true);')
+  })
+
+  // HAMR: whole shuttle count, no decimals.
+  safe('hamr_measurement', (tf) => {
+    setTooltip(tf, 'Total shuttles completed (whole number)')
+    attachFieldAction(ctx, tf, 'K', 'AFNumber_Keystroke(0, 0, 0, 0, "", true);')
+  })
+
+  // Height: accept 5'10", 5'10, 5-10, 70, 70". Normalize to inches.
+  safe('height_inches', (tf) => {
+    setTooltip(tf, "Height - enter inches (70) or feet'inches (5'10\")")
+    attachFieldAction(ctx, tf, 'V', `
+      try {
+        var v = (event.value === null || event.value === undefined) ? "" : String(event.value).replace(/\\s+/g, "");
+        if (v !== "") {
+          var inches = null;
+          var m = v.match(/^(\\d+)['\\-](\\d+)"?$/);
+          if (m) { inches = parseInt(m[1], 10) * 12 + parseInt(m[2], 10); }
+          else {
+            var n = parseFloat(v);
+            if (!isNaN(n)) inches = Math.round(n);
+          }
+          if (inches === null || inches < 48 || inches > 84) {
+            app.alert("Height must be 48-84 inches (4'0\\" to 7'0\\").");
+            event.rc = false;
+          } else {
+            event.value = String(inches);
+          }
+        }
+      } catch (e) {}
+    `)
+  })
+
+  // Weight: plausible range 80-500 lbs.
+  safe('weight_lbs', (tf) => {
+    setTooltip(tf, 'Weight in pounds')
+    attachFieldAction(ctx, tf, 'V', `
+      try {
+        if (event.value !== "" && event.value !== null) {
+          var w = parseFloat(event.value);
+          if (isNaN(w) || w < 80 || w > 500) {
+            app.alert("Weight must be between 80 and 500 lbs.");
+            event.rc = false;
+          }
+        }
+      } catch (e) {}
+    `)
+  })
+
+  // Common tooltips.
+  safe('pfra_date',             (tf) => setTooltip(tf, 'PFRA assessment date (mm/dd/yyyy)'))
+  safe('fsq_date',              (tf) => setTooltip(tf, 'FSQ completion date (must be on or before PFRA date)'))
+  safe('next_pfra_due',         (tf) => setTooltip(tf, 'Auto-defaults from composite; ARC/Guard override to 12 months'))
+  safe('waist_w1',              (tf) => setTooltip(tf, 'Waist measurement 1 (inches)'))
+  safe('waist_w2',              (tf) => setTooltip(tf, 'Waist measurement 2 (inches)'))
+  safe('waist_w3',              (tf) => setTooltip(tf, 'Waist measurement 3 (inches)'))
+  safe('waist_avg',             (tf) => setTooltip(tf, 'Average of 3 waist measurements (auto)'))
+  safe('waist_score',           (tf) => setTooltip(tf, 'WHtR points (auto)'))
+  safe('pushup_measurement',    (tf) => setTooltip(tf, 'Push-ups completed in 1 minute (reps)'))
+  safe('hrpu_measurement',      (tf) => setTooltip(tf, 'Hand-Release Push-ups in 2 minutes (reps)'))
+  safe('situp_measurement',     (tf) => setTooltip(tf, 'Sit-ups completed in 1 minute (reps)'))
+  safe('clrc_measurement',      (tf) => setTooltip(tf, 'Cross-Leg Reverse Crunches in 2 minutes (reps)'))
+  safe('plank_measurement',     (tf) => setTooltip(tf, 'Forearm Plank hold time (mm:ss)'))
+  safe('run_measurement',       (tf) => setTooltip(tf, '2-mile run time (mm:ss)'))
+  safe('walk_measurement',      (tf) => setTooltip(tf, '2 KM walk time (mm:ss)'))
+  for (const k of EXERCISE_KEYS) {
+    safe(`${k}_expiration`,     (tf) => setTooltip(tf, 'AF Form 469 expiration date (exempt components only)'))
+    safe(`${k}_score`,          (tf) => setTooltip(tf, 'Component score (auto)'))
+  }
+  safe('total_score',           (tf) => setTooltip(tf, 'Composite score (auto, 0-100)'))
+
+  // Time-based exercises: mask + sync sub-fields → hidden {key}_measurement.
+  const syncTimeFields = (k) => `
+    try {
+      var mn = this.getField("${k}_min");
+      var sc = this.getField("${k}_sec");
+      var mv = (mn && mn.value !== null && mn.value !== undefined) ? String(mn.value).replace(/\\s+/g, "") : "";
+      var sv = (sc && sc.value !== null && sc.value !== undefined) ? String(sc.value).replace(/\\s+/g, "") : "";
+      var combined = "";
+      var ok = true;
+      if (sv !== "") {
+        var sN = parseInt(sv, 10);
+        if (isNaN(sN) || sN < 0 || sN > 59) {
+          app.alert("Seconds must be 0-59.");
+          event.rc = false;
+          ok = false;
+        }
+      }
+      if (ok) {
+        if (mv !== "" || sv !== "") {
+          var mn2 = (mv === "") ? "0" : mv;
+          var sN2 = (sv === "") ? 0 : parseInt(sv, 10);
+          combined = mn2 + ":" + (sN2 < 10 ? "0" + sN2 : sN2);
+        }
+        var h = this.getField("${k}_measurement");
+        if (h) h.value = combined;
+      }
+    } catch (e) {}
+  `
+  for (const k of ['run', 'plank', 'walk']) {
+    safe(`${k}_min`, (tf) => {
+      setMaxLen(tf, 2)
+      setTooltip(tf, 'Minutes')
+      attachFieldAction(ctx, tf, 'K', 'AFNumber_Keystroke(0, 0, 0, 0, "", true);')
+      attachFieldAction(ctx, tf, 'V', syncTimeFields(k))
+    })
+    safe(`${k}_sec`, (tf) => {
+      setMaxLen(tf, 2)
+      setTooltip(tf, 'Seconds (0-59)')
+      attachFieldAction(ctx, tf, 'K', 'AFNumber_Keystroke(0, 0, 0, 0, "", true);')
+      attachFieldAction(ctx, tf, 'V', syncTimeFields(k))
+    })
+  }
+}
+
+// Attach the Next PFRA Due auto-default calc. Must run AFTER
+// drawMemberTesting has created the next_pfra_due field. Writes only when
+// the field is empty so ARC/Guard (12-month cycle) overrides are preserved.
+function attachNextPfraDueCalc(form, calcRefs) {
+  const ctx = form.doc.context
+  const nextDue = form.getTextField('next_pfra_due')
+  attachCalculateAction(ctx, nextDue, `
+    try {
+      var cur = (event.target && event.target.value) ? String(event.target.value) : "";
+      if (cur === "") {
+        var v = this.TR.nextPfraDueDefault(this);
+        if (v !== "") event.value = v;
+      }
+    } catch (e) {}
+  `)
+  calcRefs.push(nextDue.acroField.ref)
+  form.acroForm.dict.set(PDFName.of('CO'), ctx.obj(calcRefs))
+}
+
 function placeDateField(form, page, name, x, yTop, w, h, defaultValue = '') {
   const tf = placeTextField(form, page, name, x, yTop, w, h, defaultValue)
   const ctx = form.doc.context
@@ -338,51 +644,74 @@ function addSignatureField(pdfDoc, page, name, x, yTop, w, h, lockFieldNames) {
 // -------------------- Document JS (Adobe Reader auto-populate) --------------------
 
 const DOC_JS = `
-function _splitCacName(cn) {
-  if (!cn) return null;
-  // CAC convention: LAST.FIRST.MIDDLE.EDIPI  (or LAST.FIRST.EDIPI)
-  var parts = cn.split(".");
-  if (parts.length < 3) return cn;
+// CAC CN convention: LAST.FIRST.MIDDLE.EDIPI  (or LAST.FIRST.EDIPI).
+// Returns { name: "First [Middle] Last", dodid: "10 digits" | null }.
+function _parseCacCn(cn) {
+  if (!cn) return { name: null, dodid: null };
+  var parts = String(cn).split(".");
+  var dodid = null;
+  var tail = parts[parts.length - 1];
+  if (/^\\d{6,10}$/.test(tail)) { dodid = tail; parts = parts.slice(0, -1); }
+  if (parts.length < 2) return { name: cn, dodid: dodid };
   var last = parts[0];
   var first = parts[1];
-  var middle = (parts.length >= 4) ? parts[2] : "";
-  return first + " " + (middle ? middle + " " : "") + last;
+  var middle = (parts.length >= 3) ? parts[2] : "";
+  var name = first + " " + (middle ? middle + " " : "") + last;
+  return { name: name, dodid: dodid };
 }
-function _autoFillFromSig(sigName, nameField, dateField) {
+function _setIfEmpty(fieldName, val) {
+  if (!fieldName || val === null || val === undefined || val === "") return;
+  try {
+    var f = this.getField(fieldName);
+    if (f && (!f.value || String(f.value) === "")) f.value = val;
+  } catch (e) {}
+}
+function _autoFillFromSig(sigName, nameField, dateField, dodidField) {
   try {
     var sf = this.getField(sigName);
     if (!sf) return;
     var info = sf.signatureInfo();
     if (!info) return;
-    var name = _splitCacName(info.subjectCN || info.name || "");
-    if (nameField && name) {
-      var nf = this.getField(nameField);
-      if (nf && (!nf.value || nf.value === "")) nf.value = name;
-    }
+    var parsed = _parseCacCn(info.subjectCN || info.name || "");
+    _setIfEmpty(nameField, parsed.name);
+    _setIfEmpty(dodidField, parsed.dodid);
     if (dateField && info.date) {
-      var df = this.getField(dateField);
-      if (df && (!df.value || df.value === "")) df.value = util.printd("mm/dd/yyyy", info.date);
+      _setIfEmpty(dateField, util.printd("mm/dd/yyyy", info.date));
     }
   } catch (e) { /* swallow - reader-script errors must not block doc open */ }
 }
 function _scanAllSigs() {
-  _autoFillFromSig("member_sig",      null,                "member_signature_date");
-  _autoFillFromSig("pfra_admin_sig",  null,   "pfra_admin_date");
-  _autoFillFromSig("fac_ufac_sig",    null,   "fac_ufac_date");
-  _autoFillFromSig("commander_sig",   null,   "commander_date");
+  // Member sig → fills rank_name + dod_id (only if empty) + sig date.
+  _autoFillFromSig("member_sig",      "rank_name",   "member_signature_date", "dod_id");
+  _autoFillFromSig("pfra_admin_sig",  null,          "pfra_admin_date",       null);
+  _autoFillFromSig("fac_ufac_sig",    null,          "fac_ufac_date",         null);
+  _autoFillFromSig("commander_sig",   null,          "commander_date",        null);
 }
 _scanAllSigs();
+try { this.TR.gateMemberSig(this); } catch (e) {}
+try {
+  var _pd = this.getField("pfra_date");
+  if (_pd && (!_pd.value || String(_pd.value) === "")) {
+    var _d = new Date();
+    var _mm = _d.getMonth() + 1, _dd = _d.getDate(), _yy = _d.getFullYear();
+    _pd.value = (_mm < 10 ? "0" + _mm : _mm) + "/" + (_dd < 10 ? "0" + _dd : _dd) + "/" + _yy;
+  }
+} catch (e) {}
 `
 
 function attachDocJS(pdfDoc) {
   const ctx = pdfDoc.context
+  // Scoring library (TR.*) loads first; auto-fill hooks run after.
+  const fullJs = buildScoringJs() + '\n' + DOC_JS
   const jsAction = ctx.obj({
     S: PDFName.of('JavaScript'),
-    JS: PDFString.of(DOC_JS),
+    JS: PDFString.of(fullJs),
   })
   const jsActionRef = ctx.register(jsAction)
+
+  // /Names tree: standard doc-level JS registry (PDF 12.6.4.16).
   const namedJs = ctx.obj({
-    Names: ctx.obj([PDFString.of('TrajectoryAutoFill'), jsActionRef]),
+    Names: ctx.obj([PDFString.of('TrajectoryScoringAndAutoFill'), jsActionRef]),
   })
   const names = ctx.obj({ JavaScript: namedJs })
   pdfDoc.catalog.set(PDFName.of('Names'), names)
@@ -496,7 +825,14 @@ export async function generateFormPDF(demographics, decoded, scores) {
   page.helv = helv  // attach for radio helper convenience
 
   const form = pdfDoc.getForm()
-  // No NeedAppearances: we draw the visible state ourselves so flat printing mirrors the form.
+  // NeedAppearances: Reader regenerates field appearances on calculated-value
+  // changes. Without this, /AA/C-computed scores show as empty until the user
+  // tabs into each field.
+  form.acroForm.dict.set(PDFName.of('NeedAppearances'), PDFBool.True)
+
+  // Collects AcroForm /CO (calculation order) refs. Each field with an /AA/C
+  // action must be listed here; Acrobat walks this array on any field change.
+  const calcRefs = []
 
   const age = calculateAge(demographics.dob, decoded.date)
   const gender = demographics.gender === 'M' ? 'Male' : 'Female'
@@ -545,7 +881,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
       dd.addOptions(['Male', 'Female'])
       dd.select(gender)
       dd.addToPage(page, {
-        x: cx + 1, y: topY(y + ROW_H) + FONT_LABEL - 1, width: partICols[i] - 2, height: ROW_H - FONT_LABEL - 5,
+        x: cx + 1, y: topY(y + ROW_H) + FONT_LABEL - 6, width: partICols[i] - 2, height: ROW_H - FONT_LABEL - 6,
         borderWidth: 0, backgroundColor: undefined,
       })
     }
@@ -596,7 +932,7 @@ export async function generateFormPDF(demographics, decoded, scores) {
   y = drawComponentHeader(page, helvBold, helvBoldItalic, MARGIN, y, CONTENT_W, 'Body Composition')
   const bodyComp = findComponent(scores, 'bodyComp')
   const bodyData = buildRowData(bodyComp)
-  y = drawWaistRow(page, form, helv, MARGIN, y, CONTENT_W, bodyData, decoded)
+  y = drawWaistRow(page, form, helv, MARGIN, y, CONTENT_W, bodyData, decoded, calcRefs)
   y = drawBodyFatRow(page, form, helv, MARGIN, y, CONTENT_W)
 
   // ---- Strength ----
@@ -655,6 +991,9 @@ export async function generateFormPDF(demographics, decoded, scores) {
   placeTextField(form, page, FIELDS.total_score, totalX + totalLabelW + 1, y + 2, totalValueW - 2, ROW_H - 4, compositeVal)
   y += ROW_H
 
+  // ---- Live calculator wiring (Acrobat Reader /AA/C + AcroForm /CO) ----
+  attachScoreCalcs(form, calcRefs)
+
   // ---- PART III. ACKNOWLEDGEMENT ----
   setRect(page, MARGIN, y, CONTENT_W, PART_H, { fill: GREY })
   drawTextCentered(page, 'PART III. ACKNOWLEDGEMENT', PAGE_W / 2, y + 2, { size: FONT_PART, font: helvBold })
@@ -697,6 +1036,17 @@ export async function generateFormPDF(demographics, decoded, scores) {
     for (const r of sigRefs) fieldsArr.push(r)
   }
   acroFormDict.set(PDFName.of('SigFlags'), PDFNumber.of(3))   // SignaturesExist + AppendOnly
+
+  // Now that the member-testing block has created next_pfra_due, wire its
+  // default calc and append it to /CO.
+  attachNextPfraDueCalc(form, calcRefs)
+
+  // Tooltips + input masks on all fields (runs after every field exists).
+  attachFieldPolish(form)
+
+  // Tab order: column-wise (/Tabs /C) — Tab flows DOWN the measurement
+  // column through every exercise row before jumping to exempt/date/score.
+  page.node.set(PDFName.of('Tabs'), PDFName.of('C'))
 
   // ---- Doc-level JS (Adobe Reader auto-populate from CAC cert) ----
   attachDocJS(pdfDoc)
@@ -876,11 +1226,30 @@ function drawExerciseRow(page, form, helv, helvBold, x, yTop, w, exerciseName, m
   setRect(page, cx, yTop, cols[2], h)
   placeDateField(form, page, f.expiration, cx + 1, yTop + 1, cols[2] - 2, h - 2)
   cx += cols[2]
-  // Measurement (label + input) - fixed label offset so all fields align
+  // Measurement cell. For time-based exercises (run/plank/walk) the cell is
+  // split into [mins][:][secs] numeric fields that back a hidden {key}_measurement
+  // holding the normalized "mm:ss" string the scoring engine reads.
   setRect(page, cx, yTop, cols[3], h)
   drawText(page, `${measureLabel}:`, cx + 2, yTop + h / 2 - 3, { size: FONT_VALUE, font: helv })
   const measLabelW = helv.widthOfTextAtSize('Shuttles:', FONT_VALUE)
-  placeTextField(form, page, f.measurement, cx + 2 + measLabelW + 1, yTop + 2, cols[3] - measLabelW - 6, h - 4, data.measurement ?? '')
+  const inputX = cx + 2 + measLabelW + 1
+  const inputW = cols[3] - measLabelW - 6
+  const isTime = (measureLabel === 'Time')
+  if (isTime) {
+    const colonW = helv.widthOfTextAtSize(':', FONT_VALUE)
+    const halfW = (inputW - colonW - 4) / 2
+    placeTextField(form, page, `${key}_min`, inputX, yTop + 2, halfW, h - 4, '')
+    drawTextCentered(page, ':', inputX + halfW + 2 + colonW / 2, yTop + h / 2 - 3,
+      { size: FONT_VALUE, font: helv })
+    placeTextField(form, page, `${key}_sec`, inputX + halfW + colonW + 4, yTop + 2, halfW, h - 4, '')
+    // Hidden combined measurement — keeps downstream code (scoring, lockSiblings)
+    // working without changes.
+    const hidden = placeTextField(form, page, f.measurement, inputX, yTop + 2, 1, 1, data.measurement ?? '')
+    // Hidden (bit 2) + NoView (bit 3)
+    hidden.acroField.dict.set(PDFName.of('F'), PDFNumber.of(2 | 32))
+  } else {
+    placeTextField(form, page, f.measurement, inputX, yTop + 2, inputW, h - 4, data.measurement ?? '')
+  }
   cx += cols[3]
   // Min Met radio
   setRect(page, cx, yTop, cols[4], h)
@@ -915,11 +1284,16 @@ function drawMemberTesting(page, form, helv, helvBold, helvItalic, x, yTop, w) {
     ['Dispute results IAW AFMAN 36-2905, 3.11.5.3. Member may appeal results IAW 8.2.', FIELDS.member_dispute],
   ]
   const listX = x + labelW + 3
+  const ctx = form.doc.context
+  const gateJs = PDFString.of('try { this.TR.gateMemberSig(this); } catch (e) {}')
+  const gateAction = ctx.obj({ S: PDFName.of('JavaScript'), JS: gateJs })
   for (let i = 0; i < items.length; i++) {
     const ly = yTop + 2 + i * 9
     drawSquareCheckbox(page, listX, ly, false)
-    placeCheckbox(form, page, items[i][1], listX, ly, CHECKBOX, false)
+    const cb = placeCheckbox(form, page, items[i][1], listX, ly, CHECKBOX, false)
     drawText(page, items[i][0], listX + CHECKBOX + 3, ly + 1, { size: FONT_ACK, font: helvItalic })
+    // /AA/U fires on Mouse Up, after the checkbox has toggled.
+    cb.acroField.dict.set(PDFName.of('AA'), ctx.obj({ U: gateAction }))
   }
 
   // Right cells: Next PFRA Due label | field (aligned to Min Value Met? | Score)
