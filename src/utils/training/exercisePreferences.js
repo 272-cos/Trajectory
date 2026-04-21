@@ -12,6 +12,8 @@
  * INTENSITY values:   'low', 'moderate', 'high'
  */
 
+import { EXERCISES } from '../scoring/constants.js'
+
 // ── Option enums ──────────────────────────────────────────────────────────────
 
 export const UPPER_BODY = {
@@ -21,12 +23,14 @@ export const UPPER_BODY = {
 
 export const CORE = {
   SITUPS: 'situps',
+  CLRC:   'clrc',
   PLANK:  'plank',
 }
 
 export const CARDIO = {
   RUN:  'run',
   HAMR: 'hamr',
+  WALK: 'walk',
 }
 
 export const DEFAULT_PREFERENCES = {
@@ -44,12 +48,14 @@ export const UPPER_BODY_LABELS = {
 
 export const CORE_LABELS = {
   [CORE.SITUPS]: 'Sit-ups',
+  [CORE.CLRC]:   'Reverse Crunches',
   [CORE.PLANK]:  'Plank',
 }
 
 export const CARDIO_LABELS = {
   [CARDIO.RUN]:  'Distance Run',
   [CARDIO.HAMR]: 'HAMR Shuttle',
+  [CARDIO.WALK]: '2km Walk',
 }
 
 // ── Strength session prescription snippets ────────────────────────────────────
@@ -88,6 +94,15 @@ const CORE_SNIPPETS = {
       high:      'Core: timed sets matching test format - maximum controlled effort for the full duration (2 min rest).',
     },
     SHARPEN:    { high:     'Core: 2 sets, maximum controlled effort for the full duration (2 min rest). Reduced volume to stay sharp.' },
+  },
+  [CORE.CLRC]: {
+    BASE:       { low:      'Reverse crunches: 3 sets, stop 4-5 reps before failure (90s rest). Focus on a controlled hip drive - lift the hips off the floor and lower with control each rep.' },
+    BUILD:      { moderate: 'Reverse crunches: 4 sets, stop 2-3 reps before failure (60s rest). Controlled throughout - avoid momentum. Each rep should feel deliberate.' },
+    BUILD_PLUS: {
+      moderate:  'Reverse crunches: 4 sets of maximum controlled reps (45s rest). Match your rep count each set - if the count drops, reduce range of motion before stopping.',
+      high:      'Reverse crunches: 4 timed 30-sec sets, as many quality reps as possible (90s rest). Record reps per set - the 2-min test rewards consistent output across the full duration.',
+    },
+    SHARPEN:    { high:     'Reverse crunches: 2 timed 1-min sets at near-test effort (2 min rest). Simulate the full 2-minute test cadence. Record your rep count each set.' },
   },
   [CORE.PLANK]: {
     BASE:       { low:      'Plank: 4 holds of 20-30 seconds (60s rest). Focus on a neutral spine - ears, hips, and heels in a straight line. Stop when form breaks, not the clock.' },
@@ -137,6 +152,12 @@ const BASELINE_STRENGTH_DEFS = {
       notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Training begins immediately after.',
       target:      '30-sec max push-ups + 30-sec max sit-ups',
     },
+    [CORE.CLRC]: {
+      label:       'Baseline - Strength & Core',
+      description: '30-sec max push-ups, then rest 2 min, then 30-sec max reverse crunches. Control each rep - lift the hips off the floor and lower with control.',
+      notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Training begins immediately after.',
+      target:      '30-sec max push-ups + 30-sec max reverse crunches',
+    },
     [CORE.PLANK]: {
       label:       'Baseline - Strength & Core',
       description: '30-sec max push-ups, then rest 2 min, then forearm plank held to form failure - record the exact time in seconds.',
@@ -150,6 +171,12 @@ const BASELINE_STRENGTH_DEFS = {
       description: '30-sec max hand-release push-ups, then rest 2 min, then 30-sec max sit-ups. Full chest-to-floor and hands lift on every HRPU rep.',
       notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Training begins immediately after.',
       target:      '30-sec max hand-release push-ups + 30-sec max sit-ups',
+    },
+    [CORE.CLRC]: {
+      label:       'Baseline - Strength & Core',
+      description: '30-sec max hand-release push-ups, then rest 2 min, then 30-sec max reverse crunches. Full chest-to-floor on every HRPU rep.',
+      notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Training begins immediately after.',
+      target:      '30-sec max hand-release push-ups + 30-sec max reverse crunches',
     },
     [CORE.PLANK]: {
       label:       'Baseline - Strength & Core',
@@ -172,6 +199,12 @@ const BASELINE_CARDIO_DEFS = {
     description: '10 shuttle repeats at a comfortable, sustainable effort (20m each, 30s rest between reps). Record your average turnaround time.',
     notes:       'Establishes your shuttle baseline. Record in Practice Check > PI Workout > HAMR Interval. Focus on consistent turnaround times, not speed.',
     target:      'HAMR shuttle baseline - record turnaround time',
+  },
+  [CARDIO.WALK]: {
+    label:       'Baseline - Cardio',
+    description: '2km walk at a brisk, sustained pace. Record your finish time.',
+    notes:       'Establishes your walk baseline. The 2km walk is scored pass/fail against your age-group time limit. Record in Practice Check > PI Workout.',
+    target:      '2km walk - record finish time',
   },
 }
 
@@ -260,6 +293,7 @@ export function getBaselineCardioDef(preferences) {
 /**
  * Validate and normalize a raw pfaPreferences object from storage.
  * Returns DEFAULT_PREFERENCES values for any missing or unrecognized fields.
+ * Migration-safe: handles legacy objects missing CLRC/HRPU/walk keys gracefully.
  *
  * @param {object} raw - Raw object from localStorage
  * @returns {{ upperBody: string, core: string, cardio: string }}
@@ -270,4 +304,64 @@ export function normalizePfaPreferences(raw) {
     core:      Object.values(CORE).includes(raw?.core)            ? raw.core      : DEFAULT_PREFERENCES.core,
     cardio:    Object.values(CARDIO).includes(raw?.cardio)        ? raw.cardio    : DEFAULT_PREFERENCES.cardio,
   }
+}
+
+/**
+ * Infer pfaPreferences from a decoded S-code object.
+ * Maps the recorded exercise constants back to preference enum values.
+ * Returns null if no useful exercise data is present.
+ *
+ * @param {object} decoded - Decoded S-code (from decodeSCode())
+ * @returns {{ upperBody: string, core: string, cardio: string }|null}
+ */
+export function inferPreferencesFromDecoded(decoded) {
+  if (!decoded) return null
+
+  const cardioEx   = !decoded.cardio?.exempt ? decoded.cardio?.exercise : null
+  const strengthEx = !decoded.strength?.exempt ? decoded.strength?.exercise : null
+  const coreEx     = !decoded.core?.exempt ? decoded.core?.exercise : null
+
+  if (!cardioEx && !strengthEx && !coreEx) return null
+
+  const cardioMap = {
+    [EXERCISES.HAMR]:     CARDIO.HAMR,
+    [EXERCISES.WALK_2KM]: CARDIO.WALK,
+    [EXERCISES.RUN_2MILE]: CARDIO.RUN,
+  }
+  const strengthMap = {
+    [EXERCISES.HRPU]:    UPPER_BODY.HRPU,
+    [EXERCISES.PUSHUPS]: UPPER_BODY.PUSHUPS,
+  }
+  const coreMap = {
+    [EXERCISES.CLRC]:   CORE.CLRC,
+    [EXERCISES.PLANK]:  CORE.PLANK,
+    [EXERCISES.SITUPS]: CORE.SITUPS,
+  }
+
+  return normalizePfaPreferences({
+    cardio:    cardioEx    ? (cardioMap[cardioEx]   ?? DEFAULT_PREFERENCES.cardio)    : DEFAULT_PREFERENCES.cardio,
+    upperBody: strengthEx  ? (strengthMap[strengthEx] ?? DEFAULT_PREFERENCES.upperBody) : DEFAULT_PREFERENCES.upperBody,
+    core:      coreEx      ? (coreMap[coreEx]       ?? DEFAULT_PREFERENCES.core)      : DEFAULT_PREFERENCES.core,
+  })
+}
+
+/**
+ * Map pfaPreferences to EXERCISES constants for training calendar and strategy engine use.
+ * Returns the preferred EXERCISES constant for each component.
+ *
+ * @param {object} pfaPrefs - pfaPreferences object
+ * @returns {{ cardio: string, strength: string, core: string }}
+ */
+export function prefsToExercises(pfaPrefs) {
+  let cardio = EXERCISES.RUN_2MILE
+  if (pfaPrefs?.cardio === CARDIO.HAMR) cardio = EXERCISES.HAMR
+  else if (pfaPrefs?.cardio === CARDIO.WALK) cardio = EXERCISES.WALK_2KM
+
+  const strength = pfaPrefs?.upperBody === UPPER_BODY.HRPU ? EXERCISES.HRPU : EXERCISES.PUSHUPS
+
+  let core = EXERCISES.SITUPS
+  if (pfaPrefs?.core === CORE.PLANK) core = EXERCISES.PLANK
+  else if (pfaPrefs?.core === CORE.CLRC) core = EXERCISES.CLRC
+
+  return { cardio, strength, core }
 }

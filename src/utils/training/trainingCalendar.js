@@ -564,20 +564,31 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
           }
         }
 
+        // Resolve preferred exercise per component; walk is PI-workout-compatible (timed effort)
+        let cardioExercise = EXERCISES.RUN_2MILE
+        if (pfaPreferences?.cardio === CARDIO.HAMR) cardioExercise = EXERCISES.HAMR
+        else if (pfaPreferences?.cardio === CARDIO.WALK) cardioExercise = EXERCISES.WALK_2KM
+
+        const strengthExercise = pfaPreferences?.upperBody === UPPER_BODY.HRPU ? EXERCISES.HRPU : EXERCISES.PUSHUPS
+
+        let coreExercise = EXERCISES.SITUPS
+        if (pfaPreferences?.core === CORE.PLANK) coreExercise = EXERCISES.PLANK
+        else if (pfaPreferences?.core === CORE.CLRC) coreExercise = EXERCISES.CLRC
+
         const piCycle = [
           {
-            component:   COMPONENTS.CARDIO,
-            exercise:    pfaPreferences?.cardio === CARDIO.HAMR ? EXERCISES.HAMR : EXERCISES.RUN_2MILE,
+            component:    COMPONENTS.CARDIO,
+            exercise:     cardioExercise,
             fitnessLevel: getFitnessLevel(cardioScore),
           },
           {
-            component:   COMPONENTS.STRENGTH,
-            exercise:    pfaPreferences?.upperBody === UPPER_BODY.HRPU ? EXERCISES.HRPU : EXERCISES.PUSHUPS,
+            component:    COMPONENTS.STRENGTH,
+            exercise:     strengthExercise,
             fitnessLevel: getFitnessLevel(strengthScore),
           },
           {
-            component:   COMPONENTS.CORE,
-            exercise:    pfaPreferences?.core === CORE.PLANK ? EXERCISES.PLANK : EXERCISES.SITUPS,
+            component:    COMPONENTS.CORE,
+            exercise:     coreExercise,
             fitnessLevel: getFitnessLevel(coreScore),
           },
         ]

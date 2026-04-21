@@ -24,7 +24,7 @@ import {
 } from '../utils/storage/localStorage.js'
 import { decodeDCode } from '../utils/codec/dcode.js'
 import { decodeSCode } from '../utils/codec/scode.js'
-import { normalizePfaPreferences } from '../utils/training/exercisePreferences.js'
+import { normalizePfaPreferences, inferPreferencesFromDecoded } from '../utils/training/exercisePreferences.js'
 
 const AppContext = createContext(null)
 
@@ -351,9 +351,25 @@ export function AppProvider({ children }) {
   }, [])
 
   // PFA exercise preferences (upperBody, core, cardio selections)
-  const [pfaPreferences, setPfaPreferencesState] = useState(() =>
-    normalizePfaPreferences(getExercisePrefs()),
-  )
+  // When no prefs are stored, infer from the latest S-code's recorded exercises.
+  const [pfaPreferences, setPfaPreferencesState] = useState(() => {
+    const stored = getExercisePrefs()
+    if (stored !== null && stored !== undefined) {
+      return normalizePfaPreferences(stored)
+    }
+    // Infer from the latest S-code when prefs have never been explicitly set
+    const storedScodes = getSCodes()
+    if (storedScodes && storedScodes.length > 0) {
+      try {
+        const latest = decodeSCode(storedScodes[storedScodes.length - 1])
+        const inferred = inferPreferencesFromDecoded(latest)
+        if (inferred) return inferred
+      } catch {
+        // S-code decode failure is non-fatal - fall through to defaults
+      }
+    }
+    return normalizePfaPreferences(null)
+  })
 
   const updatePfaPreferences = useCallback((prefs) => {
     const normalized = normalizePfaPreferences(prefs)

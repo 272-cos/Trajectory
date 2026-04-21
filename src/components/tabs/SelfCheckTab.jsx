@@ -10,7 +10,8 @@ import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } fro
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 import { getMinimumToPass } from '../../utils/scoring/reverseScoring.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
-import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
+import { saveDraft, loadDraft, clearDraft, savePracticeSession, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
+import { prefsToExercises } from '../../utils/training/exercisePreferences.js'
 import { getTrainingResources } from '../../utils/training/resources.js'
 import { BASE_REGISTRY } from '../../utils/codec/bitpack.js'
 import ShareModal from '../shared/ShareModal.jsx'
@@ -96,25 +97,28 @@ function formatTimeInput(rawValue) {
 }
 
 export default function SelfCheckTab() {
-  const { demographics, addSCode, removeSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator, targetPfaDate, scodes, setActiveTab } = useApp()
+  const { demographics, addSCode, removeSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator, targetPfaDate, scodes, setActiveTab, pfaPreferences } = useApp()
 
   // IV-01: Assessment date - picker with max = today (local date, not UTC)
   const _now = new Date()
   const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`
   const [assessmentDate, setAssessmentDate] = useState(today)
 
+  // Pre-select exercises from stored preferences (draft restore overrides if a draft exists)
+  const _prefEx = prefsToExercises(pfaPreferences)
+
   // Cardio
-  const [cardioExercise, setCardioExercise] = useState(EXERCISES.RUN_2MILE)
+  const [cardioExercise, setCardioExercise] = useState(_prefEx.cardio)
   const [cardioValue, setCardioValue] = useState('')
   const [cardioExempt, setCardioExempt] = useState(false)
 
   // Strength
-  const [strengthExercise, setStrengthExercise] = useState(EXERCISES.PUSHUPS)
+  const [strengthExercise, setStrengthExercise] = useState(_prefEx.strength)
   const [strengthValue, setStrengthValue] = useState('')
   const [strengthExempt, setStrengthExempt] = useState(false)
 
   // Core
-  const [coreExercise, setCoreExercise] = useState(EXERCISES.SITUPS)
+  const [coreExercise, setCoreExercise] = useState(_prefEx.core)
   const [coreValue, setCoreValue] = useState('')
   const [coreExempt, setCoreExempt] = useState(false)
 
@@ -132,9 +136,6 @@ export default function SelfCheckTab() {
 
   // Altitude base selection (persisted)
   const [selectedBase, setSelectedBase] = useState(() => getSelectedBase())
-
-  // Exercise preferences (read from localStorage - set on Project tab)
-  const exercisePrefs = getExercisePrefs()
 
   // UI state
   const [scode, setSCode] = useState('')
@@ -575,17 +576,18 @@ export default function SelfCheckTab() {
 
   // Clear all form fields
   const handleClearForm = () => {
+    const prefEx = prefsToExercises(pfaPreferences)
     setAssessmentDate(today)
-    setCardioExercise(exercisePrefs[COMPONENTS.CARDIO] || EXERCISES.RUN_2MILE)
+    setCardioExercise(prefEx.cardio)
     setCardioValue('')
     setCardioExempt(false)
     setWalkSelected(false)
     setWalkTime('')
     setWalkPass(true)
-    setStrengthExercise(exercisePrefs[COMPONENTS.STRENGTH] || EXERCISES.PUSHUPS)
+    setStrengthExercise(prefEx.strength)
     setStrengthValue('')
     setStrengthExempt(false)
-    setCoreExercise(exercisePrefs[COMPONENTS.CORE] || EXERCISES.SITUPS)
+    setCoreExercise(prefEx.core)
     setCoreValue('')
     setCoreExempt(false)
     setHeightInches('')
