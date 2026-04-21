@@ -19,11 +19,7 @@ import {
   getOvertrainingAck,
   setOvertrainingAck,
 } from '../../utils/storage/localStorage.js'
-import {
-  UPPER_BODY,
-  CORE,
-  CARDIO,
-} from '../../utils/training/exercisePreferences.js'
+import ExercisePreferencePicker from '../shared/ExercisePreferencePicker.jsx'
 import {
   generateCalendar,
   PHASES,
@@ -50,7 +46,7 @@ import {
   ADAPTATION_STATES,
 } from '../../utils/training/adaptiveFeedback.js'
 import HintBanner from '../shared/HintBanner.jsx'
-import PillGroup from '../shared/PillGroup.jsx'
+
 import OvertrainingWarningModal from '../shared/OvertrainingWarningModal.jsx'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -502,7 +498,7 @@ function MonthGrid({ year, month, eventsByDate, completedDays, selectedDate, pla
 // ── Main PlanTab ──────────────────────────────────────────────────────────────
 
 export default function PlanTab() {
-  const { dcode, demographics, targetPfaDate, scodes, setActiveTab, pfaPreferences, updatePfaPreferences } = useApp()
+  const { dcode, demographics, targetPfaDate, scodes, setActiveTab, pfaPreferences } = useApp()
 
   const todayParts = parseISO(TODAY)
   const [viewYear,  setViewYear]  = useState(todayParts.year)
@@ -1036,33 +1032,7 @@ export default function PlanTab() {
         {/* PFA exercise preference picker */}
         <div className="mt-3 pt-3 border-t border-gray-100">
           <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">PFA Event Preferences</div>
-          <PillGroup
-            label="Upper Body"
-            value={pfaPreferences?.upperBody || UPPER_BODY.PUSHUPS}
-            onChange={(v) => updatePfaPreferences({ ...pfaPreferences, upperBody: v })}
-            options={[
-              { value: UPPER_BODY.PUSHUPS, label: 'Push-ups' },
-              { value: UPPER_BODY.HRPU,    label: 'Hand-Release' },
-            ]}
-          />
-          <PillGroup
-            label="Core"
-            value={pfaPreferences?.core || CORE.SITUPS}
-            onChange={(v) => updatePfaPreferences({ ...pfaPreferences, core: v })}
-            options={[
-              { value: CORE.SITUPS, label: 'Sit-ups' },
-              { value: CORE.PLANK,  label: 'Plank' },
-            ]}
-          />
-          <PillGroup
-            label="Cardio"
-            value={pfaPreferences?.cardio || CARDIO.RUN}
-            onChange={(v) => updatePfaPreferences({ ...pfaPreferences, cardio: v })}
-            options={[
-              { value: CARDIO.RUN,  label: 'Dist. Run' },
-              { value: CARDIO.HAMR, label: 'HAMR' },
-            ]}
-          />
+          <ExercisePreferencePicker />
         </div>
 
         {/* Fitness level summary */}

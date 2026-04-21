@@ -567,7 +567,9 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
         const piCycle = [
           {
             component:   COMPONENTS.CARDIO,
-            exercise:    pfaPreferences?.cardio === CARDIO.HAMR ? EXERCISES.HAMR : EXERCISES.RUN_2MILE,
+            exercise:    pfaPreferences?.cardio === CARDIO.HAMR ? EXERCISES.HAMR
+                       : pfaPreferences?.cardio === CARDIO.WALK ? EXERCISES.WALK_2KM
+                       : EXERCISES.RUN_2MILE,
             fitnessLevel: getFitnessLevel(cardioScore),
           },
           {
@@ -577,7 +579,9 @@ export function generateCalendar(demographics, targetDateISO, currentScores, tod
           },
           {
             component:   COMPONENTS.CORE,
-            exercise:    pfaPreferences?.core === CORE.PLANK ? EXERCISES.PLANK : EXERCISES.SITUPS,
+            exercise:    pfaPreferences?.core === CORE.CLRC  ? EXERCISES.CLRC
+                       : pfaPreferences?.core === CORE.PLANK ? EXERCISES.PLANK
+                       : EXERCISES.SITUPS,
             fitnessLevel: getFitnessLevel(coreScore),
           },
         ]

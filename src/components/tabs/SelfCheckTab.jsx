@@ -10,7 +10,8 @@ import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } fro
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 import { getMinimumToPass } from '../../utils/scoring/reverseScoring.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
-import { getExercisePrefs, saveDraft, loadDraft, clearDraft, savePracticeSession, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
+import { saveDraft, loadDraft, clearDraft, savePracticeSession, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
+import { UPPER_BODY, CORE, CARDIO } from '../../utils/training/exercisePreferences.js'
 import { getTrainingResources } from '../../utils/training/resources.js'
 import { BASE_REGISTRY } from '../../utils/codec/bitpack.js'
 import { generatePDFAndDownload } from '../../utils/pdf/generateFormPDF.js'
@@ -97,25 +98,33 @@ function formatTimeInput(rawValue) {
 }
 
 export default function SelfCheckTab() {
-  const { demographics, addSCode, removeSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator, targetPfaDate, scodes, setActiveTab } = useApp()
+  const { demographics, addSCode, removeSCode, dcode, setSelfCheckDirty, registerSelfCheckGenerator, targetPfaDate, scodes, setActiveTab, pfaPreferences } = useApp()
 
   // IV-01: Assessment date - picker with max = today (local date, not UTC)
   const _now = new Date()
   const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`
   const [assessmentDate, setAssessmentDate] = useState(today)
 
-  // Cardio
-  const [cardioExercise, setCardioExercise] = useState(EXERCISES.RUN_2MILE)
+  // Cardio - default from preferences (walk pref handled via exempt + walkSelected)
+  const [cardioExercise, setCardioExercise] = useState(
+    pfaPreferences?.cardio === CARDIO.HAMR ? EXERCISES.HAMR : EXERCISES.RUN_2MILE,
+  )
   const [cardioValue, setCardioValue] = useState('')
   const [cardioExempt, setCardioExempt] = useState(false)
 
-  // Strength
-  const [strengthExercise, setStrengthExercise] = useState(EXERCISES.PUSHUPS)
+  // Strength - default from preferences
+  const [strengthExercise, setStrengthExercise] = useState(
+    pfaPreferences?.upperBody === UPPER_BODY.HRPU ? EXERCISES.HRPU : EXERCISES.PUSHUPS,
+  )
   const [strengthValue, setStrengthValue] = useState('')
   const [strengthExempt, setStrengthExempt] = useState(false)
 
-  // Core
-  const [coreExercise, setCoreExercise] = useState(EXERCISES.SITUPS)
+  // Core - default from preferences
+  const [coreExercise, setCoreExercise] = useState(
+    pfaPreferences?.core === CORE.CLRC  ? EXERCISES.CLRC
+    : pfaPreferences?.core === CORE.PLANK ? EXERCISES.PLANK
+    : EXERCISES.SITUPS,
+  )
   const [coreValue, setCoreValue] = useState('')
   const [coreExempt, setCoreExempt] = useState(false)
 
@@ -133,9 +142,6 @@ export default function SelfCheckTab() {
 
   // Altitude base selection (persisted)
   const [selectedBase, setSelectedBase] = useState(() => getSelectedBase())
-
-  // Exercise preferences (read from localStorage - set on Project tab)
-  const exercisePrefs = getExercisePrefs()
 
   // UI state
   const [scode, setSCode] = useState('')
@@ -636,16 +642,20 @@ export default function SelfCheckTab() {
   // Clear all form fields
   const handleClearForm = () => {
     setAssessmentDate(today)
-    setCardioExercise(exercisePrefs[COMPONENTS.CARDIO] || EXERCISES.RUN_2MILE)
+    setCardioExercise(pfaPreferences?.cardio === CARDIO.HAMR ? EXERCISES.HAMR : EXERCISES.RUN_2MILE)
     setCardioValue('')
     setCardioExempt(false)
     setWalkSelected(false)
     setWalkTime('')
     setWalkPass(true)
-    setStrengthExercise(exercisePrefs[COMPONENTS.STRENGTH] || EXERCISES.PUSHUPS)
+    setStrengthExercise(pfaPreferences?.upperBody === UPPER_BODY.HRPU ? EXERCISES.HRPU : EXERCISES.PUSHUPS)
     setStrengthValue('')
     setStrengthExempt(false)
-    setCoreExercise(exercisePrefs[COMPONENTS.CORE] || EXERCISES.SITUPS)
+    setCoreExercise(
+      pfaPreferences?.core === CORE.CLRC  ? EXERCISES.CLRC
+      : pfaPreferences?.core === CORE.PLANK ? EXERCISES.PLANK
+      : EXERCISES.SITUPS,
+    )
     setCoreValue('')
     setCoreExempt(false)
     setHeightInches('')
