@@ -102,6 +102,15 @@ const CORE_SNIPPETS = {
     },
     SHARPEN:    { high:     'Plank: 1 full hold at maximum controlled effort. No time target - hold until form fails. This is your dress rehearsal. Record the time.' },
   },
+  [CORE.CLRC]: {
+    BASE:       { low:      'CLRC: 3 sets, stop 3-4 reps before failure (90s rest). Drive knees to chest with control - no momentum. Lower hips fully to the floor between reps. Quality over count.' },
+    BUILD:      { moderate: 'CLRC: 4 sets, accumulate as many quality reps as possible while maintaining full hip extension at the bottom (60s rest). If the lower back arches or the movement becomes a swing, stop the set.' },
+    BUILD_PLUS: {
+      moderate:  'CLRC: 4 sets at a brisk but deliberate tempo - drive up, pause at the top, lower with control (45s rest). Eliminate the bounce. Each rep should be owned from start to finish.',
+      high:      'CLRC: timed sets matching the 2-minute test format - maximum controlled reps for the full duration (2 min rest). Count your pace at the 1-minute mark and hold it through the second minute.',
+    },
+    SHARPEN:    { high:     'CLRC: 2 sets, each run at test pace for the full 2 minutes (2 min rest). Reduced volume - protect freshness. Record rep count per set. If set 2 drops more than 10% from set 1, your rest on test day needs to be longer.' },
+  },
 }
 
 // ── HAMR cardio prescription descriptions ─────────────────────────────────────
@@ -129,6 +138,33 @@ const HAMR_NOTES_BY_LABEL = {
   'Moderate Cardio':  'Progressive volume: more reps than last week. Controlled effort - this is not a max-out day.',
   'Race Simulation':  'Simulate actual test conditions. Note where your breathing becomes labored - that is your current ceiling.',
   'Easy Maintenance': 'Reduced volume this week. Keep the pattern sharp without accumulating fatigue heading into the test.',
+}
+
+// ── 2km Walk cardio prescription descriptions ─────────────────────────────────
+//
+// Keyed by WEEKLY_TEMPLATES template label (unique across all phases).
+// Returned only when pfaPreferences.cardio === CARDIO.WALK.
+
+const WALK_DESCRIPTION_BY_LABEL = {
+  'Easy Aerobic':     '30-min brisk walk at a steady, controlled pace. Focus on upright posture and quick foot turnover - not stride length. This builds the aerobic base that underpins 2km walk performance.',
+  'Aerobic Variation':'40-min walk at a moderate, sustained effort. You should be able to speak short sentences but not hold a full conversation. Consistent aerobic volume builds your walk ceiling.',
+  'Endurance Cardio': '50-min walk at a challenging but manageable pace. Practice your 2km goal pace for the final 10 minutes so your legs know what test effort feels like.',
+  'Tempo Cardio':     '10-min easy warm-up walk, then 15 min at your target 2km race pace, then 5-min cool-down. Race pace should feel hard but sustainable - you should be able to finish the full 2km at this effort.',
+  'Hard Intervals':   '5 x 400m walk intervals at near-maximum walking effort (90s rest between). Record split times. The goal is the fastest pace you can sustain without breaking into a run.',
+  'Moderate Cardio':  '40-min walk with the middle 20 min at a brisk tempo. Monitor your breathing - you should feel the effort clearly without gasping.',
+  'Race Simulation':  '2km walk time trial at full effort. Walk every meter as fast as possible without running. Record your time - this is your current benchmark.',
+  'Easy Maintenance': '20-min easy walk. Maintain movement and blood flow without adding fatigue before test day.',
+}
+
+const WALK_NOTES_BY_LABEL = {
+  'Easy Aerobic':     'Posture and foot turnover matter more than pace at this stage. Build the habit now and speed will follow.',
+  'Aerobic Variation':'Aerobic volume at any pace lifts your walk ceiling. Easy days are not wasted days.',
+  'Endurance Cardio': 'Time on feet builds durability. The final 10 min at race pace teaches your body what it costs.',
+  'Tempo Cardio':     'If your race-pace segment feels unsustainable before 10 min, back off 5-10 sec per km. Better to finish strong than fade.',
+  'Hard Intervals':   'Interval rest is real rest - use the 90 sec fully. Arriving at each rep recovered lets you push the effort that matters.',
+  'Moderate Cardio':  'Aim to be faster than last week on the tempo section. Small weekly gains compound into a significantly better test-day time.',
+  'Race Simulation':  'Race-simulate in test conditions when possible - similar surface, time of day, footwear. Data from this session informs your pacing plan.',
+  'Easy Maintenance': 'Reduced volume this week. Keep the movement pattern without accumulating fatigue heading into the test.',
 }
 
 // ── Baseline event definitions ─────────────────────────────────────────────────
