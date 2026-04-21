@@ -22,11 +22,13 @@ export const UPPER_BODY = {
 export const CORE = {
   SITUPS: 'situps',
   PLANK:  'plank',
+  CLRC:   'clrc',
 }
 
 export const CARDIO = {
   RUN:  'run',
   HAMR: 'hamr',
+  WALK: 'walk',
 }
 
 export const DEFAULT_PREFERENCES = {
@@ -45,11 +47,13 @@ export const UPPER_BODY_LABELS = {
 export const CORE_LABELS = {
   [CORE.SITUPS]: 'Sit-ups',
   [CORE.PLANK]:  'Plank',
+  [CORE.CLRC]:   'Reverse Crunches',
 }
 
 export const CARDIO_LABELS = {
   [CARDIO.RUN]:  'Distance Run',
   [CARDIO.HAMR]: 'HAMR Shuttle',
+  [CARDIO.WALK]: '2km Walk',
 }
 
 // ── Strength session prescription snippets ────────────────────────────────────
