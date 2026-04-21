@@ -23,10 +23,12 @@ import { COMPONENT_WEIGHTS, COMPONENT_MINIMUMS, EXERCISES, PASSING_COMPOSITE, CO
 import { isDiagnosticPeriod, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { calculateWHtR, calculateComponentScore, calculateCompositeScore } from '../../utils/scoring/scoringEngine.js'
 import { getMinimumToPass } from '../../utils/scoring/reverseScoring.js'
-import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS, COMPONENT_EXERCISES } from '../../utils/scoring/strategyEngine.js'
+import { strategyEngine, EXERCISE_NAMES, IMPROVEMENT_UNIT_LABELS } from '../../utils/scoring/strategyEngine.js'
 import { getRecommendations } from '../../utils/recommendations/recommendationEngine.js'
 import ROIBreakdownPanel from '../shared/ROIBreakdownPanel.jsx'
-import { getExercisePrefs, saveExercisePrefs, getPracticeSessions, getShowMilestones, setShowMilestones } from '../../utils/storage/localStorage.js'
+import ExercisePreferencePicker from '../shared/ExercisePreferencePicker.jsx'
+import { getPracticeSessions, getShowMilestones, setShowMilestones } from '../../utils/storage/localStorage.js'
+import { toStrategyPrefs } from '../../utils/training/exercisePreferences.js'
 import { generateCalendar, EVENT_TYPES } from '../../utils/training/trainingCalendar.js'
 import HintBanner from '../shared/HintBanner.jsx'
 
@@ -624,26 +626,14 @@ function TrainingFocus({ item, isTopPriority, compType, proj, allocationTarget }
 // ─── Main Tab ──────────────────────────────────────────────────────────────────
 
 export default function ProjectTab() {
-  const { scodes, demographics, targetPfaDate, updateTargetPfaDate, personalGoal, updatePersonalGoal, setActiveTab } = useApp()
+  const { scodes, demographics, targetPfaDate, updateTargetPfaDate, personalGoal, updatePersonalGoal, setActiveTab, pfaPreferences } = useApp()
   const [targetDateInput, setTargetDateInput] = useState('')
   const [targetDateError, setTargetDateError] = useState('')
   const [showMilestones, setShowMilestonesState] = useState(() => getShowMilestones())
-  const [exercisePrefs, setExercisePrefs] = useState(() => getExercisePrefs())
 
   const handleToggleMilestones = (checked) => {
     setShowMilestonesState(checked)
     setShowMilestones(checked)
-  }
-
-  const handlePrefChange = (component, exercise) => {
-    const updated = { ...exercisePrefs }
-    if (updated[component] === exercise) {
-      delete updated[component]
-    } else {
-      updated[component] = exercise
-    }
-    setExercisePrefs(updated)
-    saveExercisePrefs(updated)
   }
 
   // Sync local input with context value on mount / context change
@@ -865,7 +855,7 @@ export default function ProjectTab() {
     const refDate = targetPfaDate || new Date().toISOString().split('T')[0]
     const age = calculateAge(demographics.dob, refDate)
     const ageBracket = getAgeBracket(age)
-    const prefs = exercisePrefs
+    const prefs = toStrategyPrefs(pfaPreferences)
 
     // Map decoded S-code to strategy engine input format
     const inputs = {}
@@ -903,7 +893,7 @@ export default function ProjectTab() {
     } catch {
       return null
     }
-  }, [demographics, decodedScodes, targetPfaDate, exercisePrefs, personalGoal])
+  }, [demographics, decodedScodes, targetPfaDate, pfaPreferences, personalGoal])
 
 
   // Milestone data for chart overlay (Task 10.3)
@@ -1166,50 +1156,15 @@ export default function ProjectTab() {
       </div>
       </div>{/* close target + goal grid */}
 
-      {/* ── Training exercise preferences ────────────────────────────────── */}
+      {/* ── PFA event preferences ────────────────────────────────────────── */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <p className="text-sm font-semibold text-gray-700 mb-3">
-          Training Exercise Preferences
+          PFA Event Preferences
           <span className="ml-2 text-xs font-normal text-gray-500">
             (used to tailor projection and weekly plan)
           </span>
         </p>
-        <div className="space-y-3">
-          {[
-            { component: COMPONENTS.CARDIO, label: 'Cardio' },
-            { component: COMPONENTS.STRENGTH, label: 'Strength' },
-            { component: COMPONENTS.CORE, label: 'Core' },
-          ].map(({ component, label }) => (
-            <div key={component}>
-              <p className="text-xs font-medium text-gray-500 mb-1.5">{label}</p>
-              <div className="flex flex-wrap gap-2">
-                {COMPONENT_EXERCISES[component].map(exercise => {
-                  const selected = exercisePrefs[component] === exercise
-                  return (
-                    <button
-                      key={exercise}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => handlePrefChange(component, exercise)}
-                      className={[
-                        'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
-                        'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1',
-                        selected
-                          ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
-                      ].join(' ')}
-                    >
-                      {EXERCISE_NAMES[exercise] || exercise}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-gray-400 mt-3">
-          Select the exercises you train for. Unselected means no preference - the engine picks the best option from your last check-in.
-        </p>
+        <ExercisePreferencePicker />
       </div>
 
       {/* ── No target date placeholder ────────────────────────────────────── */}

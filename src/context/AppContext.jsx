@@ -24,7 +24,7 @@ import {
 } from '../utils/storage/localStorage.js'
 import { decodeDCode } from '../utils/codec/dcode.js'
 import { decodeSCode } from '../utils/codec/scode.js'
-import { normalizePfaPreferences } from '../utils/training/exercisePreferences.js'
+import { normalizePfaPreferences, inferPreferencesFromSCode } from '../utils/training/exercisePreferences.js'
 
 const AppContext = createContext(null)
 
@@ -357,9 +357,23 @@ export function AppProvider({ children }) {
   }, [])
 
   // PFA exercise preferences (upperBody, core, cardio selections)
-  const [pfaPreferences, setPfaPreferencesState] = useState(() =>
-    normalizePfaPreferences(getExercisePrefs()),
-  )
+  // When no stored prefs exist, infer from the most recent S-code so the
+  // calendar and strategy engine default to what the user actually tested.
+  const [pfaPreferences, setPfaPreferencesState] = useState(() => {
+    const raw = getExercisePrefs()
+    const hasStoredPrefs = raw && Object.keys(raw).length > 0
+    if (hasStoredPrefs) return normalizePfaPreferences(raw)
+    const storedScodes = getSCodes()
+    if (storedScodes.length > 0) {
+      try {
+        const latest = storedScodes[storedScodes.length - 1]
+        const decoded = decodeSCode(latest)
+        const inferred = inferPreferencesFromSCode(decoded)
+        if (inferred) return inferred
+      } catch { /* ignore bad S-code */ }
+    }
+    return normalizePfaPreferences(null)
+  })
 
   const updatePfaPreferences = useCallback((prefs) => {
     const normalized = normalizePfaPreferences(prefs)
