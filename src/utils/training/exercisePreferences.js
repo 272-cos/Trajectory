@@ -272,8 +272,9 @@ export function buildStrengthDescription(phaseName, templateIntensity, preferenc
  * @returns {string|null}
  */
 export function buildCardioDescription(templateLabel, preferences) {
-  if (preferences?.cardio !== CARDIO.HAMR) return null
-  return HAMR_DESCRIPTION_BY_LABEL[templateLabel] ?? null
+  if (preferences?.cardio === CARDIO.HAMR) return HAMR_DESCRIPTION_BY_LABEL[templateLabel] ?? null
+  if (preferences?.cardio === CARDIO.WALK) return WALK_DESCRIPTION_BY_LABEL[templateLabel] ?? null
+  return null
 }
 
 /**
@@ -285,8 +286,9 @@ export function buildCardioDescription(templateLabel, preferences) {
  * @returns {string|null}
  */
 export function buildCardioNotes(templateLabel, preferences) {
-  if (preferences?.cardio !== CARDIO.HAMR) return null
-  return HAMR_NOTES_BY_LABEL[templateLabel] ?? null
+  if (preferences?.cardio === CARDIO.HAMR) return HAMR_NOTES_BY_LABEL[templateLabel] ?? null
+  if (preferences?.cardio === CARDIO.WALK) return WALK_NOTES_BY_LABEL[templateLabel] ?? null
+  return null
 }
 
 /**
@@ -328,4 +330,68 @@ export function normalizePfaPreferences(raw) {
     core:      Object.values(CORE).includes(raw?.core)            ? raw.core      : DEFAULT_PREFERENCES.core,
     cardio:    Object.values(CARDIO).includes(raw?.cardio)        ? raw.cardio    : DEFAULT_PREFERENCES.cardio,
   }
+}
+
+/**
+ * Infer preferences from a decoded S-code object.
+ * Maps the recorded exercises back to the { upperBody, core, cardio } shape.
+ * Returns null if the decoded object carries no usable exercise data.
+ *
+ * @param {object} decoded - Output of decodeSCode()
+ * @returns {{ upperBody: string, core: string, cardio: string }|null}
+ */
+export function inferPreferencesFromSCode(decoded) {
+  if (!decoded) return null
+
+  const cardioEx   = decoded.cardio?.exercise
+  const strengthEx = decoded.strength?.exercise
+  const coreEx     = decoded.core?.exercise
+
+  if (!cardioEx && !strengthEx && !coreEx) return null
+
+  const EXERCISE_TO_CARDIO = {
+    'hamr':     CARDIO.HAMR,
+    '2km_walk': CARDIO.WALK,
+    'run_2mile': CARDIO.RUN,
+  }
+  const EXERCISE_TO_UPPER = {
+    'hrpu':    UPPER_BODY.HRPU,
+    'pushups': UPPER_BODY.PUSHUPS,
+  }
+  const EXERCISE_TO_CORE = {
+    'clrc':   CORE.CLRC,
+    'plank':  CORE.PLANK,
+    'situps': CORE.SITUPS,
+  }
+
+  return {
+    upperBody: EXERCISE_TO_UPPER[strengthEx] ?? DEFAULT_PREFERENCES.upperBody,
+    core:      EXERCISE_TO_CORE[coreEx]      ?? DEFAULT_PREFERENCES.core,
+    cardio:    EXERCISE_TO_CARDIO[cardioEx]  ?? DEFAULT_PREFERENCES.cardio,
+  }
+}
+
+/**
+ * Convert { upperBody, core, cardio } preferences to the component-keyed
+ * format expected by strategyEngine(): { cardio: exerciseId, strength: exerciseId, core: exerciseId }.
+ * Walk is omitted - it is pass/fail only and excluded from ROI analysis.
+ *
+ * @param {object} prefs - pfaPreferences object
+ * @returns {object}
+ */
+export function toStrategyPrefs(prefs) {
+  const p = prefs || DEFAULT_PREFERENCES
+  const result = {}
+
+  if (p.cardio === CARDIO.HAMR) result.cardio = 'hamr'
+  else if (p.cardio === CARDIO.RUN) result.cardio = 'run_2mile'
+  // WALK omitted - strategyEngine already skips isWalk inputs
+
+  result.strength = p.upperBody === UPPER_BODY.HRPU ? 'hrpu' : 'pushups'
+
+  if (p.core === CORE.CLRC)        result.core = 'clrc'
+  else if (p.core === CORE.PLANK)  result.core = 'plank'
+  else                             result.core = 'situps'
+
+  return result
 }
