@@ -183,6 +183,12 @@ const BASELINE_STRENGTH_DEFS = {
       notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Stop the plank when hips drop or rise, not when it gets uncomfortable.',
       target:      '30-sec max push-ups + plank to form failure',
     },
+    [CORE.CLRC]: {
+      label:       'Baseline - Strength & Core',
+      description: '30-sec max push-ups, then rest 2 min, then 30-sec max reverse crunches. Drive knees to chest on each rep - lower hips fully between reps.',
+      notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Training begins immediately after.',
+      target:      '30-sec max push-ups + 30-sec max reverse crunches',
+    },
   },
   [UPPER_BODY.HRPU]: {
     [CORE.SITUPS]: {
@@ -196,6 +202,12 @@ const BASELINE_STRENGTH_DEFS = {
       description: '30-sec max hand-release push-ups, then rest 2 min, then forearm plank held to form failure - record the exact time in seconds.',
       notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Full chest-to-floor and hands lift on every HRPU rep. Stop the plank when hips drop or rise.',
       target:      '30-sec max hand-release push-ups + plank to form failure',
+    },
+    [CORE.CLRC]: {
+      label:       'Baseline - Strength & Core',
+      description: '30-sec max hand-release push-ups, then rest 2 min, then 30-sec max reverse crunches. Full chest-to-floor and hands lift on every HRPU rep.',
+      notes:       'Not a test. Establishes your Day 1 numbers only. Record each in Practice Check > PI Workout. Training begins immediately after.',
+      target:      '30-sec max hand-release push-ups + 30-sec max reverse crunches',
     },
   },
 }
@@ -212,6 +224,12 @@ const BASELINE_CARDIO_DEFS = {
     description: '10 shuttle repeats at a comfortable, sustainable effort (20m each, 30s rest between reps). Record your average turnaround time.',
     notes:       'Establishes your shuttle baseline. Record in Practice Check > PI Workout > HAMR Interval. Focus on consistent turnaround times, not speed.',
     target:      'HAMR shuttle baseline - record turnaround time',
+  },
+  [CARDIO.WALK]: {
+    label:       'Baseline - Cardio',
+    description: '2km walk at a brisk, sustainable pace. Record your time.',
+    notes:       'Establishes your walk baseline. Record in Practice Check. Focus on your fastest walking pace without breaking into a run.',
+    target:      '2km walk - record time',
   },
 }
 
