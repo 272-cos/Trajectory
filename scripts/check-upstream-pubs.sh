@@ -93,6 +93,8 @@ log "parent page fetched ($(wc -c <"$PAGE_FILE") bytes)"
 # --- Per-source check ------------------------------------------------------
 FAIL=0
 DRIFTED_KEYS=()
+UNREACHABLE=0
+UNREACHABLE_KEYS=()
 # Refresh mode collects live values into this JSON; check mode never writes it.
 REFRESH_JSON="$(jq '.' "$PIN_FILE")"
 
@@ -138,10 +140,13 @@ for key in $(jq -r '.sources | keys[]' "$PIN_FILE"); do
   HDR_FILE="$(mktemp)"
   HTTP_CODE="$(curl -sSI "${PDF_HDRS[@]}" -o "$HDR_FILE" -w '%{http_code}' "$fetch_url" || true)"
   if [ "$HTTP_CODE" != "200" ]; then
-    err "HEAD $fetch_url returned HTTP $HTTP_CODE"
+    # Non-200 on HEAD is a network/WAF access problem, not evidence of drift.
+    # Treat as unreachable (exit 2) rather than drift (exit 1) so CI does not
+    # block deploys on WAF blocks from runner IPs.
+    warn "HEAD $fetch_url returned HTTP $HTTP_CODE - source unreachable, cannot verify pin"
     rm -f "$HDR_FILE"
-    FAIL=1
-    DRIFTED_KEYS+=("$key")
+    UNREACHABLE=1
+    UNREACHABLE_KEYS+=("$key")
     continue
   fi
   live_lm="$(grep -i '^last-modified:' "$HDR_FILE" | sed -E 's/^[Ll]ast-[Mm]odified:[[:space:]]*//; s/\r$//' | head -1)"
@@ -230,6 +235,15 @@ if [ "$FAIL" -ne 0 ]; then
   err "  4. Run: bash scripts/check-upstream-pubs.sh --refresh"
   err "  5. Commit snapshots + pin file + matrix + scoring updates together."
   exit 1
+fi
+
+if [ "$UNREACHABLE" -ne 0 ]; then
+  warn ""
+  warn "Could not reach upstream sources: ${UNREACHABLE_KEYS[*]}"
+  warn "This is likely a WAF or network block from the CI runner IP."
+  warn "No drift was detected or confirmed. Run locally to verify if needed:"
+  warn "  bash scripts/check-upstream-pubs.sh"
+  exit 2
 fi
 
 log "all pins match. No drift."
