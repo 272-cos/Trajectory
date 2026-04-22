@@ -41,7 +41,15 @@ jobs:
 
       - name: Check upstream USAF publications for drift
         id: upstream_check
-        run: bash scripts/check-upstream-pubs.sh
+        run: |
+          bash scripts/check-upstream-pubs.sh || {
+            EXIT=$?
+            if [ "$EXIT" -eq 2 ]; then
+              echo "::warning::Upstream USAF publications unreachable from CI (WAF/network block). Drift check skipped. Run locally to verify: bash scripts/check-upstream-pubs.sh"
+              exit 0
+            fi
+            exit $EXIT
+          }
 
       - name: Upload upstream drift snapshots (on failure)
         if: failure() && steps.upstream_check.conclusion == 'failure'
