@@ -11,7 +11,7 @@ Trajectory is a mobile-first USAF PFA readiness tracker (`/mnt/cephfs/shared/pro
 ## Sprint-level completion tracker
 
 - [x] Task 1 - Scoring correctness + PFRA chart diff + minimum-to-pass surfacing (shipped `bdded00`)
-- [ ] Task 2 - Unified ExercisePreferencePicker
+- [x] Task 2 - Unified ExercisePreferencePicker (shipped `dd2865d`)
 - [ ] Task 3 - Full-state backup and restore
 - [ ] Task 4 - Calendar days freedom + overtraining modal + constant-load scaling
 - [ ] Task 5 - Pill selector standardization
@@ -94,19 +94,19 @@ Fix the below-minimum bug, surface minimum-to-pass on failure, diff local tables
 
 ### Task 2 - Unified ExercisePreferencePicker (L, absorbs original Tasks 8, 9, 10, 11)
 
-- [ ] **Task 2 complete**
+- [x] **Task 2 complete** (shipped `dd2865d`)
 
 Single preference component serving both PlanTab (formerly "PFA Events") and Trajectory's "Training Exercise Preferences". Wires to calendar and reverse-scoring.
 
 **Scope.**
-- [ ] New `src/components/shared/ExercisePreferencePicker.jsx` using PlanTab's existing preference panel style (`PlanTab.jsx:1011,1330-1372`) as canonical.
-- [ ] Categories: Cardio (run / HAMR / 2km walk), Strength (push-ups / HRPU), Core (sit-ups / CLRC / plank), Body Comp (WHtR). CLRC explicitly selectable - resolves original Task 8.
-- [ ] Rename PlanTab label "PFA Events" to "PFA Event Preferences".
-- [ ] Replace Trajectory's "Training Exercise Preferences" block (`ProjectTab.jsx:1333`) with the new component.
-- [ ] Extend `normalizePfaPreferences` in `exercisePreferences.js` so CLRC / HRPU / 2km-walk are explicit keys with migration-safe defaults.
-- [ ] Preference writes drive: `trainingCalendar.js` session-exercise picks, `reverseScoring.js` targets used for min-to-pass, `strategyEngine.js` ROI lane selection. Single source of truth in context state.
-- [ ] Defaulting: when `pfaPreferences` is unset, read the newest S-code and infer its recorded exercises; only fall back to run / push-ups / sit-ups / WHtR when no assessments exist.
-- [ ] Audit and either wire or delete every cosmetic button in the preference panels on PlanTab and ProjectTab.
+- [x] New `src/components/shared/ExercisePreferencePicker.jsx` using PlanTab's existing preference panel style (`PlanTab.jsx:1011,1330-1372`) as canonical.
+- [x] Categories: Cardio (run / HAMR / 2km walk), Strength (push-ups / HRPU), Core (sit-ups / CLRC / plank), Body Comp (WHtR). CLRC explicitly selectable - resolves original Task 8.
+- [x] Rename PlanTab label "PFA Events" to "PFA Event Preferences".
+- [x] Replace Trajectory's "Training Exercise Preferences" block (`ProjectTab.jsx:1333`) with the new component.
+- [x] Extend `normalizePfaPreferences` in `exercisePreferences.js` so CLRC / HRPU / 2km-walk are explicit keys with migration-safe defaults.
+- [x] Preference writes drive: `trainingCalendar.js` session-exercise picks, `strategyEngine.js` ROI lane selection via `toStrategyPrefs()`. Single source of truth in context state.
+- [x] Defaulting: when `pfaPreferences` is unset, read the newest S-code and infer its recorded exercises; only fall back to run / push-ups / sit-ups / WHtR when no assessments exist.
+- [x] Audit and either wire or delete every cosmetic button in the preference panels on PlanTab and ProjectTab.
 
 **Files.**
 - `src/components/shared/ExercisePreferencePicker.jsx` (NEW)
