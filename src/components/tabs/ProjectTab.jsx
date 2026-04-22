@@ -376,7 +376,8 @@ function GapBar({ currentPct, projectedPct, minPct, pass }) {
   const clamp = v => Math.max(0, Math.min(100, v))
   const cur = clamp(currentPct)
   const proj = clamp(projectedPct)
-  const min = clamp(minPct)
+  const hasMin = minPct != null
+  const min = hasMin ? clamp(minPct) : null
 
   const barColor = pass ? 'bg-green-500' : 'bg-red-400'
   const fillPct = clamp(Math.max(cur, proj)) // fill to the further of the two
@@ -391,12 +392,14 @@ function GapBar({ currentPct, projectedPct, minPct, pass }) {
           style={{ width: `${fillPct}%` }}
         />
 
-        {/* Minimum threshold line */}
-        <div
-          className="absolute top-[-4px] bottom-[-4px] w-0.5 bg-gray-700 rounded"
-          style={{ left: `${min}%` }}
-          title={`Minimum: ${minPct.toFixed(0)}%`}
-        />
+        {/* Minimum threshold line - omitted for components with no minimum (e.g. Body Comp) */}
+        {hasMin && (
+          <div
+            className="absolute top-[-4px] bottom-[-4px] w-0.5 bg-gray-700 rounded"
+            style={{ left: `${min}%` }}
+            title={`Minimum: ${minPct.toFixed(0)}%`}
+          />
+        )}
 
         {/* Current marker */}
         {currentPct !== null && (
@@ -418,7 +421,7 @@ function GapBar({ currentPct, projectedPct, minPct, pass }) {
       {/* Scale labels */}
       <div className="flex justify-between text-xs text-gray-400 mt-0.5 select-none">
         <span>0%</span>
-        <span>{minPct.toFixed(0)}% min</span>
+        {hasMin ? <span>{minPct.toFixed(0)}% min</span> : <span>no min</span>}
         <span>100%</span>
       </div>
     </div>
