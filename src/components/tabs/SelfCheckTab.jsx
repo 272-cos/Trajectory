@@ -1224,7 +1224,7 @@ export default function SelfCheckTab() {
               <>
                 {bcScore?.points === 0 && (
                   <p className="text-xs text-red-600 mt-2">
-                    Get to {(Math.floor(0.60 * parseFloat(heightInches) * 10 - 0.01) / 10).toFixed(1)} in waist to score
+                    Trim {(parseFloat(waistInches) - Math.floor(0.60 * parseFloat(heightInches) * 10 - 0.01) / 10).toFixed(1)} in waist to gain points
                   </p>
                 )}
                 <NextGainHint score={bcScore} exercise={EXERCISES.WHTR} ageBracket={scores?.ageBracket} gender={scores?.gender} currentValue={whtr} heightInches={heightInches} />
