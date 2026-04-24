@@ -9,6 +9,7 @@ import { EXERCISES, COMPONENTS, GENDER, AGE_BRACKETS, VALIDATION } from '../../u
 import { calculateAge, getAgeBracket, isDiagnosticPeriod, getWalkTimeLimit } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, parseTime, formatTime, isTimeIncomplete, hamrTimeToShuttles } from '../../utils/scoring/scoringEngine.js'
 import { getMinimumToPass } from '../../utils/scoring/reverseScoring.js'
+import { analyzeNextGain } from '../../utils/scoring/strategyEngine.js'
 import ExerciseComparison from './ExerciseComparison.jsx'
 import { saveDraft, loadDraft, clearDraft, savePracticeSession, getSelectedBase, saveSelectedBase } from '../../utils/storage/localStorage.js'
 import { UPPER_BODY, CORE, CARDIO } from '../../utils/training/exercisePreferences.js'
@@ -1005,20 +1006,18 @@ export default function SelfCheckTab() {
             </div>
           )}
 
-          {/* Minimum-to-pass hint for cardio when below minimum */}
-          {!cardioExempt && (
-            <MinimumToPassHint
-              score={scores?.components.find(c => c.type === COMPONENTS.CARDIO)}
-              exercise={cardioExercise}
-              ageBracket={scores?.ageBracket}
-              gender={scores?.gender}
-              currentValue={
-                cardioExercise === EXERCISES.RUN_2MILE
-                  ? parseTime(cardioValue)
-                  : (cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10))
-              }
-            />
-          )}
+          {!cardioExempt && (() => {
+            const cardioScore = scores?.components.find(c => c.type === COMPONENTS.CARDIO)
+            const cardioRaw = cardioExercise === EXERCISES.RUN_2MILE
+              ? parseTime(cardioValue)
+              : (cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10))
+            return (
+              <>
+                <MinimumToPassHint score={cardioScore} exercise={cardioExercise} ageBracket={scores?.ageBracket} gender={scores?.gender} currentValue={cardioRaw} />
+                <NextGainHint score={cardioScore} exercise={cardioExercise} ageBracket={scores?.ageBracket} gender={scores?.gender} currentValue={cardioRaw} />
+              </>
+            )
+          })()}
 
           {/* Exempt: sub-options */}
           {cardioExempt && (
@@ -1076,16 +1075,16 @@ export default function SelfCheckTab() {
               <p className="text-xs text-amber-600 mt-1">Unusually high count - double check your entry</p>
             )}
           </div>
-          {/* Minimum-to-pass hint for strength when below minimum */}
-          {!strengthExempt && (
-            <MinimumToPassHint
-              score={scores?.components.find(c => c.type === COMPONENTS.STRENGTH)}
-              exercise={strengthExercise}
-              ageBracket={scores?.ageBracket}
-              gender={scores?.gender}
-              currentValue={parseInt(strengthValue, 10)}
-            />
-          )}
+          {!strengthExempt && (() => {
+            const strengthScore = scores?.components.find(c => c.type === COMPONENTS.STRENGTH)
+            const strengthRaw = parseInt(strengthValue, 10)
+            return (
+              <>
+                <MinimumToPassHint score={strengthScore} exercise={strengthExercise} ageBracket={scores?.ageBracket} gender={scores?.gender} currentValue={strengthRaw} />
+                <NextGainHint score={strengthScore} exercise={strengthExercise} ageBracket={scores?.ageBracket} gender={scores?.gender} currentValue={strengthRaw} />
+              </>
+            )
+          })()}
           <TrainingResources component={COMPONENTS.STRENGTH} exercise={strengthExempt ? null : strengthExercise} />
         </ComponentSection>
 
@@ -1151,16 +1150,16 @@ export default function SelfCheckTab() {
               </p>
             )}
           </div>
-          {/* Minimum-to-pass hint for core when below minimum */}
-          {!coreExempt && (
-            <MinimumToPassHint
-              score={scores?.components.find(c => c.type === COMPONENTS.CORE)}
-              exercise={coreExercise}
-              ageBracket={scores?.ageBracket}
-              gender={scores?.gender}
-              currentValue={coreExercise === EXERCISES.PLANK ? parseTime(coreValue) : parseInt(coreValue, 10)}
-            />
-          )}
+          {!coreExempt && (() => {
+            const coreScore = scores?.components.find(c => c.type === COMPONENTS.CORE)
+            const coreRaw = coreExercise === EXERCISES.PLANK ? parseTime(coreValue) : parseInt(coreValue, 10)
+            return (
+              <>
+                <MinimumToPassHint score={coreScore} exercise={coreExercise} ageBracket={scores?.ageBracket} gender={scores?.gender} currentValue={coreRaw} />
+                <NextGainHint score={coreScore} exercise={coreExercise} ageBracket={scores?.ageBracket} gender={scores?.gender} currentValue={coreRaw} />
+              </>
+            )
+          })()}
           <TrainingResources component={COMPONENTS.CORE} exercise={coreExempt ? null : coreExercise} />
         </ComponentSection>
 
@@ -1218,13 +1217,20 @@ export default function SelfCheckTab() {
               WHtR: {calculateWHtR(parseFloat(waistInches), parseFloat(heightInches))?.toFixed(2)}
             </p>
           )}
-          {/* Body comp hint: shown when WHtR earns 0 pts (BC has no pass/fail minimum per §3.7.1) */}
-          {!bodyCompExempt && heightInches && waistInches && !heightError && !waistError &&
-           scores?.components.find(c => c.type === COMPONENTS.BODY_COMP)?.points === 0 && (
-            <p className="text-xs text-red-600 mt-2">
-              You need: {(Math.floor(0.60 * parseFloat(heightInches) * 10 - 0.01) / 10).toFixed(1)} in waist
-            </p>
-          )}
+          {!bodyCompExempt && heightInches && waistInches && !heightError && !waistError && (() => {
+            const bcScore = scores?.components.find(c => c.type === COMPONENTS.BODY_COMP)
+            const whtr = calculateWHtR(parseFloat(waistInches), parseFloat(heightInches))
+            return (
+              <>
+                {bcScore?.points === 0 && (
+                  <p className="text-xs text-red-600 mt-2">
+                    Get to {(Math.floor(0.60 * parseFloat(heightInches) * 10 - 0.01) / 10).toFixed(1)} in waist to score
+                  </p>
+                )}
+                <NextGainHint score={bcScore} exercise={EXERCISES.WHTR} ageBracket={scores?.ageBracket} gender={scores?.gender} currentValue={whtr} heightInches={heightInches} />
+              </>
+            )
+          })()}
           <TrainingResources component={COMPONENTS.BODY_COMP} />
         </ComponentSection>
         </div>{/* close exercise components grid */}
@@ -1933,27 +1939,51 @@ function formatNeededDelta(exercise, currentValue, floorThreshold) {
     if (delta <= 0) return null
     const m = Math.floor(delta / 60)
     const s = String(delta % 60).padStart(2, '0')
-    return `-${m}:${s}`
+    return `Cut ${m}:${s} off your time`
   }
   if (exercise === EXERCISES.PLANK) {
     const delta = floorThreshold - currentValue
     if (delta <= 0) return null
     const m = Math.floor(delta / 60)
     const s = String(delta % 60).padStart(2, '0')
-    return `+${m}:${s}`
+    return `Hold ${m}:${s} longer to pass`
   }
   if (exercise === EXERCISES.HAMR) {
     const delta = Math.ceil(floorThreshold - currentValue)
     if (delta <= 0) return null
-    return `+${delta} shuttles`
+    return `${delta} more shuttle${delta === 1 ? '' : 's'} to pass`
   }
   const delta = Math.ceil(floorThreshold - currentValue)
   if (delta <= 0) return null
-  return `+${delta} reps`
+  return `${delta} more rep${delta === 1 ? '' : 's'} to pass`
+}
+
+function formatNextGain(exercise, gain, heightInches) {
+  const pts = `+${gain.ptsGain.toFixed(1)} pts`
+  const n = Math.round(gain.improvementNeeded)
+  if (exercise === EXERCISES.RUN_2MILE) {
+    const m = Math.floor(n / 60)
+    const s = String(n % 60).padStart(2, '0')
+    return `Cut ${m}:${s} for ${pts}`
+  }
+  if (exercise === EXERCISES.PLANK) {
+    const m = Math.floor(n / 60)
+    const s = String(n % 60).padStart(2, '0')
+    return `Hold ${m}:${s} longer for ${pts}`
+  }
+  if (exercise === EXERCISES.HAMR) {
+    return `${n} more shuttle${n === 1 ? '' : 's'} for ${pts}`
+  }
+  if (exercise === EXERCISES.WHTR) {
+    if (!heightInches) return null
+    const inchDelta = (gain.improvementNeeded * parseFloat(heightInches)).toFixed(1)
+    return `Trim ${inchDelta} in for ${pts}`
+  }
+  return `${n} more rep${n === 1 ? '' : 's'} for ${pts}`
 }
 
 /**
- * Inline hint shown below an exercise input when the component score is below minimum.
+ * Shown below a failing component input - how far to the chart floor.
  */
 function MinimumToPassHint({ score, exercise, ageBracket, gender, currentValue }) {
   if (!score?.belowMinimum || !ageBracket || !gender) return null
@@ -1964,6 +1994,23 @@ function MinimumToPassHint({ score, exercise, ageBracket, gender, currentValue }
   return (
     <p className="text-xs text-red-600 mt-2">
       You need: {delta}
+    </p>
+  )
+}
+
+/**
+ * Shown below a passing component input - how close to the next point threshold.
+ */
+function NextGainHint({ score, exercise, ageBracket, gender, currentValue, heightInches }) {
+  if (!score?.pass || score.points === 0) return null
+  if (!ageBracket || !gender || currentValue == null || isNaN(currentValue)) return null
+  const gain = analyzeNextGain(exercise, currentValue, gender, ageBracket)
+  if (!gain || gain.alreadyMaxed || gain.ptsGain <= 0) return null
+  const hint = formatNextGain(exercise, gain, heightInches)
+  if (!hint) return null
+  return (
+    <p className="text-xs text-green-700 mt-2">
+      {hint}
     </p>
   )
 }
