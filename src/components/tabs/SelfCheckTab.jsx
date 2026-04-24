@@ -1993,7 +1993,7 @@ function MinimumToPassHint({ score, exercise, ageBracket, gender, currentValue }
   if (!delta) return null
   return (
     <p className="text-xs text-red-600 mt-2">
-      You need: {delta}
+      {delta}
     </p>
   )
 }

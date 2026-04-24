@@ -67,7 +67,7 @@ function decodeAndScore(code, demographics) {
         { type: COMPONENTS.CARDIO, exercise: decoded.cardio.exercise, value: decoded.cardio.value, exempt: false, walkPass: decoded.cardio.walkPass },
         gender, ageBracket
       )
-      components.push({ ...result, type: COMPONENTS.CARDIO, exercise: decoded.cardio.exercise })
+      components.push({ ...result, type: COMPONENTS.CARDIO, exercise: decoded.cardio.exercise, value: decoded.cardio.value })
     } else if (decoded.cardio?.exempt) {
       components.push({ type: COMPONENTS.CARDIO, exempt: true, tested: false, pass: true })
     }
@@ -77,7 +77,7 @@ function decodeAndScore(code, demographics) {
         { type: COMPONENTS.STRENGTH, exercise: decoded.strength.exercise, value: decoded.strength.value, exempt: false },
         gender, ageBracket
       )
-      components.push({ ...result, type: COMPONENTS.STRENGTH, exercise: decoded.strength.exercise })
+      components.push({ ...result, type: COMPONENTS.STRENGTH, exercise: decoded.strength.exercise, value: decoded.strength.value })
     } else if (decoded.strength?.exempt) {
       components.push({ type: COMPONENTS.STRENGTH, exempt: true, tested: false, pass: true })
     }
@@ -87,7 +87,7 @@ function decodeAndScore(code, demographics) {
         { type: COMPONENTS.CORE, exercise: decoded.core.exercise, value: decoded.core.value, exempt: false },
         gender, ageBracket
       )
-      components.push({ ...result, type: COMPONENTS.CORE, exercise: decoded.core.exercise })
+      components.push({ ...result, type: COMPONENTS.CORE, exercise: decoded.core.exercise, value: decoded.core.value })
     } else if (decoded.core?.exempt) {
       components.push({ type: COMPONENTS.CORE, exempt: true, tested: false, pass: true })
     }
@@ -572,12 +572,24 @@ function AssessmentSection({ entry, index, total }) {
                 {comp.belowMinimum && !comp.walkOnly && scores?.gender && scores?.ageBracket && (
                   (() => {
                     const minInfo = getMinimumToPass(comp.exercise, scores.ageBracket, scores.gender)
-                    if (!minInfo) return null
-                    return (
-                      <p className="text-xs text-red-600 mt-0.5 font-sans">
-                        Minimum to register points: {minInfo.displayValue} (DAFMAN §3.7.4)
-                      </p>
-                    )
+                    if (!minInfo || comp.value == null) return null
+                    let hint = null
+                    const ex = comp.exercise
+                    if (ex === EXERCISES.RUN_2MILE) {
+                      const d = Math.round(comp.value - minInfo.threshold)
+                      if (d > 0) hint = `Cut ${Math.floor(d/60)}:${String(d%60).padStart(2,'0')} off your time`
+                    } else if (ex === EXERCISES.PLANK) {
+                      const d = Math.round(minInfo.threshold - comp.value)
+                      if (d > 0) hint = `Hold ${Math.floor(d/60)}:${String(d%60).padStart(2,'0')} longer to pass`
+                    } else if (ex === EXERCISES.HAMR) {
+                      const d = Math.ceil(minInfo.threshold - comp.value)
+                      if (d > 0) hint = `${d} more shuttle${d === 1 ? '' : 's'} to pass`
+                    } else {
+                      const d = Math.ceil(minInfo.threshold - comp.value)
+                      if (d > 0) hint = `${d} more rep${d === 1 ? '' : 's'} to pass`
+                    }
+                    if (!hint) return null
+                    return <p className="text-xs text-red-600 mt-0.5 font-sans">{hint}</p>
                   })()
                 )}
               </div>

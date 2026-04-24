@@ -411,7 +411,7 @@ function attachScoreCalcs(form, calcRefs) {
 function attachFieldPolish(form) {
   const ctx = form.doc.context
   const safe = (name, fn) => {
-    try { const tf = form.getTextField(name); if (tf) fn(tf) } catch (e) {}
+    try { const tf = form.getTextField(name); if (tf) fn(tf) } catch { /* field not found */ }
   }
 
   // DoD ID: 10-digit integer only.
