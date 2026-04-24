@@ -1017,6 +1017,11 @@ export default function SelfCheckTab() {
               exercise={cardioExercise}
               ageBracket={scores?.ageBracket}
               gender={scores?.gender}
+              currentValue={
+                cardioExercise === EXERCISES.RUN_2MILE
+                  ? parseTime(cardioValue)
+                  : (cardioValue.includes(':') ? hamrTimeToShuttles(cardioValue) : parseInt(cardioValue, 10))
+              }
             />
           )}
 
@@ -1083,6 +1088,7 @@ export default function SelfCheckTab() {
               exercise={strengthExercise}
               ageBracket={scores?.ageBracket}
               gender={scores?.gender}
+              currentValue={parseInt(strengthValue, 10)}
             />
           )}
           <TrainingResources component={COMPONENTS.STRENGTH} exercise={strengthExempt ? null : strengthExercise} />
@@ -1157,6 +1163,7 @@ export default function SelfCheckTab() {
               exercise={coreExercise}
               ageBracket={scores?.ageBracket}
               gender={scores?.gender}
+              currentValue={coreExercise === EXERCISES.PLANK ? parseTime(coreValue) : parseInt(coreValue, 10)}
             />
           )}
           <TrainingResources component={COMPONENTS.CORE} exercise={coreExempt ? null : coreExercise} />
@@ -1216,14 +1223,12 @@ export default function SelfCheckTab() {
               WHtR: {calculateWHtR(parseFloat(waistInches), parseFloat(heightInches))?.toFixed(2)}
             </p>
           )}
-          {/* Minimum-to-pass hint for body comp when below minimum */}
-          {!bodyCompExempt && (
-            <MinimumToPassHint
-              score={scores?.components.find(c => c.type === COMPONENTS.BODY_COMP)}
-              exercise={EXERCISES.WHTR}
-              ageBracket={scores?.ageBracket}
-              gender={scores?.gender}
-            />
+          {/* Body comp hint: shown when WHtR earns 0 pts (BC has no pass/fail minimum per §3.7.1) */}
+          {!bodyCompExempt && heightInches && waistInches && !heightError && !waistError &&
+           scores?.components.find(c => c.type === COMPONENTS.BODY_COMP)?.points === 0 && (
+            <p className="text-xs text-red-600 mt-2">
+              You need: {(0.59 * parseFloat(heightInches)).toFixed(1)} in waist
+            </p>
           )}
           <TrainingResources component={COMPONENTS.BODY_COMP} />
         </ComponentSection>
@@ -1902,7 +1907,7 @@ function ComponentSection({ title, exempt, onExemptChange, score, children, hide
               </p>
               <div className="flex justify-end items-center gap-1 mt-0.5" aria-hidden="true">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold ${score.pass ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {score.pass ? 'PASS' : (score.belowMinimum ? 'FAIL - 0 toward composite' : 'FAIL')}
+                  {score.pass ? 'PASS' : 'FAIL'}
                 </span>
                 {score.pass && <span className="text-xs text-gray-500">{score.percentage.toFixed(1)}%</span>}
               </div>
@@ -1926,17 +1931,44 @@ function ComponentSection({ title, exempt, onExemptChange, score, children, hide
   )
 }
 
+function formatNeededDelta(exercise, currentValue, floorThreshold) {
+  if (currentValue == null || isNaN(currentValue)) return null
+  if (exercise === EXERCISES.RUN_2MILE) {
+    const delta = currentValue - floorThreshold
+    if (delta <= 0) return null
+    const m = Math.floor(delta / 60)
+    const s = String(delta % 60).padStart(2, '0')
+    return `-${m}:${s}`
+  }
+  if (exercise === EXERCISES.PLANK) {
+    const delta = floorThreshold - currentValue
+    if (delta <= 0) return null
+    const m = Math.floor(delta / 60)
+    const s = String(delta % 60).padStart(2, '0')
+    return `+${m}:${s}`
+  }
+  if (exercise === EXERCISES.HAMR) {
+    const delta = Math.ceil(floorThreshold - currentValue)
+    if (delta <= 0) return null
+    return `+${delta} shuttles`
+  }
+  const delta = Math.ceil(floorThreshold - currentValue)
+  if (delta <= 0) return null
+  return `+${delta} reps`
+}
+
 /**
  * Inline hint shown below an exercise input when the component score is below minimum.
- * Tells the user what performance they need to pass the component minimum.
  */
-function MinimumToPassHint({ score, exercise, ageBracket, gender }) {
+function MinimumToPassHint({ score, exercise, ageBracket, gender, currentValue }) {
   if (!score?.belowMinimum || !ageBracket || !gender) return null
   const minInfo = getMinimumToPass(exercise, ageBracket, gender)
   if (!minInfo) return null
+  const delta = formatNeededDelta(exercise, currentValue, minInfo.threshold)
+  if (!delta) return null
   return (
     <p className="text-xs text-red-600 mt-2">
-      Minimum to register points: {minInfo.displayValue} (DAFMAN §3.7.4)
+      You need: {delta}
     </p>
   )
 }
