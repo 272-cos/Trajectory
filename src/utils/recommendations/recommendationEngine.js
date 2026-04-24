@@ -3,7 +3,7 @@
  * Provides tiered training suggestions based on component scores
  */
 
-import { COMPONENTS, EXERCISES, COMPONENT_MINIMUMS, RECOMMENDATION_TIERS } from '../scoring/constants.js'
+import { COMPONENTS, EXERCISES, COMPONENTS_WITH_CHART_FLOOR_MINIMUM, RECOMMENDATION_TIERS } from '../scoring/constants.js'
 import {
   getProgressionRatio,
   getPhaseFromRatio,
@@ -547,9 +547,11 @@ export function generateWeeklyPlan(componentData, targetDate, totalPlanWeeks) {
     if (!data || data.exempt) continue
     if (data.percentage === null || data.percentage === undefined) continue
 
-    const minPct = COMPONENT_MINIMUMS[comp] ?? 60
-    const gapBelowMin = Math.max(0, minPct - data.percentage)
-    const isFailing = data.percentage < minPct
+    // §3.7.4: component fails its floor only when 0 pts scored (below * row).
+    // §3.7.1: Body Comp has no floor minimum.
+    const isFailing = COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(comp) && data.percentage === 0
+    // When below floor use max gap to drive highest training frequency.
+    const gapBelowMin = isFailing ? 100 : 0
 
     priorities.push({
       component: comp,

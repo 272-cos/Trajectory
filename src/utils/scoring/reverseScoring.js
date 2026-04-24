@@ -10,7 +10,7 @@
  */
 
 import { getScoringTable } from './scoringTables.js'
-import { EXERCISES, COMPONENTS, COMPONENT_WEIGHTS, COMPONENT_MINIMUMS } from './constants.js'
+import { EXERCISES, COMPONENTS, COMPONENT_WEIGHTS, COMPONENTS_WITH_CHART_FLOOR_MINIMUM } from './constants.js'
 import { computeOptimalAllocation } from './optimalAllocation.js'
 
 // Map exercise to its parent component type
@@ -267,17 +267,19 @@ function generatePersonalizedTable(targetComposite, gender, ageBracket, currentS
 }
 
 /**
- * Get the minimum performance required to pass a component's per-component minimum.
+ * Get the minimum performance required to register points for a component.
  *
- * Returns the threshold performance value (e.g., run time, rep count, ratio) that
- * earns the minimum passing points for the component:
- *   - Cardio, Strength, Core: 60% of max pts
- *   - Body Comp: 50% of max pts
+ * Per DAFMAN 36-2905 §3.7.4, the asterisk (*) row is the chart floor.
+ * Performance at or above the * row earns points; below earns 0 and fails
+ * the component. This returns the * row threshold (last row in the table).
+ *
+ * Body Composition has no per-component minimum (§3.7.1) - returns null.
+ * 2km Walk is pass/fail only - returns null.
  *
  * @param {string} exercise - Exercise type constant (EXERCISES.*)
  * @param {string} ageBracket - Age bracket constant (AGE_BRACKETS.*)
  * @param {string} gender - 'M' or 'F'
- * @returns {{ threshold: number, points: number, minimumPct: number, displayValue: string }|null}
+ * @returns {{ threshold: number, points: number, displayValue: string, unit: string }|null}
  */
 export function getMinimumToPass(exercise, ageBracket, gender) {
   const component = EXERCISE_TO_COMPONENT[exercise]
@@ -286,23 +288,18 @@ export function getMinimumToPass(exercise, ageBracket, gender) {
   // Walk has no point scoring (pass/fail only) - no minimum threshold concept
   if (exercise === EXERCISES.WALK_2KM) return null
 
-  // Body Composition has no per-component minimum (DAFMAN 36-2905 §3.7.1).
-  // BC contributes whatever points the WHtR chart yields; there is no
-  // "minimum WHtR to pass the component" concept.
-  const minimumPct = COMPONENT_MINIMUMS[component]
-  if (minimumPct === undefined) return null
+  // Body Composition has no per-component minimum (DAFMAN 36-2905 §3.7.1)
+  if (!COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(component)) return null
 
-  const maxPts = COMPONENT_WEIGHTS[component]
-  const targetPts = (minimumPct / 100) * maxPts // minimum points needed
+  const table = getScoringTable(gender, ageBracket, exercise)
+  if (!table || table.length === 0) return null
 
-  const result = reverseLookup(exercise, targetPts, gender, ageBracket)
-  if (!result) return null
-
+  // The * row is the last row - the lowest threshold that still earns any points
+  const lastRow = table[table.length - 1]
   return {
-    threshold: result.threshold,
-    points: result.points,
-    minimumPct,
-    displayValue: formatReverseValue(exercise, result.threshold),
+    threshold: lastRow.threshold,
+    points: lastRow.points,
+    displayValue: formatReverseValue(exercise, lastRow.threshold),
     unit: EXERCISE_UNITS[exercise],
   }
 }

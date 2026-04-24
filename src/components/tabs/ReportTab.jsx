@@ -575,7 +575,7 @@ function AssessmentSection({ entry, index, total }) {
                     if (!minInfo) return null
                     return (
                       <p className="text-xs text-red-600 mt-0.5 font-sans">
-                        Need at least {minInfo.displayValue} to pass ({minInfo.minimumPct}% minimum)
+                        Minimum to register points: {minInfo.displayValue} (DAFMAN §3.7.4)
                       </p>
                     )
                   })()

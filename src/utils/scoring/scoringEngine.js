@@ -6,11 +6,19 @@
 import { getScoringTable } from './scoringTables.js'
 import {
   COMPONENT_WEIGHTS,
-  COMPONENT_MINIMUMS,
+  COMPONENTS_WITH_CHART_FLOOR_MINIMUM,
   PASSING_COMPOSITE,
   EXERCISES,
   getWalkTimeLimit,
 } from './constants.js'
+
+// Per DAFMAN 36-2905 §3.7.4: a component passes its floor minimum when points > 0.
+// Below the * row = 0 external points = component failure.
+// DAFMAN §3.7.1: Body Composition has no per-component minimum → always passes here.
+function componentMinimumMet(type, points) {
+  if (!COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(type)) return true
+  return points > 0
+}
 
 /**
  * Look up points for a given performance
@@ -213,14 +221,10 @@ export function calculateComponentScore(component, gender, ageBracket) {
 
   const { points, percentage, internalPoints } = scoreResult
   const maxPoints = getMaxPointsForComponent(type)
-  // DAFMAN 36-2905 §3.7.1: Body Composition has no per-component minimum. Undefined
-  // entry in COMPONENT_MINIMUMS means "no minimum" → treat as 0% floor so pass is
-  // always true on scored BC (BFA gate is handled outside this function).
-  const minimum = COMPONENT_MINIMUMS[type] ?? 0
-  // SL-10/§3.7.4: points already zeroed at lookup for sub-min; percentage >= minimum
-  // alone is sufficient for the pass gate here (0 >= 60 is false, correctly failing).
-  const pass = percentage >= minimum
-  // belowMinimum: component was tested but failed its per-component minimum.
+  // §3.7.4: component passes only when points > 0 (at or above the * row).
+  // §3.7.1: Body Comp has no floor minimum - componentMinimumMet returns true.
+  const pass = componentMinimumMet(type, points)
+  // belowMinimum: component was tested but scored 0 pts (below * row).
   // Preserves upstream display/cascade semantics (shows "FAIL - 0 toward composite").
   const belowMinimum = !pass
 
@@ -228,12 +232,11 @@ export function calculateComponentScore(component, gender, ageBracket) {
     tested: true,
     exempt: false,
     walkOnly, // SL-07: true when exercise is 2km walk
-    points, // DAFMAN-literal external, 0 when sub-min per §3.7.4
+    points, // DAFMAN-literal external, 0 when below * row per §3.7.4
     internalPoints, // continuous tracking number; NEVER rendered (boss directive)
     maxPoints,
     percentage,
     pass,
-    minimum,
     belowMinimum,
   }
 }

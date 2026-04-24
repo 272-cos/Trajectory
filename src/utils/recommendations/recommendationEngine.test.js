@@ -22,25 +22,25 @@ function weeksFromToday(weeks) {
 // Minimal component data fixtures
 
 const FAILING_CARDIO = {
-  percentage: 52, // below 60% minimum for cardio (60% min)
+  percentage: 0, // below chart floor (* row) - earns 0 pts, fails component per §3.7.4
   exercise: EXERCISES.RUN_2MILE,
   exempt: false,
 }
 
 const MARGINAL_STRENGTH = {
-  percentage: 76, // above 60% minimum but below 80% strong
+  percentage: 76, // earns points but below 80% strong tier
   exercise: EXERCISES.PUSHUPS,
   exempt: false,
 }
 
 const PASSING_CORE = {
-  percentage: 85, // well above 60% minimum
+  percentage: 85, // well above chart floor
   exercise: EXERCISES.SITUPS,
   exempt: false,
 }
 
 const BODY_COMP_DATA = {
-  percentage: 55, // above 50% minimum
+  percentage: 55, // BC has no floor minimum per §3.7.1
   exercise: EXERCISES.WHTR,
   exempt: false,
 }
@@ -143,13 +143,15 @@ describe('generateWeeklyPlan - priority ordering', () => {
     expect(plan.planItems[0].isFailing).toBe(true)
   })
 
-  it('orders by gap magnitude when both components are failing', () => {
+  it('orders failing component (0%) before non-failing component', () => {
     const data = {
-      cardio: { percentage: 50, exercise: EXERCISES.RUN_2MILE, exempt: false }, // 10% below 60 min
-      strength: { percentage: 55, exercise: EXERCISES.PUSHUPS, exempt: false }, // 5% below 60 min
+      cardio: { percentage: 50, exercise: EXERCISES.RUN_2MILE, exempt: false }, // not failing (> 0%)
+      strength: { percentage: 0, exercise: EXERCISES.PUSHUPS, exempt: false }, // failing (0 pts)
     }
     const plan = generateWeeklyPlan(data, weeksFromToday(8))
-    expect(plan.planItems[0].component).toBe(COMPONENTS.CARDIO)
+    // strength is failing (isFailing:true) and must be sorted before non-failing cardio
+    expect(plan.planItems[0].component).toBe(COMPONENTS.STRENGTH)
+    expect(plan.planItems[0].isFailing).toBe(true)
   })
 
   it('assigns correct priorityRank values', () => {
@@ -167,15 +169,16 @@ describe('generateWeeklyPlan - priority ordering', () => {
 // ── Session counts ───────────────────────────────────────────────────────────
 
 describe('generateWeeklyPlan - session counts', () => {
-  it('gives more sessions per week for larger gaps in urgent mode', () => {
-    const bigGap = { percentage: 40, exercise: EXERCISES.RUN_2MILE, exempt: false }
-    const smallGap = { percentage: 58, exercise: EXERCISES.RUN_2MILE, exempt: false }
+  it('gives more sessions per week for failing component (0%) than passing in urgent mode', () => {
+    // §3.7.4: a component at 0% (below chart floor) gets gapBelowMin=100 -> max frequency
+    const failing = { percentage: 0, exercise: EXERCISES.RUN_2MILE, exempt: false }
+    const passing = { percentage: 60, exercise: EXERCISES.RUN_2MILE, exempt: false }
 
-    const planBig = generateWeeklyPlan({ cardio: bigGap }, weeksFromToday(2))
-    const planSmall = generateWeeklyPlan({ cardio: smallGap }, weeksFromToday(2))
+    const planFailing = generateWeeklyPlan({ cardio: failing }, weeksFromToday(2))
+    const planPassing = generateWeeklyPlan({ cardio: passing }, weeksFromToday(2))
 
-    expect(planBig.planItems[0].sessionsPerWeek).toBeGreaterThanOrEqual(
-      planSmall.planItems[0].sessionsPerWeek
+    expect(planFailing.planItems[0].sessionsPerWeek).toBeGreaterThan(
+      planPassing.planItems[0].sessionsPerWeek
     )
   })
 
@@ -297,25 +300,27 @@ describe('generateWeeklyPlan - plan structure', () => {
 })
 
 // ── isFailing flag ───────────────────────────────────────────────────────────
+// §3.7.4: isFailing is true only when the component is in COMPONENTS_WITH_CHART_FLOOR_MINIMUM
+// AND percentage === 0 (below the * row, 0 pts scored).
+// §3.7.1: Body Comp has no floor minimum, so isFailing is always false for BC.
 
 describe('generateWeeklyPlan - isFailing flag', () => {
-  it('correctly flags component below minimum as failing', () => {
-    // Cardio minimum is 60%
-    const data = { cardio: { percentage: 58, exercise: EXERCISES.RUN_2MILE, exempt: false } }
+  it('flags component at 0% (below chart floor, 0 pts) as failing per §3.7.4', () => {
+    const data = { cardio: { percentage: 0, exercise: EXERCISES.RUN_2MILE, exempt: false } }
     const plan = generateWeeklyPlan(data, weeksFromToday(8))
     expect(plan.planItems[0].isFailing).toBe(true)
   })
 
-  it('does not flag component at or above minimum as failing', () => {
-    // Cardio minimum is 60%
+  it('does not flag component above 0% as failing (any pts scored = floor passed)', () => {
     const data = { cardio: { percentage: 60, exercise: EXERCISES.RUN_2MILE, exempt: false } }
     const plan = generateWeeklyPlan(data, weeksFromToday(8))
     expect(plan.planItems[0].isFailing).toBe(false)
   })
 
-  it('correctly flags body comp below 50% minimum as failing', () => {
-    const data = { bodyComp: { percentage: 45, exercise: EXERCISES.WHTR, exempt: false } }
+  it('body comp never fails component floor per DAFMAN §3.7.1', () => {
+    // BC has no per-component minimum - any WHtR score passes the component floor
+    const data = { bodyComp: { percentage: 0, exercise: EXERCISES.WHTR, exempt: false } }
     const plan = generateWeeklyPlan(data, weeksFromToday(8))
-    expect(plan.planItems[0].isFailing).toBe(true)
+    expect(plan.planItems[0].isFailing).toBe(false)
   })
 })

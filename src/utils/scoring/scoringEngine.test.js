@@ -1220,17 +1220,29 @@ const makeBelow = (points, maxPoints) => ({
 })
 
 describe('belowMinimum - calculateComponentScore flags below-minimum components', () => {
-  it('M <25 pushups 30 reps -> belowMinimum: true (16.7% < 60% min)', () => {
+  it('M <25 pushups 30 reps (floor / * row) -> pass: true, belowMinimum: false (§3.7.4)', () => {
+    // 30 reps = 2.5 pts = the * row. At or above the * row passes the component floor.
     const result = calculateComponentScore(
       { type: 'strength', exercise: EXERCISES.PUSHUPS, value: 30 },
       M, U25
     )
-    expect(result.belowMinimum).toBe(true)
-    expect(result.pass).toBe(false)
+    expect(result.pass).toBe(true)
+    expect(result.belowMinimum).toBe(false)
+    expect(result.points).toBe(2.5)
     expect(result.tested).toBe(true)
   })
 
-  it('M <25 pushups 67 reps -> belowMinimum: false (passes above 60% min)', () => {
+  it('M <25 pushups 29 reps (below * row) -> pass: false, belowMinimum: true, 0 pts', () => {
+    const result = calculateComponentScore(
+      { type: 'strength', exercise: EXERCISES.PUSHUPS, value: 29 },
+      M, U25
+    )
+    expect(result.pass).toBe(false)
+    expect(result.belowMinimum).toBe(true)
+    expect(result.points).toBe(0)
+  })
+
+  it('M <25 pushups 67 reps -> belowMinimum: false (well above floor)', () => {
     const result = calculateComponentScore(
       { type: 'strength', exercise: EXERCISES.PUSHUPS, value: 67 },
       M, U25
@@ -1239,15 +1251,15 @@ describe('belowMinimum - calculateComponentScore flags below-minimum components'
     expect(result.pass).toBe(true)
   })
 
-  it('M <25 2-mile run at chart worst -> belowMinimum: true (70% >= 60% but check exact)', () => {
-    // 1185s = 35.0/50 = 70% - actually passes the 60% cardio minimum
+  it('M <25 2-mile run at chart worst (1185s) -> pass: true, belowMinimum: false (35 pts = * row)', () => {
+    // 1185s = 35.0 pts = the * row. Points > 0 so component passes floor.
     const result = calculateComponentScore(
       { type: 'cardio', exercise: EXERCISES.RUN_2MILE, value: 1185 },
       M, U25
     )
-    // 35.0/50 = 70% which is >= 60% minimum, so it passes
     expect(result.pass).toBe(true)
     expect(result.belowMinimum).toBe(false)
+    expect(result.points).toBe(35.0)
   })
 
   it('WHtR 0.60 -> belowMinimum: false (BC has no per-component minimum per DAFMAN §3.7.1)', () => {
@@ -1336,10 +1348,11 @@ describe('belowMinimum - cascades to overall fail; composite remains truthful (D
   })
 
   it('real below-min scenario: M <25 all-4 assessment with bad pushups', () => {
+    // 29 reps is below the M/<25 chart floor (30 reps = * row, 2.5 pts) -> 0 pts -> component fail
     const comps = [
       calculateComponentScore({ type: 'cardio', exercise: EXERCISES.RUN_2MILE, value: 900 }, M, U25),
       calculateComponentScore({ type: 'bodyComp', exercise: EXERCISES.WHTR, value: 0.46 }, M, U25),
-      calculateComponentScore({ type: 'strength', exercise: EXERCISES.PUSHUPS, value: 30 }, M, U25),
+      calculateComponentScore({ type: 'strength', exercise: EXERCISES.PUSHUPS, value: 29 }, M, U25),
       calculateComponentScore({ type: 'core', exercise: EXERCISES.SITUPS, value: 50 }, M, U25),
     ]
     const result = calculateCompositeScore(comps)

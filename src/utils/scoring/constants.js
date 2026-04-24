@@ -62,17 +62,15 @@ export const GENDER = {
 // Passing composite score
 export const PASSING_COMPOSITE = 75.0
 
-// Component minimum percentages (must pass component AND composite).
-// DAFMAN 36-2905 §3.7.1: Body Composition "does not have a minimum requirement";
-// BC is points-only (WHtR) plus a pass/fail BFA gate triggered only when
-// WHtR > .55 AND composite < 75 (§3.1.2.1.1). The BFA gate lives outside the
-// per-component minimum model and is not enforced in this table.
-export const COMPONENT_MINIMUMS = {
-  [COMPONENTS.CARDIO]: 60.0, // 30/50 points
-  [COMPONENTS.STRENGTH]: 60.0, // 9/15 points
-  [COMPONENTS.CORE]: 60.0, // 9/15 points
-  // BODY_COMP: no minimum per DAFMAN §3.7.1
-}
+// Per DAFMAN 36-2905 §3.7.4: the asterisk (*) row on PFRA charts is the absolute
+// minimum. Performance below the * row earns 0 pts and fails the component.
+// Body Composition is excluded (§3.7.1: no per-component minimum for BC).
+// Use: componentMinimumMet(type, points) in scoringEngine.js.
+export const COMPONENTS_WITH_CHART_FLOOR_MINIMUM = new Set([
+  COMPONENTS.CARDIO,
+  COMPONENTS.STRENGTH,
+  COMPONENTS.CORE,
+])
 
 // 2km Walk time limits (seconds) per Table 3.1, DAFMAN 36-2905
 // Walk uses 5 broader age brackets mapped to 9 AFPC brackets.
@@ -189,8 +187,9 @@ export const DIAGNOSTIC_PERIOD_END = '2026-08-31'
 // To update: bump CHART_VERSION + CHART_RELEASE_DATE, add new table module to
 // scoringTables.js. All existing S-codes re-score automatically because they
 // store raw values (reps/times/measurements), not cached point totals.
-export const CHART_VERSION = 'Sep 2025 Provisional'
-export const CHART_RELEASE_DATE = '2025-09-01'
+export const CHART_VERSION = '2026-03 PFRA Final'
+export const CHART_RELEASE_DATE = '2026-03-01'
+export const REGULATION_VERSION = 'DAFMAN 36-2905, 24 March 2026'
 
 /**
  * Calculate age from DOB and date

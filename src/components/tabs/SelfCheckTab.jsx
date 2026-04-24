@@ -878,7 +878,7 @@ export default function SelfCheckTab() {
                       <li>{(75.0 - scores.composite.composite).toFixed(1)} points below passing (75.0)</li>
                     )}
                     {scores.composite.failedComponents.map((fc, i) => (
-                      <li key={i}>{fc.type.charAt(0).toUpperCase() + fc.type.slice(1)} below {fc.minimum}% minimum ({fc.percentage.toFixed(1)}%)</li>
+                      <li key={i}>{fc.type.charAt(0).toUpperCase() + fc.type.slice(1)} below chart minimum - 0 pts scored (DAFMAN §3.7.4)</li>
                     ))}
                     {scores.composite.walkComponents?.some(w => w.pass === false) && (
                       <li>2km Walk not passed - overall PFA failure</li>
@@ -1936,7 +1936,7 @@ function MinimumToPassHint({ score, exercise, ageBracket, gender }) {
   if (!minInfo) return null
   return (
     <p className="text-xs text-red-600 mt-2">
-      Need at least {minInfo.displayValue} to pass ({minInfo.minimumPct}% minimum)
+      Minimum to register points: {minInfo.displayValue} (DAFMAN §3.7.4)
     </p>
   )
 }
