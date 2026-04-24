@@ -522,12 +522,25 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem,
       {!proj.pass && !proj.exempt && latestDemographics && (
         (() => {
           const minInfo = getMinimumToPass(proj.exercise, latestDemographics.ageBracket, latestDemographics.gender)
-          if (!minInfo) return null
-          return (
-            <p className="mt-2 text-xs text-red-600">
-              Minimum to register points: {minInfo.displayValue} (DAFMAN §3.7.4)
-            </p>
-          )
+          if (!minInfo || proj.projected_value == null) return null
+          const ex = proj.exercise
+          const v = proj.projected_value
+          let hint = null
+          if (ex === EXERCISES.RUN_2MILE) {
+            const d = Math.round(v - minInfo.threshold)
+            if (d > 0) hint = `Cut ${Math.floor(d/60)}:${String(d%60).padStart(2,'0')} off your time`
+          } else if (ex === EXERCISES.PLANK) {
+            const d = Math.round(minInfo.threshold - v)
+            if (d > 0) hint = `Hold ${Math.floor(d/60)}:${String(d%60).padStart(2,'0')} longer to pass`
+          } else if (ex === EXERCISES.HAMR) {
+            const d = Math.ceil(minInfo.threshold - v)
+            if (d > 0) hint = `${d} more shuttle${d === 1 ? '' : 's'} to pass`
+          } else {
+            const d = Math.ceil(minInfo.threshold - v)
+            if (d > 0) hint = `${d} more rep${d === 1 ? '' : 's'} to pass`
+          }
+          if (!hint) return null
+          return <p className="mt-2 text-xs text-red-600">{hint}</p>
         })()
       )}
 
