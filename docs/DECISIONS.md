@@ -332,3 +332,30 @@ function calculateScore(components, demographics) {
 - The `--refresh` mode exists only for explicit human acceptance and rewrites the pin + snapshots in one atomic operation, to be committed with the compliance matrix update.
 
 **If upstream is unreachable:** script exits 2 (upstream blocked / network failure), which the workflow treats as a failure. This is deliberate — an unreachable upstream means we cannot verify compliance and should not publish. Manual workflow re-run resolves transient failures.
+
+### DAFMAN-literal per-component minimums (2026-04-24)
+
+**Decision:** Implemented DAFMAN 36-2905 §3.7.4 literally, retiring the legacy 60% percentage-based minimum assumption.
+
+**Old behavior:** Components with scores below 60% of their max points were flagged as failing their per-component minimum (30/50 for cardio, 9/15 for strength/core). This was a heuristic not grounded in the regulation text.
+
+**New behavior:** The asterisk (*) row on the PFRA Scoring Charts is the absolute minimum threshold. Performance below the * row earns 0 external points and fails the component. Performance at or above the * row passes the component floor. The check is simply `points > 0`.
+
+**Impact:**
+- Strength/Core: significantly more lenient. A user at the * row (e.g., 30 push-ups M/<25 = 2.5 pts) now passes the component floor. Previously 2.5/15 = 16.7% < 60% incorrectly flagged as failing.
+- Cardio: functionally unchanged. The run/HAMR tables have no values between 0 and 35 pts, so the old 30-pt threshold and the new 35-pt floor both result in the same pass/fail for real users.
+- Fixes the "Failing despite 2.5 pts" bug where a user completing the * row on strength/core was wrongly denied a path to a passing composite.
+
+**Files changed:**
+- `src/utils/scoring/constants.js`: Deleted `COMPONENT_MINIMUMS`; added `COMPONENTS_WITH_CHART_FLOOR_MINIMUM`; updated `CHART_VERSION`, `CHART_RELEASE_DATE`, `REGULATION_VERSION`.
+- `src/utils/scoring/scoringEngine.js`: Added `componentMinimumMet()` helper; replaced percentage gate with `points > 0` check.
+- `src/utils/scoring/reverseScoring.js`: Rewrote `getMinimumToPass()` to return last table row (* row). Removed `minimumPct` from return.
+- `src/utils/scoring/strategyEngine.js`: `belowMinimum` now `currentPts === 0` for floor components.
+- `src/utils/scoring/optimalAllocation.js`: `minPts` now reads `table[last].points` instead of `0.6 * max`.
+- `src/utils/projection/projectionEngine.js`: Rewrote `getMinPassingValue()`; updated `projectComponent()` pass/gap; added `minPct` to return.
+- `src/utils/recommendations/recommendationEngine.js`: `isFailing` now `percentage === 0` check.
+- UI: Replaced "X% minimum" language with "Minimum to register points: [threshold] (DAFMAN §3.7.4)".
+
+**Governance:** `docs/DAFMAN-COMPLIANCE-MATRIX.md` created; `chartFloor.test.js` added to audit all 126 exercise/bracket combinations programmatically.
+
+**Regulatory authority:** DAFMAN 36-2905, 24 March 2026, §3.7.4.

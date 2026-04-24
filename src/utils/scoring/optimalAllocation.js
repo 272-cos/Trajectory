@@ -16,7 +16,7 @@ import {
   EXERCISES,
   COMPONENTS,
   COMPONENT_WEIGHTS,
-  COMPONENT_MINIMUMS,
+  COMPONENTS_WITH_CHART_FLOOR_MINIMUM,
   PASSING_COMPOSITE,
   IMPROVEMENT_UNITS,
   EFFORT_WEEKS_PER_UNIT,
@@ -224,6 +224,15 @@ export function computeOptimalAllocation(currentScores, targetComposite, demogra
     totalEarned += pts
     totalPossible += maxPts
 
+    // Per §3.7.4: floor minimum = last row of the scoring table (* row).
+    // Body Comp (§3.7.1) has no minimum → minPts = 0.
+    const floorTable = COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(key)
+      ? getScoringTable(gender, ageBracket, data.exercise)
+      : null
+    const minPts = (floorTable && floorTable.length > 0)
+      ? floorTable[floorTable.length - 1].points
+      : 0
+
     compState[key] = {
       exempt: false,
       exercise: data.exercise,
@@ -231,7 +240,7 @@ export function computeOptimalAllocation(currentScores, targetComposite, demogra
       currentPts: pts,
       targetPts: pts, // Will be increased by allocation
       maxPts,
-      minPts: maxPts * (COMPONENT_MINIMUMS[key] / 100),
+      minPts,
       effortWeeks: 0,
       schedule: null, // Lazy-built
     }
@@ -243,7 +252,7 @@ export function computeOptimalAllocation(currentScores, targetComposite, demogra
 
   const currentComposite = Math.round((totalEarned / totalPossible) * 1000) / 10
 
-  // Check if already at target AND all component minimums met
+  // Check if already at target AND all chart-floor minimums met (§3.7.4)
   const allMinimumsmet = compKeys.every(key => {
     const cs = compState[key]
     return cs.exempt || cs.currentPts >= cs.minPts

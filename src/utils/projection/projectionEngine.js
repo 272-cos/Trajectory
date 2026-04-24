@@ -11,7 +11,7 @@
 import {
   EXERCISES,
   COMPONENT_WEIGHTS,
-  COMPONENT_MINIMUMS,
+  COMPONENTS_WITH_CHART_FLOOR_MINIMUM,
   PASSING_COMPOSITE,
   getProjectionAgeBracket,
 } from '../scoring/constants.js'
@@ -58,15 +58,13 @@ export function daysBetween(isoA, isoB) {
 // ─── Chart bounds helpers ─────────────────────────────────────────────────────
 
 /**
- * Return the minimum raw exercise value required to just meet the component
- * passing threshold (COMPONENT_MINIMUMS[componentType]).
+ * Return the minimum raw exercise value required to register points (the * row).
  *
- * For lower-is-better exercises (run, WHtR):
- *   Returns the worst (highest/slowest) threshold that still earns enough points.
- * For higher-is-better exercises (reps):
- *   Returns the worst (lowest) threshold that still earns enough points.
+ * Per DAFMAN 36-2905 §3.7.4, the * row is the chart floor. Performance below
+ * the * row earns 0 pts and fails the component. This returns the * row threshold
+ * (last row in the scoring table) so PG-07 can compute required weekly improvement.
  *
- * PG-07 uses this to compute required weekly improvement.
+ * Body Composition has no per-component minimum (§3.7.1) - returns null.
  *
  * @param {string} exercise
  * @param {string} componentType - 'cardio' | 'strength' | 'core' | 'bodyComp'
@@ -75,25 +73,13 @@ export function daysBetween(isoA, isoB) {
  * @returns {number | null}
  */
 export function getMinPassingValue(exercise, componentType, gender, ageBracket) {
+  // DAFMAN §3.7.1: Body Composition has no per-component minimum.
+  if (!COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(componentType)) return null
+
   const table = getScoringTable(gender, ageBracket, exercise)
   if (!table || table.length === 0) return null
 
-  // DAFMAN §3.7.1: Body Composition has no per-component minimum.
-  const minPctRaw = COMPONENT_MINIMUMS[componentType]
-  if (minPctRaw === undefined) return null
-
-  const maxPts = table[0].points
-  const minPct = minPctRaw / 100
-  const minPtsNeeded = maxPts * minPct
-
-  // Walk from worst entry (last) toward best (first); return the worst that passes.
-  for (let i = table.length - 1; i >= 0; i--) {
-    if (table[i].points >= minPtsNeeded) {
-      return table[i].threshold
-    }
-  }
-
-  // Every entry passes (edge case) - return worst threshold
+  // The * row (last row) is the lowest threshold that earns any points.
   return table[table.length - 1].threshold
 }
 
@@ -387,10 +373,23 @@ export function projectComponent(history, exercise, componentType, gender, ageBr
   if (!scoreResult) return null
 
   const { points, percentage } = scoreResult
-  // DAFMAN §3.7.1: Body Composition has no per-component minimum -> always "passes" the component gate.
-  const minPct = COMPONENT_MINIMUMS[componentType] ?? 0
-  const pass = percentage >= minPct
-  const gap = percentage - minPct // positive = surplus, negative = deficit
+
+  // §3.7.4: component passes when points > 0 (at or above the * row).
+  // §3.7.1: Body Comp has no floor minimum → always passes.
+  const pass = !COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(componentType) || points > 0
+
+  // Compute floor percentage for gap/bar display.
+  // floor = last-row points / max-row points, expressed as percentage of max.
+  const floorTable = COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(componentType)
+    ? getScoringTable(gender, ageBracket, exercise)
+    : null
+  const floorPts = (floorTable && floorTable.length > 0) ? floorTable[floorTable.length - 1].points : 0
+  const maxTablePts = (floorTable && floorTable.length > 0) ? floorTable[0].points : 1
+  const floorPct = COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(componentType)
+    ? (floorPts / maxTablePts) * 100
+    : 0
+
+  const gap = percentage - floorPct // positive = above floor, negative = below floor
 
   // PG-07: Required weekly improvement for failing components
   let required_weekly_improvement = 0
@@ -411,6 +410,7 @@ export function projectComponent(history, exercise, componentType, gender, ageBr
     projected_percentage: percentage,
     pass,
     gap,
+    minPct: COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(componentType) ? floorPct : null,
     required_weekly_improvement,
     model: modelResult.model,
     confidence: modelResult.confidence,

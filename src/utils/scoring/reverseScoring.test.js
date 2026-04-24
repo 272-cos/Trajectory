@@ -17,14 +17,15 @@ const A5559 = AGE_BRACKETS.AGE_55_59
 // ─── getMinimumToPass: return shape ──────────────────────────────────────────
 
 describe('getMinimumToPass - return shape', () => {
-  it('returns { threshold, points, minimumPct, displayValue, unit } for push-ups', () => {
+  it('returns { threshold, points, displayValue, unit } for push-ups (no minimumPct)', () => {
     const result = getMinimumToPass(EXERCISES.PUSHUPS, U25, M)
     expect(result).not.toBeNull()
     expect(result).toHaveProperty('threshold')
     expect(result).toHaveProperty('points')
-    expect(result).toHaveProperty('minimumPct')
     expect(result).toHaveProperty('displayValue')
     expect(result).toHaveProperty('unit')
+    // minimumPct is removed - floor is chart-based, not percentage
+    expect(result).not.toHaveProperty('minimumPct')
   })
 
   it('returns null for 2km walk (pass/fail only, no minimum threshold)', () => {
@@ -36,43 +37,50 @@ describe('getMinimumToPass - return shape', () => {
   })
 })
 
-// ─── getMinimumToPass: minimumPct by component ───────────────────────────────
-// Cardio/Strength/Core: 60%; Body Comp: 50%
+// ─── getMinimumToPass: returns * row (last table row) per §3.7.4 ─────────────
+// The * row is the chart floor - the lowest threshold that still earns any points.
 
-describe('getMinimumToPass - minimumPct values match component rules', () => {
-  it('2-mile run minimumPct = 60 (cardio)', () => {
+describe('getMinimumToPass - returns * row (chart floor) per DAFMAN §3.7.4', () => {
+  it('M <25 2-mile run returns * row: 1185s, 35 pts', () => {
     const result = getMinimumToPass(EXERCISES.RUN_2MILE, U25, M)
-    expect(result.minimumPct).toBe(60)
+    expect(result.threshold).toBe(1185)
+    expect(result.points).toBe(35.0)
   })
 
-  it('HAMR minimumPct = 60 (cardio)', () => {
+  it('M <25 HAMR returns * row: 42 shuttles, 35 pts', () => {
     const result = getMinimumToPass(EXERCISES.HAMR, U25, M)
-    expect(result.minimumPct).toBe(60)
+    expect(result.threshold).toBe(42)
+    expect(result.points).toBe(35.0)
   })
 
-  it('push-ups minimumPct = 60 (strength)', () => {
+  it('M <25 push-ups returns * row: 30 reps, 2.5 pts', () => {
     const result = getMinimumToPass(EXERCISES.PUSHUPS, U25, M)
-    expect(result.minimumPct).toBe(60)
+    expect(result.threshold).toBe(30)
+    expect(result.points).toBe(2.5)
   })
 
-  it('HRPU minimumPct = 60 (strength)', () => {
+  it('M <25 HRPU returns * row: 27 reps, 2.5 pts', () => {
     const result = getMinimumToPass(EXERCISES.HRPU, U25, M)
-    expect(result.minimumPct).toBe(60)
+    expect(result.threshold).toBe(27)
+    expect(result.points).toBe(2.5)
   })
 
-  it('sit-ups minimumPct = 60 (core)', () => {
+  it('M <25 sit-ups returns * row: 33 reps, 2.5 pts', () => {
     const result = getMinimumToPass(EXERCISES.SITUPS, U25, M)
-    expect(result.minimumPct).toBe(60)
+    expect(result.threshold).toBe(33)
+    expect(result.points).toBe(2.5)
   })
 
-  it('CLRC minimumPct = 60 (core)', () => {
+  it('M <25 CLRC returns * row: 35 reps, 2.5 pts', () => {
     const result = getMinimumToPass(EXERCISES.CLRC, U25, M)
-    expect(result.minimumPct).toBe(60)
+    expect(result.threshold).toBe(35)
+    expect(result.points).toBe(2.5)
   })
 
-  it('plank minimumPct = 60 (core)', () => {
+  it('M <25 plank returns * row: 95s, 2.5 pts', () => {
     const result = getMinimumToPass(EXERCISES.PLANK, U25, M)
-    expect(result.minimumPct).toBe(60)
+    expect(result.threshold).toBe(95)
+    expect(result.points).toBe(2.5)
   })
 
   it('WHtR getMinimumToPass returns null (BC has no minimum per DAFMAN §3.7.1)', () => {
@@ -81,38 +89,44 @@ describe('getMinimumToPass - minimumPct values match component rules', () => {
   })
 })
 
-// ─── getMinimumToPass: points must be >= minimum required ─────────────────────
-// Cardio min 30/50, Strength min 9/15, Core min 9/15, BodyComp min 10/20
+// ─── getMinimumToPass: * row points are positive (any points = passes floor) ──
+// §3.7.4: the * row is the lowest threshold with points > 0.
 
-describe('getMinimumToPass - returned points >= component minimum', () => {
-  it('push-ups: returned points >= 9.0 (60% of 15)', () => {
+describe('getMinimumToPass - returned points > 0 (* row earns positive score)', () => {
+  it('push-ups: returned points > 0 (2.5 pts = * row floor)', () => {
     const result = getMinimumToPass(EXERCISES.PUSHUPS, U25, M)
-    expect(result.points).toBeGreaterThanOrEqual(9.0)
+    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(2.5)
   })
 
-  it('HRPU: returned points >= 9.0 (60% of 15)', () => {
+  it('HRPU: returned points > 0 (2.5 pts = * row floor)', () => {
     const result = getMinimumToPass(EXERCISES.HRPU, U25, M)
-    expect(result.points).toBeGreaterThanOrEqual(9.0)
+    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(2.5)
   })
 
-  it('2-mile run: returned points >= 30.0 (60% of 50)', () => {
+  it('2-mile run: returned points > 0 (35 pts = * row floor)', () => {
     const result = getMinimumToPass(EXERCISES.RUN_2MILE, U25, M)
-    expect(result.points).toBeGreaterThanOrEqual(30.0)
+    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(35.0)
   })
 
-  it('HAMR: returned points >= 30.0 (60% of 50)', () => {
+  it('HAMR: returned points > 0 (35 pts = * row floor)', () => {
     const result = getMinimumToPass(EXERCISES.HAMR, U25, M)
-    expect(result.points).toBeGreaterThanOrEqual(30.0)
+    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(35.0)
   })
 
-  it('sit-ups: returned points >= 9.0 (60% of 15)', () => {
+  it('sit-ups: returned points > 0 (2.5 pts = * row floor)', () => {
     const result = getMinimumToPass(EXERCISES.SITUPS, U25, M)
-    expect(result.points).toBeGreaterThanOrEqual(9.0)
+    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(2.5)
   })
 
-  it('plank: returned points >= 9.0 (60% of 15)', () => {
+  it('plank: returned points > 0 (2.5 pts = * row floor)', () => {
     const result = getMinimumToPass(EXERCISES.PLANK, U25, M)
-    expect(result.points).toBeGreaterThanOrEqual(9.0)
+    expect(result.points).toBeGreaterThan(0)
+    expect(result.points).toBe(2.5)
   })
 
   it('WHtR: returns null - no per-component minimum (DAFMAN §3.7.1)', () => {

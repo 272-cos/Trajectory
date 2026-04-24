@@ -19,7 +19,7 @@ import {
 import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode } from '../../utils/codec/scode.js'
 import { generateProjection, AMBER_MARGIN } from '../../utils/projection/projectionEngine.js'
-import { COMPONENT_WEIGHTS, COMPONENT_MINIMUMS, EXERCISES, PASSING_COMPOSITE, COMPONENTS } from '../../utils/scoring/constants.js'
+import { COMPONENT_WEIGHTS, EXERCISES, PASSING_COMPOSITE, COMPONENTS } from '../../utils/scoring/constants.js'
 import { isDiagnosticPeriod, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { calculateWHtR, calculateComponentScore, calculateCompositeScore } from '../../utils/scoring/scoringEngine.js'
 import { getMinimumToPass } from '../../utils/scoring/reverseScoring.js'
@@ -434,7 +434,7 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem,
   if (!proj) return null
 
   const weight = COMPONENT_WEIGHTS[compType]
-  const minPct = COMPONENT_MINIMUMS[compType]
+  const minPct = proj.minPct ?? null // chart floor % from projectionEngine (§3.7.4)
   const label = COMP_LABELS[compType]
 
   if (proj.exempt) {
@@ -525,7 +525,7 @@ function ComponentCard({ compType, proj, currentPct, daysToTarget, strategyItem,
           if (!minInfo) return null
           return (
             <p className="mt-2 text-xs text-red-600">
-              Need at least {minInfo.displayValue} to pass ({minInfo.minimumPct}% minimum)
+              Minimum to register points: {minInfo.displayValue} (DAFMAN §3.7.4)
             </p>
           )
         })()

@@ -182,7 +182,7 @@ describe('computeOptimalAllocation', () => {
   })
 
   it('forces components below minimum up first', () => {
-    // Cardio below 60% minimum (30/50 pts)
+    // Cardio at 29.5 pts is below the chart floor (* row = 35 pts for all brackets)
     const scores = {
       [COMPONENTS.CARDIO]: { exercise: EXERCISES.RUN_2MILE, value: 1244, pts: 29.5 },
       [COMPONENTS.STRENGTH]: { exercise: EXERCISES.PUSHUPS, value: 51, pts: 15.0 },
@@ -190,7 +190,7 @@ describe('computeOptimalAllocation', () => {
       [COMPONENTS.BODY_COMP]: { exercise: EXERCISES.WHTR, value: 0.49, pts: 20.0 },
     }
     const result = computeOptimalAllocation(scores, 75, M_35_39)
-    // Cardio must be raised above 30 pts (60% of 50)
+    // Cardio must reach at least chart floor (35 pts) before composite math proceeds
     expect(result.components[COMPONENTS.CARDIO].targetPts).toBeGreaterThanOrEqual(30)
     expect(result.components[COMPONENTS.CARDIO].belowMinimum).toBe(true)
   })
@@ -314,7 +314,7 @@ describe('computeOptimalAllocation - golden scenario (M/35-39, target 75)', () =
     expect(result.components[COMPONENTS.CARDIO].belowMinimum).toBe(true)
   })
 
-  it('forces cardio above 30 pts (60% minimum)', () => {
+  it('forces cardio above chart floor (35 pts * row, §3.7.4)', () => {
     const result = computeOptimalAllocation(goldenScores, 75, M_35_39)
     expect(result.components[COMPONENTS.CARDIO].targetPts).toBeGreaterThanOrEqual(30)
   })

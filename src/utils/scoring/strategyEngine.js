@@ -17,7 +17,7 @@ import {
   EXERCISES,
   COMPONENTS,
   COMPONENT_WEIGHTS,
-  COMPONENT_MINIMUMS,
+  COMPONENTS_WITH_CHART_FLOOR_MINIMUM,
   IMPROVEMENT_UNITS,
   EFFORT_WEEKS_PER_UNIT,
 } from './constants.js'
@@ -413,11 +413,18 @@ export function strategyEngine(demographics, rawInputs, preferences = {}, option
       }
     }
 
-    // Detect if this component is below its per-component minimum.
-    // Tracked so the sort can prioritize failing components above passing ones
-    // without polluting the displayed ROI value with a fake multiplier.
-    const compMinimumPct = COMPONENT_MINIMUMS[comp] || 60
-    const belowMinimum = primary.scorePct * 100 < compMinimumPct
+    // Detect if this component is below its chart floor (scored 0 pts per §3.7.4).
+    // The raw table clamps below-floor performance to the * row (2.5 or 35 pts, never 0),
+    // so compare the actual value against the floor threshold directly.
+    let belowMinimum = false
+    if (COMPONENTS_WITH_CHART_FLOOR_MINIMUM.has(comp)) {
+      const floorTable = getScoringTable(gender, ageBracket, exercise)
+      if (floorTable && floorTable.length > 0) {
+        const floorThreshold = floorTable[floorTable.length - 1].threshold
+        const lower = isLowerBetter(exercise)
+        belowMinimum = lower ? value > floorThreshold : value < floorThreshold
+      }
+    }
 
     analyses.push({
       ...primary,

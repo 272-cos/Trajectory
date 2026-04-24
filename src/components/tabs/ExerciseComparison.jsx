@@ -61,7 +61,7 @@ function ScoreBar({ pct, pass }) {
  * Single exercise row in the comparison table.
  */
 function ExerciseRow({ exercise, value, points, maxPoints, pct, isCurrent, isEquivalent }) {
-  const pass = pct >= 60 // cardio/strength/core all have 60% minimum
+  const pass = pct > 0 // passes chart floor when any points scored (DAFMAN §3.7.4)
 
   return (
     <tr className={isCurrent ? 'bg-blue-50' : 'bg-white hover:bg-gray-50'}>
