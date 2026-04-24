@@ -872,22 +872,17 @@ export default function SelfCheckTab() {
                 )}
               </div>
               {!scores.composite.pass && (
-                <>
-                  <ul className="text-xs text-red-700 mt-1 space-y-0.5">
-                    {!scores.composite.compositePass && (
-                      <li>{(75.0 - scores.composite.composite).toFixed(1)} points below passing (75.0)</li>
-                    )}
-                    {scores.composite.failedComponents.map((fc, i) => (
-                      <li key={i}>{fc.type.charAt(0).toUpperCase() + fc.type.slice(1)} below chart minimum - 0 pts scored (DAFMAN §3.7.4)</li>
-                    ))}
-                    {scores.composite.walkComponents?.some(w => w.pass === false) && (
-                      <li>2km Walk not passed - overall PFA failure</li>
-                    )}
-                  </ul>
-                  <p className="text-xs text-gray-600 mt-2">
-                    Check the Training Focus section on the Trajectory tab for your fastest path to passing.
-                  </p>
-                </>
+                <ul className="text-xs text-red-700 mt-1 space-y-0.5">
+                  {!scores.composite.compositePass && (
+                    <li>{(75.0 - scores.composite.composite).toFixed(1)} pts below passing</li>
+                  )}
+                  {scores.composite.failedComponents.map((fc, i) => (
+                    <li key={i}>{fc.type.charAt(0).toUpperCase() + fc.type.slice(1)}: 0 pts</li>
+                  ))}
+                  {scores.composite.walkComponents?.some(w => w.pass === false) && (
+                    <li>Walk: not passed</li>
+                  )}
+                </ul>
               )}
               {scores.composite.pass && (
                 <p className="text-xs text-gray-600 mt-2">
@@ -1227,7 +1222,7 @@ export default function SelfCheckTab() {
           {!bodyCompExempt && heightInches && waistInches && !heightError && !waistError &&
            scores?.components.find(c => c.type === COMPONENTS.BODY_COMP)?.points === 0 && (
             <p className="text-xs text-red-600 mt-2">
-              You need: {(0.59 * parseFloat(heightInches)).toFixed(1)} in waist
+              You need: {(Math.floor(0.60 * parseFloat(heightInches) * 10 - 0.01) / 10).toFixed(1)} in waist
             </p>
           )}
           <TrainingResources component={COMPONENTS.BODY_COMP} />
