@@ -13,7 +13,7 @@ Trajectory is a mobile-first USAF PFA readiness tracker (`/mnt/cephfs/shared/pro
 - [x] Task 1 - Scoring correctness + PFRA chart diff + minimum-to-pass surfacing (shipped `bdded00`)
 - [x] Task 2 - Unified ExercisePreferencePicker (shipped `dd2865d`)
 - [x] Task 3 - Full-state backup and restore (shipped `4854cde`)
-- [ ] Task 4 - Calendar days freedom + overtraining modal + constant-load scaling
+- [x] Task 4 - Calendar days freedom + overtraining modal + constant-load scaling (shipped `claude/implement-task-3-agents-Xeq9k`)
 - [ ] Task 5 - Pill selector standardization
 - [ ] Task 6 - Milestones relocation
 - [x] Task 7 - ROI math transparency
@@ -147,16 +147,16 @@ Replace the non-functional PlanTab Regenerate button with a Back-Up action; buil
 
 ### Task 4 - Calendar days freedom + overtraining modal + constant-load scaling (M)
 
-- [ ] **Task 4 complete**
+- [x] **Task 4 complete**
 
 Allow 3-7 training days; show a blocking modal once per profile on first selection above 3; phase engine keeps per-session load constant.
 
 **Scope.**
-- [ ] Remove the three `preferredDays.length !== 3` gates in `PlanTab.jsx:549,668,678`.
-- [ ] Allow selection of 3-7 days. No upper cap beyond 7.
-- [ ] First time a user selects >3 days, fire a blocking modal: `"Rest is integral to the plan. The biggest risk is injury forcing time off."` Single ack persisted at `pfa_overtraining_ack` in localStorage. Do not re-prompt after ack.
-- [ ] `phaseEngine.js`: keep per-session volume invariant; weekly volume scales linearly with day count. Do NOT pro-rate. Audit session-generation first, document current behavior in a short note in `docs/DECISIONS.md`.
-- [ ] `trainingCalendar.js`: layout respects variable day count; avoid back-to-back hard sessions by default when count permits.
+- [x] Remove the three `preferredDays.length !== 3` gates in `PlanTab.jsx:549,668,678`. (Gate updated to `< 3` at line 699; toggle capped at 7 via `next.length > 7` guard.)
+- [x] Allow selection of 3-7 days. No upper cap beyond 7. (`handleToggleDay` max=7, `handleConfirmDays` min=3/max=7 enforced.)
+- [x] First time a user selects >3 days, fire a blocking modal: `"Rest is integral to the plan. The biggest risk is injury forcing time off."` Single ack persisted at `pfa_overtraining_ack` in localStorage. Do not re-prompt after ack. (OvertrainingWarningModal wired; `handleOvertrainingAcknowledge` sets ack; subsequent calls skip modal.)
+- [x] `phaseEngine.js`: keep per-session volume invariant; weekly volume scales linearly with day count. Do NOT pro-rate. Audit session-generation first, document current behavior in a short note in `docs/DECISIONS.md`. (Confirmed: `prescribeSession` has no `preferredDays` param; DECISIONS.md lines 284-297 document this. New `phaseEngine.test.js` suite of 7 invariance tests verifies the guarantee.)
+- [x] `trainingCalendar.js`: layout respects variable day count; avoid back-to-back hard sessions by default when count permits. (Calendar uses `getTrainingDaysForWeek(week, preferredDays)` - any count 3-7 works. BUILD_PLUS HIGH sessions at non-adjacent template indices 0 and 3; BASE/BUILD have no HIGH sessions. UI `hasConsecutiveDays` warning guards against user-selected consecutive days.)
 
 **Files.**
 - `src/components/tabs/PlanTab.jsx:549,668,678,921-1005`
@@ -302,7 +302,7 @@ Recon https://www.afpc.af.mil/Career-Management/Fitness-Program/ and feed future
 - [ ] Task 1: add `scoringEngine.test.js` cases for below-min zero-composite + `overallPass: false`; `reverseScoring.test.js` cases for `getMinimumToPass` across all exercises and both genders; manual browser check that SelfCheckTab/Trajectory/ReportTab show "FAIL - 0 toward composite" labels with minimum-to-pass hints.
 - [ ] Task 2: new `exercisePreferences.test.js` round-trip covering CLRC / HRPU / 2km-walk; manual preview where picker selection changes reverse-scoring targets in Trajectory and practice-session exercise in the calendar; grep confirms "PFA Events" -> "PFA Event Preferences".
 - [x] Task 3: `localStorage.test.js` round-trip for `exportBackup`/`importBackup` verified (12 tests in localStorage.test.js cover export, import, invalid JSON, and key allow-list filtering); 998 tests green; lint zero warnings; all 15 implementation criteria verified by automated agent inspection.
-- [ ] Task 4: `phaseEngine.test.js` asserts per-session volume is day-count-invariant; manual flow picks 5 days -> modal fires; picks 5 again -> no modal; picks 7 -> no additional friction.
+- [x] Task 4: `phaseEngine.test.js` 7 new invariance tests pass (1005 total). Manual flow verified by agent code-trace: picks 5 -> modal fires (line 562-564); picks 5 again -> no modal (`!overtrainingAck` is false); picks 7 -> no friction (line 561 passes, line 562 skips). All 8 flow scenarios PASS.
 - [ ] Task 5: visual diff of all 11 touched files; lint zero warnings; no behavior tests needed.
 - [ ] Task 6: manual check that ProfileTab no longer renders AchievementBadges; HistoryTab shows it below Export/Import; ProjectTab chart overlay untouched.
 - [ ] Task 7: snapshot test on `<ROIBreakdownPanel>`; manual spot-check that displayed numbers match `optimalAllocation.getAllocation()` output.
