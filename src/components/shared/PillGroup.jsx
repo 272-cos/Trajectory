@@ -1,35 +1,70 @@
 /**
- * PillGroup - shared single-select segmented control.
+ * PillGroup - shared pill-selector component.
  *
- * Canonical style mirrors PlanTab's PFA-event preference picker:
- * equal-flex buttons, rounded, blue-600 selected / white unselected,
- * with aria-pressed for accessibility.
+ * Variants:
+ *   single-select (default): value is scalar, onChange(newValue)
+ *   multi-select (multi=true): value is array, onChange(newArray) - each click toggles membership
+ *
+ * activeColor: 'blue' (default) | 'amber' | 'green' | 'red'
+ * options[].ariaLabel: optional per-button aria-label (useful for dynamic "Add/Remove X" labels)
  */
+
+const ACTIVE_COLORS = {
+  blue:  'bg-blue-600 border-blue-700 text-white',
+  amber: 'bg-amber-400 border-amber-500 text-white',
+  green: 'bg-green-500 border-green-600 text-white',
+  red:   'bg-red-500 border-red-600 text-white',
+}
 
 export default function PillGroup({
   label,
   options,
   value,
   onChange,
+  multi = false,
+  activeColor = 'blue',
   ariaLabel,
   className = '',
 }) {
+  const activeClass = ACTIVE_COLORS[activeColor] ?? ACTIVE_COLORS.blue
+
+  const isActive = (optValue) =>
+    multi ? Array.isArray(value) && value.includes(optValue) : value === optValue
+
+  const handleClick = (optValue) => {
+    if (multi) {
+      const arr = Array.isArray(value) ? value : []
+      if (arr.includes(optValue)) {
+        onChange(arr.filter(v => v !== optValue))
+      } else {
+        onChange([...arr, optValue])
+      }
+    } else {
+      onChange(optValue)
+    }
+  }
+
   const group = (
-    <div className={`flex gap-1 flex-1 ${className}`} role="radiogroup" aria-label={ariaLabel || label}>
+    <div
+      className={`flex gap-1 flex-1 ${className}`}
+      role={multi ? 'group' : 'radiogroup'}
+      aria-label={ariaLabel || label}
+    >
       {options.map((opt) => {
-        const selected = value === opt.value
+        const selected = isActive(opt.value)
         return (
           <button
             key={opt.value}
             type="button"
-            onClick={() => onChange(opt.value)}
+            onClick={() => handleClick(opt.value)}
             aria-pressed={selected}
-            role="radio"
-            aria-checked={selected}
+            role={multi ? 'button' : 'radio'}
+            aria-checked={multi ? undefined : selected}
+            aria-label={opt.ariaLabel}
             className={[
               'flex-1 py-1 rounded text-xs font-semibold transition-colors border min-h-[32px]',
               selected
-                ? 'bg-blue-600 border-blue-700 text-white'
+                ? activeClass
                 : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
             ].join(' ')}
           >

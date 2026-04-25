@@ -14,7 +14,7 @@ Trajectory is a mobile-first USAF PFA readiness tracker (`/mnt/cephfs/shared/pro
 - [x] Task 2 - Unified ExercisePreferencePicker (shipped `dd2865d`)
 - [x] Task 3 - Full-state backup and restore (shipped `4854cde`)
 - [x] Task 4 - Calendar days freedom + overtraining modal + constant-load scaling (shipped `claude/implement-task-3-agents-Xeq9k`)
-- [ ] Task 5 - Pill selector standardization
+- [x] Task 5 - Pill selector standardization (shipped `claude/complete-task-5-kitchen-sink-fLqq1`)
 - [ ] Task 6 - Milestones relocation
 - [x] Task 7 - ROI math transparency
 - [x] Task 9 - HAMR countdown cadence simplification (shipped `4de016c`)
@@ -171,14 +171,14 @@ Allow 3-7 training days; show a blocking modal once per profile on first selecti
 
 ### Task 5 - Pill selector standardization (M)
 
-- [ ] **Task 5 complete**
+- [x] **Task 5 complete**
 
 One canonical pill component used everywhere.
 
 **Scope.**
-- [ ] Audit every inline pill/segmented-control pattern. Grep already flagged SelfCheckTab, PlanTab, ProjectTab, ExerciseComparison, OnboardingModal, Header, HintBanner, RunPacer, InstallPrompt, HamrMetronome, ReportTab.
-- [ ] Extract `<PillGroup>` and `<PillToggle>` into `src/components/shared/`. Single-select, multi-select, and boolean toggle variants supported.
-- [ ] Replace all ad-hoc pill markup with the shared component. Tailwind class names consolidated.
+- [x] Audit every inline pill/segmented-control pattern. Grep already flagged SelfCheckTab, PlanTab, ProjectTab, ExerciseComparison, OnboardingModal, Header, HintBanner, RunPacer, InstallPrompt, HamrMetronome, ReportTab. Confirmed actual pill/toggle patterns in SelfCheckTab (SegmentedControl x5, ToggleSwitch x1), PlanTab (day picker x2), and ReportTab (inline boolean toggle x1). Other flagged files only have decorative rounded-full elements, no interactive pill selectors.
+- [x] Extract `<PillGroup>` (updated: multi-select + activeColor), `<PillToggle>` (new: boolean toggle), and `<SegmentedControl>` (new: moved from SelfCheckTab) into `src/components/shared/`. Single-select, multi-select, and boolean toggle variants supported.
+- [x] Replace all ad-hoc pill markup with the shared components. Tailwind class names consolidated: SelfCheckTab local SegmentedControl and ToggleSwitch removed; ReportTab inline toggle replaced with PillToggle; PlanTab day picker buttons replaced with PillGroup multi.
 
 **Files.**
 - `src/components/shared/PillGroup.jsx` (NEW)

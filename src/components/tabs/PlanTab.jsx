@@ -21,6 +21,7 @@ import {
   exportBackup,
 } from '../../utils/storage/localStorage.js'
 import ExercisePreferencePicker from '../shared/ExercisePreferencePicker.jsx'
+import PillGroup from '../shared/PillGroup.jsx'
 import {
   generateCalendar,
   PHASES,
@@ -546,16 +547,6 @@ export default function PlanTab() {
     URL.revokeObjectURL(url)
   }
 
-  const handleToggleDay = useCallback((dow) => {
-    setPendingDays(prev => {
-      const next = prev.includes(dow)
-        ? prev.filter(d => d !== dow)
-        : [...prev, dow].sort((a, b) => a - b)
-      if (next.length > 7) return prev
-      return next
-    })
-  }, [])
-
   const handleConfirmDays = useCallback(() => {
     const count = pendingDays.length
     if (count < 3 || count > 7) return
@@ -767,8 +758,6 @@ export default function PlanTab() {
           Choose your three training days to generate a personalized calendar.
         </p>
         {(() => {
-          const DOW_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-          const DOW_FULL   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
           const n          = pendingDays.length
           const over       = n > 3
           const exact      = n === 3
@@ -796,29 +785,20 @@ export default function PlanTab() {
               <div className={`text-xs mb-2.5 min-h-[1rem] transition-colors leading-snug ${over ? 'text-amber-600 font-medium' : 'text-gray-400'}`}>
                 {hint}
               </div>
-              <div className="flex gap-1">
-                {DOW_LABELS.map((label, dow) => {
-                  const active = pendingDays.includes(dow)
-                  return (
-                    <button
-                      key={dow}
-                      onClick={() => handleToggleDay(dow)}
-                      className={[
-                        'flex-1 py-1.5 rounded text-xs font-semibold transition-colors border',
-                        active
-                          ? over
-                            ? 'bg-amber-400 border-amber-500 text-white'
-                            : 'bg-blue-600 border-blue-700 text-white'
-                          : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
-                      ].join(' ')}
-                      aria-pressed={active}
-                      aria-label={`${active ? 'Remove' : 'Add'} ${DOW_FULL[dow]}`}
-                    >
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
+              <PillGroup
+                multi
+                value={pendingDays}
+                onChange={(newDays) => {
+                  if (newDays.length <= 7) setPendingDays([...newDays].sort((a, b) => a - b))
+                }}
+                activeColor={over ? 'amber' : 'blue'}
+                options={['Su','Mo','Tu','We','Th','Fr','Sa'].map((label, dow) => ({
+                  value: dow,
+                  label,
+                  ariaLabel: `${pendingDays.includes(dow) ? 'Remove' : 'Add'} ${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow]}`,
+                }))}
+                ariaLabel="Training days"
+              />
               {consecutive && !over && (
                 <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2.5 py-1.5">
                   Back-to-back days increase injury risk - spacing workouts aids recovery.
@@ -951,8 +931,6 @@ export default function PlanTab() {
 
         {/* Preferred training days picker */}
         {(() => {
-          const DOW_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-          const DOW_FULL   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
           const n          = pendingDays.length
           const valid      = n >= 3 && n <= 7
           const consecutive = hasConsecutiveDays(pendingDays)
@@ -990,27 +968,19 @@ export default function PlanTab() {
               </div>
 
               {/* Day buttons */}
-              <div className="flex gap-1">
-                {DOW_LABELS.map((label, dow) => {
-                  const active = pendingDays.includes(dow)
-                  return (
-                    <button
-                      key={dow}
-                      onClick={() => handleToggleDay(dow)}
-                      className={[
-                        'flex-1 py-1.5 rounded text-xs font-semibold transition-colors border',
-                        active
-                          ? 'bg-blue-600 border-blue-700 text-white'
-                          : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600',
-                      ].join(' ')}
-                      aria-pressed={active}
-                      aria-label={`${active ? 'Remove' : 'Add'} ${DOW_FULL[dow]}`}
-                    >
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
+              <PillGroup
+                multi
+                value={pendingDays}
+                onChange={(newDays) => {
+                  if (newDays.length <= 7) setPendingDays([...newDays].sort((a, b) => a - b))
+                }}
+                options={['Su','Mo','Tu','We','Th','Fr','Sa'].map((label, dow) => ({
+                  value: dow,
+                  label,
+                  ariaLabel: `${pendingDays.includes(dow) ? 'Remove' : 'Add'} ${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow]}`,
+                }))}
+                ariaLabel="Training days"
+              />
 
               {/* Consecutive-day warning */}
               {consecutive && (
