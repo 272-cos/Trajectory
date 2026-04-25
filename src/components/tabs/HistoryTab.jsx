@@ -18,9 +18,10 @@ import { useApp } from '../../context/AppContext.jsx'
 import { decodeSCode, isValidSCode } from '../../utils/codec/scode.js'
 import { EXERCISES, COMPONENTS, calculateAge, getAgeBracket } from '../../utils/scoring/constants.js'
 import { calculateComponentScore, calculateCompositeScore, calculateWHtR, formatTime } from '../../utils/scoring/scoringEngine.js'
-import { getOutliers, toggleOutlier, saveDraft, getPracticeSessions, removePracticeSession } from '../../utils/storage/localStorage.js'
+import { getOutliers, toggleOutlier, saveDraft, getPracticeSessions, removePracticeSession, exportBackup, importBackup } from '../../utils/storage/localStorage.js'
 import ShareModal from '../shared/ShareModal.jsx'
 import AchievementBadges from '../shared/AchievementBadges.jsx'
+import OverwriteConfirmModal from '../shared/OverwriteConfirmModal.jsx'
 import { PI_EXERCISE_LABELS, formatSecondsMMSS } from '../../utils/training/practiceSession.js'
 import { generatePDFAndDownload } from '../../utils/pdf/generateFormPDF.js'
 
@@ -99,6 +100,7 @@ export default function HistoryTab() {
   const [undoDeletes, setUndoDeletes] = useState([]) // [{ code, timer }] - stack of pending undos
   const [shareState, setShareState] = useState(null) // { url, title } for ShareModal
   const [practiceSessions, setPracticeSessions] = useState(() => getPracticeSessions())
+  const [restorePending, setRestorePending] = useState(null) // { jsonString, fileName, keysCount }
 
   // Edit: convert decoded S-code to draft and navigate to Self-Check
   const handleEditAssessment = (decoded) => {
@@ -382,24 +384,41 @@ export default function HistoryTab() {
     }
   }
 
-  // JSON backup download
+  // Full-state backup download
   const handleExportJSON = () => {
-    const data = {
-      exportedAt: new Date().toISOString(),
-      dcode: localStorage.getItem('pfa_dcode'),
-      scodes: JSON.parse(localStorage.getItem('pfa_scodes') || '[]'),
-      targetDate: localStorage.getItem('pfa_target_date'),
-      outliers: JSON.parse(localStorage.getItem('pfa_outliers') || '[]'),
-      exercisePrefs: JSON.parse(localStorage.getItem('pfa_exercise_prefs') || '{}'),
-      personalGoal: localStorage.getItem('pfa_personal_goal'),
-    }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const json = exportBackup()
+    const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `pfa-backup-${new Date().toISOString().split('T')[0]}.json`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  // File-picker restore flow
+  const handleRestoreFileChange = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const jsonString = ev.target.result
+      let parsed
+      try { parsed = JSON.parse(jsonString) } catch { return }
+      const keysCount = parsed?.data ? Object.keys(parsed.data).length : null
+      setRestorePending({ jsonString, fileName: file.name, keysCount })
+    }
+    reader.readAsText(file)
+  }
+
+  const handleConfirmRestore = () => {
+    if (!restorePending) return
+    const result = importBackup(restorePending.jsonString)
+    setRestorePending(null)
+    if (result.ok) {
+      window.location.reload()
+    }
   }
 
   // Detect significant score drops for trend annotation
@@ -498,11 +517,19 @@ export default function HistoryTab() {
           </button>
           <button
             onClick={handleExportJSON}
-            disabled={scodes.length === 0}
-            className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed text-gray-700 rounded-lg transition-colors font-medium"
+            className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
           >
-            Backup JSON
+            Back Up
           </button>
+          <label className="px-3 py-2 min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium cursor-pointer flex items-center">
+            Restore Backup
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              onChange={handleRestoreFileChange}
+            />
+          </label>
           {dcode && scodes.length > 0 && (
             <button
               onClick={() => setShareState({ url: buildShareUrl(dcode, null), title: 'Share All Assessments' })}
@@ -606,6 +633,16 @@ export default function HistoryTab() {
           url={shareState.url}
           title={shareState.title}
           onClose={() => setShareState(null)}
+        />
+      )}
+
+      {/* Restore overwrite confirmation */}
+      {restorePending && (
+        <OverwriteConfirmModal
+          fileName={restorePending.fileName}
+          keysCount={restorePending.keysCount}
+          onConfirm={handleConfirmRestore}
+          onCancel={() => setRestorePending(null)}
         />
       )}
 

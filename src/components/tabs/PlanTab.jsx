@@ -18,6 +18,7 @@ import {
   savePreferredDays,
   getOvertrainingAck,
   setOvertrainingAck,
+  exportBackup,
 } from '../../utils/storage/localStorage.js'
 import ExercisePreferencePicker from '../shared/ExercisePreferencePicker.jsx'
 import {
@@ -534,9 +535,15 @@ export default function PlanTab() {
     setCompletedDays(getCompletedDays())
   }, [])
 
-  const handleRegenerate = () => {
-    setSelectedDate(null)
-    setCalendarKey(k => k + 1)
+  const handleBackUp = () => {
+    const json = exportBackup()
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pfa-backup-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const handleToggleDay = useCallback((dow) => {
@@ -873,10 +880,10 @@ export default function PlanTab() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-bold text-gray-900">Training Plan</h2>
           <button
-            onClick={handleRegenerate}
+            onClick={handleBackUp}
             className="text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
           >
-            Regenerate
+            Back Up
           </button>
         </div>
 
