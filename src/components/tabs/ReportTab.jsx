@@ -29,6 +29,7 @@ import {
 } from '../../utils/scoring/constants.js'
 import { generateProjection } from '../../utils/projection/projectionEngine.js'
 import { generatePDFAndDownload } from '../../utils/pdf/generateFormPDF.js'
+import PillToggle from '../shared/PillToggle.jsx'
 
 const EXERCISE_LABELS = {
   [EXERCISES.RUN_2MILE]: '2-Mile Run',
@@ -341,18 +342,12 @@ export default function ReportTab() {
                 : `Projection to ${new Date(targetPfaDate + 'T12:00:00').toLocaleDateString()}`}
             </p>
           </div>
-          <button
-            onClick={() => setIncludeProjection(v => !v)}
+          <PillToggle
+            checked={includeProjection}
+            onChange={setIncludeProjection}
             disabled={!demographics || !targetPfaDate}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed ${
-              includeProjection ? 'bg-blue-600' : 'bg-gray-200'
-            }`}
-            aria-label="Toggle projection section"
-          >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              includeProjection ? 'translate-x-6' : 'translate-x-1'
-            }`} />
-          </button>
+            ariaLabel="Toggle projection section"
+          />
         </div>
       </div>
 

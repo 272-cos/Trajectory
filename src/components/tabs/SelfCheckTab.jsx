@@ -18,6 +18,8 @@ import { BASE_REGISTRY } from '../../utils/codec/bitpack.js'
 import { generatePDFAndDownload } from '../../utils/pdf/generateFormPDF.js'
 import ShareModal from '../shared/ShareModal.jsx'
 import HintBanner from '../shared/HintBanner.jsx'
+import SegmentedControl from '../shared/SegmentedControl.jsx'
+import PillToggle from '../shared/PillToggle.jsx'
 import {
   PI_EXERCISES, PI_EXERCISE_LABELS, PI_IS_TIME,
   scalePIWorkout, scaleFractionalTest,
@@ -1833,63 +1835,6 @@ function WalkSection({ walkSelected, setWalkSelected, walkTime, setWalkTime, wal
   )
 }
 
-// UX-03: Segmented control - replaces dropdowns for exercise selection
-function SegmentedControl({ options, value, onChange, disabled = false, groupLabel }) {
-  return (
-    <div
-      role="group"
-      aria-label={groupLabel}
-      className={`flex rounded-lg border overflow-hidden ${disabled ? 'border-gray-200' : 'border-gray-300'}`}
-    >
-      {options.map((opt, i) => {
-        const isSelected = value === opt.value
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            disabled={disabled}
-            aria-pressed={isSelected}
-            onClick={() => !disabled && onChange(opt.value)}
-            className={[
-              'flex-1 py-2.5 px-2 text-sm font-medium transition-colors min-h-[44px]',
-              'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500',
-              i < options.length - 1 ? (disabled ? 'border-r border-gray-200' : 'border-r border-gray-300') : '',
-              isSelected
-                ? (disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white')
-                : (disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'),
-            ].join(' ')}
-          >
-            {opt.label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-// UX-04: Toggle switch for exemption - keyboard accessible button[role=switch]
-function ToggleSwitch({ checked, onChange, ariaLabel }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={ariaLabel}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-        checked ? 'bg-blue-600' : 'bg-gray-300'
-      }`}
-    >
-      <span
-        aria-hidden="true"
-        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-          checked ? 'translate-x-4' : 'translate-x-0'
-        }`}
-      />
-    </button>
-  )
-}
-
 // Component Section with score display
 function ComponentSection({ title, exempt, onExemptChange, score, children, hideExemptToggle = false }) {
   // Derive short component name for ARIA label (e.g. "Cardio" from "Cardio (50 pts)")
@@ -1918,7 +1863,7 @@ function ComponentSection({ title, exempt, onExemptChange, score, children, hide
           {!hideExemptToggle && (
             <div className="flex items-center gap-1.5">
               <span className={`text-xs ${exempt ? 'text-gray-700 font-bold' : 'text-gray-500'}`} aria-hidden="true">Exempt</span>
-              <ToggleSwitch
+              <PillToggle
                 checked={exempt}
                 onChange={onExemptChange}
                 ariaLabel={`${componentName} exemption`}
